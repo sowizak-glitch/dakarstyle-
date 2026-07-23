@@ -1,862 +1,537 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<meta name="description" content="DakarStyle - Street wear sénégalais premium. T-shirts, maillots Lions, chemises wax, sneakers. Livraison Dakar 24h." />
-<title>DakarStyle — Street Wear Sénégalais Premium 🇸🇳</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="DakarStyle x Sowhat Africa - capsule Senegal 2026, maillots Lions de la Teranga, streetwear, sneakers et accessoires. Livraison Dakar 24h.">
+<title>DakarStyle x Sowhat Africa - Capsule Senegal 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦁</text></svg>">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0a0a0f;--bg2:#13131a;--card:#1a1a24;--border:rgba(255,255,255,.08);
-  --text:#f5f5f7;--muted:#a0a0b0;--primary:#00d97e;--primary2:#00b86a;
-  --accent:#ffd700;--danger:#ff4757;--gradient:linear-gradient(135deg,#00d97e 0%,#ffd700 100%);
-  --gradient2:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
-  --glass:rgba(255,255,255,.05);--shadow:0 20px 60px rgba(0,0,0,.4);
-}
+:root{--bg:#080a0b;--bg2:#101316;--card:#171b20;--line:rgba(255,255,255,.1);--text:#f7f7f2;--muted:#aeb4ad;--green:#00b871;--gold:#f3c240;--red:#d32924;--shadow:0 22px 70px rgba(0,0,0,.45);--grad:linear-gradient(135deg,#00b871,#f3c240)}
 html{scroll-behavior:smooth}
-body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
-img{max-width:100%;display:block}
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.55;overflow-x:hidden}
+img{display:block;max-width:100%}
 a{color:inherit;text-decoration:none}
-button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
-h1,h2,h3,h4{font-family:'Bricolage Grotesque',sans-serif;line-height:1.2}
-.container{max-width:1280px;margin:0 auto;padding:0 24px}
-
-/* HEADER */
-.header{position:fixed;top:0;left:0;right:0;z-index:1000;padding:18px 0;transition:all .3s;background:rgba(10,10,15,.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid transparent}
-.header.scrolled{background:rgba(10,10,15,.95);border-bottom-color:var(--border);padding:12px 0}
-.header-inner{display:flex;align-items:center;justify-content:space-between;gap:20px}
-.logo{display:flex;align-items:center;gap:10px;font-family:'Bricolage Grotesque',sans-serif;font-size:24px;font-weight:800}
-.logo-icon{width:42px;height:42px;background:var(--gradient);border-radius:12px;display:grid;place-items:center;font-size:22px;box-shadow:0 8px 24px rgba(0,217,126,.3)}
-.logo span{background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
-.nav{display:flex;gap:32px;align-items:center}
-.nav a{font-size:15px;font-weight:500;color:var(--muted);transition:color .2s;position:relative}
+button,input,select,textarea{font:inherit}
+button{border:0;cursor:pointer;color:inherit;background:none}
+h1,h2,h3,h4{font-family:'Bricolage Grotesque',sans-serif;line-height:1.1;letter-spacing:0}
+.container{max-width:1240px;margin:0 auto;padding:0 22px}
+.header{position:fixed;inset:0 0 auto;z-index:1000;background:rgba(8,10,11,.74);backdrop-filter:blur(18px);border-bottom:1px solid transparent;transition:.25s}
+.header.scrolled{background:rgba(8,10,11,.96);border-bottom-color:var(--line)}
+.header-inner{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:20px}
+.logo{display:flex;align-items:center;gap:12px;font-weight:800;font-size:22px}
+.logo-mark{width:42px;height:42px;border-radius:8px;background:var(--grad);display:grid;place-items:center;color:#06100b;font-weight:900;box-shadow:0 10px 30px rgba(0,184,113,.25)}
+.logo small{display:block;color:var(--muted);font-size:11px;font-weight:600;margin-top:2px}
+.nav{display:flex;gap:26px;color:var(--muted);font-size:14px;font-weight:700}
 .nav a:hover{color:var(--text)}
-.nav a::after{content:'';position:absolute;left:0;bottom:-6px;width:0;height:2px;background:var(--gradient);transition:width .3s}
-.nav a:hover::after{width:100%}
 .header-actions{display:flex;gap:10px;align-items:center}
-.icon-btn{width:42px;height:42px;border-radius:12px;background:var(--glass);border:1px solid var(--border);display:grid;place-items:center;font-size:18px;transition:all .2s;position:relative}
-.icon-btn:hover{background:rgba(255,255,255,.1);transform:translateY(-2px)}
-.cart-badge{position:absolute;top:-6px;right:-6px;background:var(--primary);color:#000;font-size:11px;font-weight:700;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--bg)}
+.icon-btn{width:42px;height:42px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.05);display:grid;place-items:center;position:relative}
+.icon-btn:hover{background:rgba(255,255,255,.1)}
+.cart-badge{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--green);color:#00110a;font-size:11px;font-weight:900;display:grid;place-items:center;border:2px solid var(--bg)}
 .menu-toggle{display:none}
-@media(max-width:900px){
-  .nav{display:none}
-  .menu-toggle{display:grid}
-}
-
-/* MOBILE MENU */
-.mobile-menu{position:fixed;top:0;right:-100%;width:85%;max-width:340px;height:100vh;background:var(--bg2);z-index:2000;transition:right .3s ease;padding:80px 24px 24px;border-left:1px solid var(--border);overflow-y:auto}
-.mobile-menu.open{right:0;box-shadow:-20px 0 60px rgba(0,0,0,.5)}
-.mobile-menu a{display:block;padding:16px 0;font-size:18px;font-weight:500;border-bottom:1px solid var(--border);transition:color .2s}
-.mobile-menu a:hover{color:var(--primary)}
-.menu-close{position:absolute;top:20px;right:20px;width:42px;height:42px;border-radius:50%;background:var(--glass);border:1px solid var(--border);display:grid;place-items:center;font-size:22px}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:1500;opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(4px);z-index:1500;opacity:0;pointer-events:none;transition:.25s}
 .overlay.show{opacity:1;pointer-events:auto}
-
-/* HERO */
-.hero{min-height:100vh;padding:140px 0 80px;position:relative;display:flex;align-items:center;overflow:hidden}
-.hero::before{content:'';position:absolute;top:10%;left:-10%;width:60%;height:60%;background:radial-gradient(circle,rgba(0,217,126,.15),transparent 70%);filter:blur(80px);z-index:0}
-.hero::after{content:'';position:absolute;bottom:0;right:-10%;width:50%;height:60%;background:radial-gradient(circle,rgba(255,215,0,.1),transparent 70%);filter:blur(80px);z-index:0}
-.hero-inner{position:relative;z-index:1;display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center}
-@media(max-width:900px){.hero-inner{grid-template-columns:1fr;gap:40px}.hero{padding:120px 0 60px}}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;background:var(--glass);border:1px solid var(--border);border-radius:100px;font-size:13px;color:var(--primary);margin-bottom:24px;font-weight:500}
-.hero-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--primary);box-shadow:0 0 12px var(--primary);animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-.hero h1{font-size:clamp(42px,6vw,72px);font-weight:800;margin-bottom:24px;letter-spacing:-2px}
-.hero h1 .grad{background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p{font-size:18px;color:var(--muted);margin-bottom:32px;max-width:520px}
-.hero-cta{display:flex;gap:14px;flex-wrap:wrap}
-.btn{padding:16px 28px;border-radius:14px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;transition:all .25s;cursor:pointer}
-.btn-primary{background:var(--gradient);color:#000;box-shadow:0 10px 30px rgba(0,217,126,.3)}
-.btn-primary:hover{transform:translateY(-3px);box-shadow:0 15px 40px rgba(0,217,126,.4)}
-.btn-ghost{background:var(--glass);border:1px solid var(--border);color:var(--text)}
-.btn-ghost:hover{background:rgba(255,255,255,.1);transform:translateY(-3px)}
-.hero-stats{display:flex;gap:32px;margin-top:48px;padding-top:32px;border-top:1px solid var(--border)}
-.hero-stats div strong{display:block;font-size:28px;font-weight:800;background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero-stats div span{font-size:13px;color:var(--muted)}
-
-/* HERO CAROUSEL */
-.hero-visual{position:relative;height:560px}
-@media(max-width:900px){.hero-visual{height:420px}}
-.carousel{position:relative;width:100%;height:100%;border-radius:28px;overflow:hidden;box-shadow:var(--shadow)}
-.carousel-slide{position:absolute;inset:0;opacity:0;transition:opacity 1s ease,transform 6s ease;transform:scale(1.05)}
-.carousel-slide.active{opacity:1;transform:scale(1)}
-.carousel-slide img{width:100%;height:100%;object-fit:cover}
-.carousel-slide::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.7) 100%)}
-.carousel-caption{position:absolute;bottom:30px;left:30px;right:30px;z-index:2;color:#fff}
-.carousel-caption h3{font-size:24px;margin-bottom:6px}
-.carousel-caption p{font-size:14px;color:rgba(255,255,255,.85)}
-.carousel-dots{position:absolute;bottom:20px;right:30px;display:flex;gap:8px;z-index:3}
-.carousel-dot{width:30px;height:4px;border-radius:4px;background:rgba(255,255,255,.4);cursor:pointer;transition:all .3s}
-.carousel-dot.active{background:var(--primary);width:40px}
-.floating-card{position:absolute;background:var(--glass);backdrop-filter:blur(20px);border:1px solid var(--border);border-radius:18px;padding:16px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);z-index:3;animation:floatY 4s ease-in-out infinite}
-.fc-1{top:30px;left:-20px;animation-delay:0s}
-.fc-2{bottom:80px;right:-15px;animation-delay:1.5s}
-@keyframes floatY{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
-.fc-icon{width:42px;height:42px;border-radius:12px;background:var(--gradient);display:grid;place-items:center;font-size:20px}
-.fc-text strong{display:block;font-size:14px}
-.fc-text span{font-size:12px;color:var(--muted)}
-
-/* SECTIONS */
-section{padding:90px 0;position:relative}
-.section-head{text-align:center;margin-bottom:50px}
-.section-tag{font-size:13px;color:var(--primary);font-weight:600;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
-.section-head h2{font-size:clamp(32px,4vw,48px);margin-bottom:14px}
-.section-head p{color:var(--muted);max-width:600px;margin:0 auto}
-
-/* CATEGORIES */
-.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
-@media(max-width:900px){.cat-grid{grid-template-columns:repeat(2,1fr)}}
-.cat-card{position:relative;aspect-ratio:1;border-radius:20px;overflow:hidden;cursor:pointer;transition:transform .3s}
-.cat-card:hover{transform:translateY(-6px)}
-.cat-card img{width:100%;height:100%;object-fit:cover;transition:transform .6s}
-.cat-card:hover img{transform:scale(1.1)}
-.cat-card::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.85))}
-.cat-card-content{position:absolute;bottom:20px;left:20px;right:20px;z-index:2;color:#fff}
-.cat-card-content h3{font-size:20px;margin-bottom:4px}
-.cat-card-content span{font-size:13px;color:rgba(255,255,255,.8)}
-
-/* PRODUCTS */
-.filters{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:40px}
-.chip{padding:10px 20px;border-radius:100px;background:var(--glass);border:1px solid var(--border);font-size:14px;font-weight:500;cursor:pointer;transition:all .25s}
-.chip:hover{background:rgba(255,255,255,.08)}
-.chip.active{background:var(--gradient);color:#000;border-color:transparent}
-.product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
-@media(max-width:1100px){.product-grid{grid-template-columns:repeat(3,1fr)}}
-@media(max-width:780px){.product-grid{grid-template-columns:repeat(2,1fr);gap:16px}}
-.product-card{background:var(--card);border:1px solid var(--border);border-radius:20px;overflow:hidden;transition:all .3s;cursor:pointer;position:relative}
-.product-card:hover{transform:translateY(-8px);border-color:rgba(0,217,126,.3);box-shadow:0 20px 50px rgba(0,217,126,.15)}
-.product-img-wrap{position:relative;aspect-ratio:1;overflow:hidden;background:#222}
-.product-img-wrap img{width:100%;height:100%;object-fit:cover;transition:transform .5s}
-.product-card:hover .product-img-wrap img{transform:scale(1.08)}
-.product-tag{position:absolute;top:12px;left:12px;background:var(--gradient);color:#000;padding:5px 12px;border-radius:100px;font-size:11px;font-weight:700;z-index:2}
-.product-info{padding:16px}
-.product-cat{font-size:11px;color:var(--primary);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px}
-.product-name{font-size:15px;font-weight:600;margin-bottom:10px;line-height:1.3}
-.product-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px}
-.product-price{font-size:17px;font-weight:700;background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
-.product-add{width:38px;height:38px;border-radius:50%;background:var(--gradient);color:#000;display:grid;place-items:center;font-size:20px;font-weight:700;transition:transform .2s;flex-shrink:0}
-.product-add:hover{transform:scale(1.15) rotate(90deg)}
-
-/* TRYON */
-.tryon{background:linear-gradient(180deg,transparent,rgba(0,217,126,.05),transparent)}
-.tryon-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;max-width:1000px;margin:0 auto}
-@media(max-width:780px){.tryon-grid{grid-template-columns:1fr}}
-.tryon-box{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:30px}
-.tryon-box h3{font-size:22px;margin-bottom:20px}
-.tryon-upload{border:2px dashed var(--border);border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .25s;margin-bottom:16px}
-.tryon-upload:hover{border-color:var(--primary);background:rgba(0,217,126,.05)}
-.tryon-upload .icon{font-size:48px;margin-bottom:10px}
-.tryon-upload p{color:var(--muted);font-size:14px}
-.tryon-select{width:100%;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:inherit;font-size:15px;margin-bottom:16px}
-.tryon-preview{aspect-ratio:1;border-radius:16px;background:var(--bg);display:grid;place-items:center;color:var(--muted);overflow:hidden}
-.tryon-preview img{width:100%;height:100%;object-fit:cover}
-
-/* FEATURES */
-.features-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}
-@media(max-width:900px){.features-grid{grid-template-columns:repeat(2,1fr)}}
-.feature{text-align:center;padding:30px 20px;background:var(--card);border:1px solid var(--border);border-radius:20px;transition:all .25s}
-.feature:hover{transform:translateY(-6px);border-color:rgba(0,217,126,.3)}
-.feature-icon{width:64px;height:64px;margin:0 auto 16px;background:var(--gradient);border-radius:16px;display:grid;place-items:center;font-size:28px}
-.feature h4{font-size:17px;margin-bottom:8px}
-.feature p{color:var(--muted);font-size:14px}
-
-/* FOOTER */
-.footer{background:var(--bg2);border-top:1px solid var(--border);padding:60px 0 30px;margin-top:60px}
-.footer-grid{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px;margin-bottom:40px}
-@media(max-width:780px){.footer-grid{grid-template-columns:1fr 1fr;gap:30px}}
-.footer-col h4{font-size:16px;margin-bottom:16px}
-.footer-col p,.footer-col a{color:var(--muted);font-size:14px;display:block;margin-bottom:10px;transition:color .2s}
-.footer-col a:hover{color:var(--primary)}
-.footer-bottom{padding-top:24px;border-top:1px solid var(--border);text-align:center;color:var(--muted);font-size:13px}
-
-/* CART DRAWER */
-.cart-drawer{position:fixed;top:0;right:-100%;width:90%;max-width:420px;height:100vh;background:var(--bg2);z-index:2100;transition:right .35s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;box-shadow:-20px 0 60px rgba(0,0,0,.4)}
+.mobile-menu{position:fixed;top:0;right:-100%;z-index:2000;width:min(86vw,340px);height:100vh;background:var(--bg2);border-left:1px solid var(--line);padding:78px 24px 24px;transition:.3s}
+.mobile-menu.open{right:0;box-shadow:-20px 0 70px rgba(0,0,0,.55)}
+.mobile-menu a{display:block;padding:16px 0;border-bottom:1px solid var(--line);font-weight:800}
+.menu-close{position:absolute;top:20px;right:20px}
+.hero{min-height:100vh;padding:128px 0 72px;display:flex;align-items:center;background:linear-gradient(180deg,#0d1210,#080a0b)}
+.hero-grid{display:grid;grid-template-columns:.92fr 1.08fr;gap:54px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;border:1px solid rgba(0,184,113,.35);background:rgba(0,184,113,.08);color:#7df0bb;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:800;margin-bottom:20px}
+.eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 14px var(--green)}
+.hero h1{font-size:clamp(42px,6vw,76px);font-weight:800;margin-bottom:20px}
+.hero h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{font-size:18px;color:var(--muted);max-width:590px;margin-bottom:28px}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;padding:14px 20px;font-weight:900;transition:.2s}
+.btn-primary{background:var(--grad);color:#06100b;box-shadow:0 12px 34px rgba(0,184,113,.25)}
+.btn-primary:hover,.btn-ghost:hover{transform:translateY(-2px)}
+.btn-ghost{border:1px solid var(--line);background:rgba(255,255,255,.05)}
+.hero-stats{display:flex;gap:26px;flex-wrap:wrap;margin-top:34px;padding-top:26px;border-top:1px solid var(--line)}
+.hero-stats strong{display:block;font-size:26px;color:var(--gold)}
+.hero-stats span{font-size:13px;color:var(--muted)}
+.carousel{position:relative;height:min(70vh,690px);min-height:480px;border-radius:8px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--line)}
+.slide{position:absolute;inset:0;opacity:0;transition:opacity .8s,transform 5s;transform:scale(1.04)}
+.slide.active{opacity:1;transform:scale(1)}
+.slide img{width:100%;height:100%;object-fit:cover}
+.slide::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 25%,rgba(0,0,0,.72))}
+.caption{position:absolute;left:24px;right:24px;bottom:24px;z-index:2}
+.caption h3{font-size:28px;margin-bottom:6px}
+.caption p{color:rgba(255,255,255,.82);font-size:14px}
+.dots{position:absolute;right:24px;bottom:24px;z-index:3;display:flex;gap:8px}
+.dot{width:34px;height:4px;border-radius:4px;background:rgba(255,255,255,.45)}
+.dot.active{background:var(--green);width:46px}
+section{padding:78px 0}
+.section-head{text-align:center;margin-bottom:38px}
+.section-tag{color:var(--green);font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
+.section-head h2{font-size:clamp(30px,4vw,48px);margin-bottom:12px}
+.section-head p{max-width:660px;margin:0 auto;color:var(--muted)}
+.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.cat-card{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:#222}
+.cat-card img{width:100%;height:100%;object-fit:cover;transition:.45s}
+.cat-card:hover img{transform:scale(1.06)}
+.cat-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.84))}
+.cat-card div{position:absolute;left:18px;right:18px;bottom:18px;z-index:2}
+.cat-card h3{font-size:20px;margin-bottom:4px}
+.cat-card span{font-size:13px;color:rgba(255,255,255,.78)}
+.filters{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:32px}
+.chip{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:999px;padding:9px 16px;font-size:14px;font-weight:800}
+.chip.active{background:var(--grad);color:#06100b;border-color:transparent}
+.product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.product-card{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;transition:.25s}
+.product-card:hover{transform:translateY(-5px);border-color:rgba(0,184,113,.45);box-shadow:0 18px 42px rgba(0,184,113,.11)}
+.product-img{position:relative;aspect-ratio:1;background:#111;overflow:hidden}
+.product-img img{width:100%;height:100%;object-fit:cover;transition:.4s}
+.product-card:hover .product-img img{transform:scale(1.05)}
+.product-tag{position:absolute;top:12px;left:12px;background:var(--grad);color:#06100b;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:900}
+.product-info{padding:15px}
+.product-cat{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#7df0bb;font-weight:900;margin-bottom:7px}
+.product-name{font-weight:900;font-size:15px;line-height:1.25;margin-bottom:8px;min-height:38px}
+.product-desc{color:var(--muted);font-size:12px;line-height:1.35;margin-bottom:10px;min-height:48px}
+.product-sizes{font-size:11px;color:#d7d7cd;margin-bottom:12px}
+.product-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.product-price{font-weight:900;font-size:17px;color:var(--gold)}
+.product-add{width:38px;height:38px;border-radius:50%;background:var(--grad);color:#06100b;font-size:22px;font-weight:900;display:grid;place-items:center;flex:0 0 auto}
+.story{background:#0c0f10;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.story-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:center}
+.story img{border-radius:8px;border:1px solid var(--line);box-shadow:var(--shadow);width:100%;aspect-ratio:4/3;object-fit:cover}
+.story h2{font-size:clamp(30px,4vw,46px);margin-bottom:16px}
+.story p{color:var(--muted);margin-bottom:14px}
+.features-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.feature{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:22px;text-align:center}
+.feature b{display:block;color:var(--gold);font-size:18px;margin-bottom:6px}
+.feature p{color:var(--muted);font-size:13px}
+.footer{background:var(--bg2);border-top:1px solid var(--line);padding:48px 0 26px}
+.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:28px;margin-bottom:30px}
+.footer p,.footer a{display:block;color:var(--muted);font-size:14px;margin-bottom:9px}
+.footer h4{margin-bottom:12px}
+.footer-bottom{border-top:1px solid var(--line);padding-top:20px;text-align:center;color:var(--muted);font-size:13px}
+.cart-drawer{position:fixed;top:0;right:-100%;width:min(92vw,430px);height:100vh;background:var(--bg2);z-index:2100;transition:.32s;display:flex;flex-direction:column;box-shadow:-20px 0 70px rgba(0,0,0,.48)}
 .cart-drawer.open{right:0}
-.cart-head{padding:24px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
-.cart-head h3{font-size:22px}
-.cart-body{flex:1;overflow-y:auto;padding:20px}
-.cart-empty{text-align:center;padding:60px 20px;color:var(--muted)}
-.cart-empty .icon{font-size:64px;margin-bottom:16px;opacity:.5}
-.cart-item{display:flex;gap:12px;padding:14px;background:var(--card);border-radius:14px;margin-bottom:12px}
-.cart-item img{width:70px;height:70px;border-radius:10px;object-fit:cover}
+.cart-head{padding:22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
+.cart-body{flex:1;overflow-y:auto;padding:18px}
+.cart-empty{text-align:center;color:var(--muted);padding:58px 18px}
+.cart-item{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px}
+.cart-item img{width:72px;height:72px;border-radius:6px;object-fit:cover}
 .cart-item-info{flex:1;min-width:0}
-.cart-item-info h5{font-size:14px;margin-bottom:4px}
-.cart-item-info .price{color:var(--primary);font-weight:700;font-size:14px}
-.cart-item-controls{display:flex;align-items:center;gap:6px;margin-top:8px}
-.qty-btn{width:26px;height:26px;border-radius:8px;background:var(--bg);border:1px solid var(--border);display:grid;place-items:center;font-size:14px}
-.qty-val{min-width:24px;text-align:center;font-size:14px;font-weight:600}
-.remove-btn{margin-left:auto;color:var(--danger);font-size:18px}
-.cart-foot{padding:20px;border-top:1px solid var(--border)}
-.cart-total{display:flex;justify-content:space-between;margin-bottom:16px;font-size:18px;font-weight:700}
-.cart-total .amount{background:var(--gradient);-webkit-background-clip:text;background-clip:text;color:transparent}
-.cart-checkout{width:100%;padding:16px;background:var(--gradient);color:#000;border-radius:14px;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;gap:10px}
-
-/* CHAT */
-.fab{position:fixed;width:60px;height:60px;border-radius:50%;display:grid;place-items:center;font-size:26px;box-shadow:0 12px 30px rgba(0,0,0,.4);z-index:900;transition:transform .2s;cursor:pointer}
-.fab:hover{transform:scale(1.1)}
-.fab-chat{bottom:24px;right:24px;background:var(--gradient);color:#000}
-.fab-wa{bottom:96px;right:24px;background:#25d366;color:#fff}
-.chat-window{position:fixed;bottom:96px;right:24px;width:90%;max-width:360px;height:500px;background:var(--bg2);border:1px solid var(--border);border-radius:20px;z-index:950;display:none;flex-direction:column;box-shadow:var(--shadow);overflow:hidden}
-.chat-window.open{display:flex}
-.chat-head{padding:18px;background:var(--gradient);color:#000;display:flex;align-items:center;gap:12px}
-.chat-head h4{font-size:16px}
-.chat-head .status{font-size:12px;opacity:.7}
-.chat-body{flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
-.msg{max-width:80%;padding:10px 14px;border-radius:14px;font-size:14px;line-height:1.4}
-.msg.bot{background:var(--card);border:1px solid var(--border);align-self:flex-start;border-bottom-left-radius:4px}
-.msg.user{background:var(--gradient);color:#000;align-self:flex-end;border-bottom-right-radius:4px}
-.chat-foot{padding:12px;border-top:1px solid var(--border);display:flex;gap:8px}
-.chat-foot input{flex:1;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:inherit;font-size:14px}
-.chat-foot button{padding:0 16px;background:var(--gradient);color:#000;border-radius:12px;font-weight:600}
-
-/* MODAL */
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(8px);z-index:2200;display:none;align-items:center;justify-content:center;padding:20px}
+.cart-item h5{font-size:14px;margin-bottom:4px}
+.cart-item .price{color:var(--gold);font-weight:900;font-size:13px}
+.cart-controls{display:flex;align-items:center;gap:6px;margin-top:8px}
+.qty-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--bg);display:grid;place-items:center}
+.qty-val{min-width:24px;text-align:center;font-weight:900;font-size:13px}
+.remove-btn{margin-left:auto;color:#ff6a6a}
+.cart-foot{border-top:1px solid var(--line);padding:18px}
+.cart-total{display:flex;justify-content:space-between;font-weight:900;font-size:18px;margin-bottom:14px}
+.cart-total .amount{color:var(--gold)}
+.cart-checkout{width:100%;border-radius:8px;background:var(--grad);color:#06100b;font-weight:900;padding:15px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(7px);z-index:2200;display:none;align-items:center;justify-content:center;padding:18px}
 .modal.open{display:flex}
-.modal-box{background:var(--bg2);border:1px solid var(--border);border-radius:24px;max-width:480px;width:100%;padding:30px;max-height:90vh;overflow-y:auto}
-.modal-box h3{font-size:24px;margin-bottom:20px}
-.modal-box label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px;margin-top:14px}
-.modal-box input,.modal-box textarea{width:100%;padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:inherit;font-size:14px}
+.modal-box{width:min(100%,490px);max-height:92vh;overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:24px}
 .modal-close{float:right;font-size:24px;color:var(--muted)}
-.modal-actions{display:flex;gap:10px;margin-top:24px}
-.modal-actions .btn{flex:1;justify-content:center}
-
-/* FADE IN ANIMATION */
-.fade-in{opacity:0;transform:translateY(30px);transition:opacity .8s,transform .8s}
-.fade-in.visible{opacity:1;transform:translateY(0)}
+.modal-box h3{font-size:24px;margin-bottom:18px}
+.modal-box label{display:block;color:var(--muted);font-size:13px;font-weight:800;margin:13px 0 6px}
+.modal-box input,.modal-box textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:12px}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+.modal-actions .btn{flex:1}
+.fab{position:fixed;right:22px;width:58px;height:58px;border-radius:50%;z-index:920;display:grid;place-items:center;box-shadow:0 12px 34px rgba(0,0,0,.42);font-weight:900}
+.fab-wa{bottom:92px;background:#25d366;color:#fff}
+.fab-chat{bottom:22px;background:var(--grad);color:#06100b}
+.chat-window{position:fixed;right:22px;bottom:88px;width:min(92vw,360px);height:480px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;z-index:930;display:none;flex-direction:column;overflow:hidden;box-shadow:var(--shadow)}
+.chat-window.open{display:flex}
+.chat-head{padding:16px;background:var(--grad);color:#06100b;display:flex;align-items:center;gap:10px}
+.chat-body{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:82%;font-size:13px;line-height:1.35;border-radius:12px;padding:10px 12px}
+.msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line)}
+.msg.user{align-self:flex-end;background:var(--grad);color:#06100b}
+.chat-foot{display:flex;gap:8px;border-top:1px solid var(--line);padding:10px}
+.chat-foot input{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px}
+.chat-foot button{border-radius:8px;background:var(--grad);color:#06100b;font-weight:900;padding:0 14px}
+@media(max-width:1050px){.product-grid{grid-template-columns:repeat(3,1fr)}.hero-grid,.story-grid{grid-template-columns:1fr}.carousel{height:560px}.footer-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:780px){.nav{display:none}.menu-toggle{display:grid}.hero{padding-top:112px}.carousel{min-height:390px;height:430px}.cat-grid,.features-grid{grid-template-columns:1fr 1fr}.product-grid{grid-template-columns:1fr 1fr;gap:14px}.product-desc{display:none}.footer-grid{grid-template-columns:1fr}.hero-stats{gap:18px}}
+@media(max-width:480px){.container{padding:0 16px}.product-grid{grid-template-columns:1fr}.cat-grid{grid-template-columns:1fr}.features-grid{grid-template-columns:1fr}.hero h1{font-size:40px}.modal-actions{flex-direction:column}}
 </style>
 </head>
 <body>
-
-<!-- HEADER -->
 <header class="header" id="header">
   <div class="container header-inner">
-    <a href="#" class="logo">
-      <div class="logo-icon">🦁</div>
-      <span>DakarStyle</span>
+    <a class="logo" href="#">
+      <span class="logo-mark">S</span>
+      <span>DakarStyle<small>x Sowhat Africa</small></span>
     </a>
     <nav class="nav">
-      <a href="#categories">Catégories</a>
+      <a href="#categories">Categories</a>
       <a href="#products">Boutique</a>
-      <a href="#tryon">Essayage IA</a>
+      <a href="#story">Capsule</a>
       <a href="#contact">Contact</a>
     </nav>
     <div class="header-actions">
-      <button class="icon-btn" onclick="openLoyalty()" title="Fidélité">⭐</button>
-      <button class="icon-btn" onclick="openCart()" title="Panier">
-        🛒<span class="cart-badge" id="cartBadge">0</span>
-      </button>
+      <button class="icon-btn" onclick="openLoyalty()" title="Fidelite">★</button>
+      <button class="icon-btn" onclick="openCart()" title="Panier">🛒<span class="cart-badge" id="cartBadge">0</span></button>
       <button class="icon-btn menu-toggle" onclick="openMenu()" title="Menu">☰</button>
     </div>
   </div>
 </header>
 
-<!-- MOBILE MENU -->
 <div class="overlay" id="overlay" onclick="closeAll()"></div>
 <aside class="mobile-menu" id="mobileMenu">
-  <button class="menu-close" onclick="closeMenu()">✕</button>
-  <a href="#categories" onclick="closeMenu()">📂 Catégories</a>
-  <a href="#products" onclick="closeMenu()">🛍️ Boutique</a>
-  <a href="#tryon" onclick="closeMenu()">✨ Essayage IA</a>
-  <a href="#contact" onclick="closeMenu()">📞 Contact</a>
-  <a href="https://wa.me/221773374762" target="_blank" onclick="closeMenu()">💬 WhatsApp</a>
+  <button class="icon-btn menu-close" onclick="closeMenu()">×</button>
+  <a href="#categories" onclick="closeMenu()">Categories</a>
+  <a href="#products" onclick="closeMenu()">Boutique</a>
+  <a href="#story" onclick="closeMenu()">Capsule Sowhat</a>
+  <a href="#contact" onclick="closeMenu()">Contact</a>
+  <a href="https://wa.me/221773374762" target="_blank" onclick="closeMenu()">WhatsApp</a>
 </aside>
 
-<!-- HERO -->
 <section class="hero">
-  <div class="container hero-inner">
-    <div class="hero-text fade-in">
-      <div class="hero-badge">Nouveau drop disponible</div>
-      <h1>Street Wear <span class="grad">Sénégalais</span> Premium 🇸🇳</h1>
-      <p>Découvrez la mode urbaine inspirée de Dakar. T-shirts, maillots Lions, chemises wax, sneakers — livraison 24h dans toute la ville.</p>
+  <div class="container hero-grid">
+    <div>
+      <div class="eyebrow">Capsule Senegal 2026 disponible</div>
+      <h1>Porter la culture. <span>Gagner le monde.</span></h1>
+      <p>La selection DakarStyle met en avant les maillots Sowhat Africa, les pieces Lions de la Teranga et les essentiels streetwear pour Dakar.</p>
       <div class="hero-cta">
-        <a href="#products" class="btn btn-primary">Découvrir la collection →</a>
-        <a href="#tryon" class="btn btn-ghost">✨ Essayage virtuel IA</a>
+        <a class="btn btn-primary" href="#products">Voir les produits</a>
+        <a class="btn btn-ghost" href="https://wa.me/221773374762?text=Bonjour%20DakarStyle%2C%20je%20veux%20des%20infos%20sur%20la%20capsule%20Sowhat%20Africa" target="_blank">Demander sur WhatsApp</a>
       </div>
       <div class="hero-stats">
-        <div><strong>500+</strong><span>Produits</span></div>
-        <div><strong>10K+</strong><span>Clients</span></div>
-        <div><strong>4.9★</strong><span>Avis</span></div>
+        <div><strong>15</strong><span>habits maximum</span></div>
+        <div><strong>24h</strong><span>livraison Dakar</span></div>
+        <div><strong>2026</strong><span>capsule CDM</span></div>
       </div>
     </div>
-    <div class="hero-visual fade-in">
-      <div class="carousel" id="carousel">
-        <div class="carousel-slide active">
-          <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=800&q=80" alt="Street wear Dakar">
-          <div class="carousel-caption">
-            <h3>Collection Lions 2026</h3>
-            <p>Maillots officiels et streetwear</p>
-          </div>
-        </div>
-        <div class="carousel-slide">
-          <img src="https://images.unsplash.com/photo-1492447166138-50c3889fccb1?w=800&q=80" alt="Mode urbaine Sénégal">
-          <div class="carousel-caption">
-            <h3>Wax & Modernité</h3>
-            <p>Chemises et tenues exclusives</p>
-          </div>
-        </div>
-        <div class="carousel-slide">
-          <img src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=800&q=80" alt="Sneakers Dakar">
-          <div class="carousel-caption">
-            <h3>Sneakers Premium</h3>
-            <p>Confort et style urbain</p>
-          </div>
-        </div>
-        <div class="carousel-dots">
-          <span class="carousel-dot active" data-i="0"></span>
-          <span class="carousel-dot" data-i="1"></span>
-          <span class="carousel-dot" data-i="2"></span>
-        </div>
+    <div class="carousel" id="carousel">
+      <div class="slide active">
+        <img src="assets/hero/sowhat-africa-coupe-du-monde.jpg" alt="Capsule Coupe du Monde Sowhat Africa">
+        <div class="caption"><h3>Coupe du Monde FIFA 2026</h3><p>Maillots et casquettes inspires par les Lions de la Teranga.</p></div>
       </div>
-      <div class="floating-card fc-1">
-        <div class="fc-icon">🚚</div>
-        <div class="fc-text"><strong>Livraison 24h</strong><span>Partout à Dakar</span></div>
+      <div class="slide">
+        <img src="assets/hero/sowhat-africa-showroom.jpg" alt="Showroom Sowhat Africa">
+        <div class="caption"><h3>Showroom Sowhat Africa</h3><p>Capsule Juin 2026, selection speciale DakarStyle.</p></div>
       </div>
-      <div class="floating-card fc-2">
-        <div class="fc-icon">💳</div>
-        <div class="fc-text"><strong>Wave & OM</strong><span>Paiement sécurisé</span></div>
+      <div class="slide">
+        <img src="assets/hero/special-121-lookbook.jpg" alt="Lookbook S Special 121">
+        <div class="caption"><h3>S Special 121</h3><p>Streetwear, denim, maillot et accessoires en scene.</p></div>
       </div>
+      <div class="dots"><span class="dot active" data-i="0"></span><span class="dot" data-i="1"></span><span class="dot" data-i="2"></span></div>
     </div>
   </div>
 </section>
 
-<!-- CATEGORIES -->
 <section id="categories">
   <div class="container">
-    <div class="section-head fade-in">
-      <div class="section-tag">Explorer</div>
-      <h2>Nos Catégories</h2>
-      <p>Du streetwear casual aux pièces élégantes, trouvez votre style</p>
+    <div class="section-head">
+      <div class="section-tag">Selection</div>
+      <h2>Categories principales</h2>
+      <p>Les nouveaux produits Sowhat Africa sont affiches en premier, puis les essentiels DakarStyle restent en bas.</p>
     </div>
     <div class="cat-grid">
-      <div class="cat-card fade-in" onclick="filterCat('tshirt')">
-        <img src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&q=80" alt="T-shirts">
-        <div class="cat-card-content"><h3>T-shirts</h3><span>Collection urbaine</span></div>
-      </div>
-      <div class="cat-card fade-in" onclick="filterCat('maillot')">
-        <img src="https://images.unsplash.com/photo-1577446281152-7f81da3a4cd2?w=500&q=80" alt="Maillots">
-        <div class="cat-card-content"><h3>Maillots Lions</h3><span>Sénégal 🇸🇳</span></div>
-      </div>
-      <div class="cat-card fade-in" onclick="filterCat('chemise')">
-        <img src="https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=500&q=80" alt="Chemises">
-        <div class="cat-card-content"><h3>Chemises Wax</h3><span>Tradition & modernité</span></div>
-      </div>
-      <div class="cat-card fade-in" onclick="filterCat('chaussure')">
-        <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80" alt="Chaussures">
-        <div class="cat-card-content"><h3>Sneakers</h3><span>Premium</span></div>
-      </div>
-      <div class="cat-card fade-in" onclick="filterCat('casquette')">
-        <img src="https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=500&q=80" alt="Casquettes">
-        <div class="cat-card-content"><h3>Casquettes</h3><span>Streetwear</span></div>
-      </div>
-      <div class="cat-card fade-in" onclick="filterCat('lunette')">
-        <img src="https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=500&q=80" alt="Lunettes">
-        <div class="cat-card-content"><h3>Lunettes</h3><span>Style & protection</span></div>
-      </div>
-      <div class="cat-card fade-in" onclick="filterCat('pantalon')">
-        <img src="https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=500&q=80" alt="Pantalons">
-        <div class="cat-card-content"><h3>Pantalons</h3><span>Confort urbain</span></div>
-      </div>
-      <div class="cat-card fade-in" onclick="filterCat('enfant')">
-        <img src="https://images.unsplash.com/photo-1519457431-44ccd64a579b?w=500&q=80" alt="Enfants">
-        <div class="cat-card-content"><h3>Enfants</h3><span>Mini lions</span></div>
-      </div>
+      <article class="cat-card" onclick="filterCat('maillot')"><img src="assets/products/maillot-senegal-2026-blanc-short-sleeve.jpg" alt="Maillots Senegal"><div><h3>Maillots</h3><span>Capsule 2026</span></div></article>
+      <article class="cat-card" onclick="filterCat('tshirt')"><img src="assets/products/tshirts-senegal-noir-blanc-casquettes.jpg" alt="T-shirts Senegal"><div><h3>T-shirts</h3><span>Numero 10 et culture</span></div></article>
+      <article class="cat-card" onclick="filterCat('casquette')"><img src="assets/products/tshirts-senegal-noir-blanc-casquettes.jpg" alt="Casquettes Lions"><div><h3>Casquettes</h3><span>S brode</span></div></article>
+      <article class="cat-card" onclick="filterCat('chaussure')"><img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=900&q=80" alt="Chaussures"><div><h3>Chaussures</h3><span>Sneakers urbaines</span></div></article>
     </div>
   </div>
 </section>
 
-<!-- PRODUCTS -->
 <section id="products">
   <div class="container">
-    <div class="section-head fade-in">
+    <div class="section-head">
       <div class="section-tag">Boutique</div>
-      <h2>Produits Tendance</h2>
-      <p>Notre sélection du moment</p>
+      <h2>Produits en avant</h2>
+      <p>Les maillots Sowhat Africa sont places en haut. Le reste de la collection est garde plus bas pour completer les commandes.</p>
     </div>
-    <div class="filters fade-in">
+    <div class="filters">
       <button class="chip active" data-filter="all">Tout</button>
       <button class="chip" data-filter="homme">Homme</button>
       <button class="chip" data-filter="femme">Femme</button>
       <button class="chip" data-filter="enfant">Enfant</button>
-      <button class="chip" data-filter="tshirt">T-shirts</button>
       <button class="chip" data-filter="maillot">Maillots</button>
-      <button class="chip" data-filter="chemise">Chemises</button>
+      <button class="chip" data-filter="tshirt">T-shirts</button>
       <button class="chip" data-filter="chaussure">Chaussures</button>
-      <button class="chip" data-filter="casquette">Casquettes</button>
       <button class="chip" data-filter="lunette">Lunettes</button>
+      <button class="chip" data-filter="casquette">Casquettes</button>
     </div>
     <div class="product-grid" id="productGrid"></div>
   </div>
 </section>
 
-<!-- TRYON -->
-<section id="tryon" class="tryon">
-  <div class="container">
-    <div class="section-head fade-in">
-      <div class="section-tag">Innovation</div>
-      <h2>✨ Essayage Virtuel IA</h2>
-      <p>Uploade ta photo et vois comment chaque produit te va, en quelques secondes</p>
-    </div>
-    <div class="tryon-grid">
-      <div class="tryon-box fade-in">
-        <h3>1. Ta photo & ton choix</h3>
-        <label for="photoInput" class="tryon-upload" id="uploadBox">
-          <div class="icon">📸</div>
-          <p><strong>Clique pour uploader</strong><br>Ta photo (de face, fond clair)</p>
-        </label>
-        <input type="file" id="photoInput" accept="image/*" hidden>
-        <select class="tryon-select" id="tryonProduct">
-          <option value="">— Choisir un produit —</option>
-        </select>
-        <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="runTryOn()">✨ Générer l'essayage</button>
-      </div>
-      <div class="tryon-box fade-in">
-        <h3>2. Aperçu</h3>
-        <div class="tryon-preview" id="tryonPreview">
-          <div style="text-align:center;padding:20px">
-            <div style="font-size:48px;margin-bottom:10px">👗</div>
-            <p style="color:var(--muted)">Ton essayage apparaîtra ici</p>
-          </div>
-        </div>
-      </div>
+<section class="story" id="story">
+  <div class="container story-grid">
+    <img src="assets/products/maillot-basket-hanger.jpg" alt="Maillot basketball Senegal sur cintre">
+    <div>
+      <div class="section-tag">Capsule Sowhat Africa</div>
+      <h2>Une boutique plus senegalaise, plus directe.</h2>
+      <p>Cette mise a jour remplace les visuels generiques par les produits reels : maillots blancs Senegal, editions basket, t-shirts numero 10, casquettes et looks atelier.</p>
+      <p>Le parcours de commande reste simple : le client ajoute au panier, renseigne ses informations, puis la commande part automatiquement sur WhatsApp.</p>
+      <a class="btn btn-primary" href="#products">Commander la capsule</a>
     </div>
   </div>
 </section>
 
-<!-- FEATURES -->
 <section>
-  <div class="container">
-    <div class="features-grid">
-      <div class="feature fade-in">
-        <div class="feature-icon">🚚</div>
-        <h4>Livraison 24h</h4>
-        <p>Partout à Dakar et banlieue</p>
-      </div>
-      <div class="feature fade-in">
-        <div class="feature-icon">💳</div>
-        <h4>Wave & Orange Money</h4>
-        <p>Paiement mobile sécurisé</p>
-      </div>
-      <div class="feature fade-in">
-        <div class="feature-icon">🔄</div>
-        <h4>Retour 7 jours</h4>
-        <p>Satisfaction garantie</p>
-      </div>
-      <div class="feature fade-in">
-        <div class="feature-icon">🇸🇳</div>
-        <h4>Made in Senegal</h4>
-        <p>Fierté locale</p>
-      </div>
-    </div>
+  <div class="container features-grid">
+    <div class="feature"><b>Livraison 24h</b><p>Dakar et banlieue selon disponibilite.</p></div>
+    <div class="feature"><b>Wave & OM</b><p>Paiement mobile ou paiement a la livraison.</p></div>
+    <div class="feature"><b>Tailles claires</b><p>Chaque produit indique les tailles disponibles.</p></div>
+    <div class="feature"><b>WhatsApp</b><p>La commande arrive pre-remplie avec le panier.</p></div>
   </div>
 </section>
 
-<!-- FOOTER -->
 <footer class="footer" id="contact">
   <div class="container">
     <div class="footer-grid">
-      <div class="footer-col">
-        <a href="#" class="logo" style="margin-bottom:16px">
-          <div class="logo-icon">🦁</div><span>DakarStyle</span>
-        </a>
-        <p>Le streetwear sénégalais premium. Style, qualité et fierté locale.</p>
-        <p>📍 Dakar, Sénégal</p>
-        <p>📱 +221 77 337 47 62</p>
+      <div>
+        <a class="logo" href="#"><span class="logo-mark">S</span><span>DakarStyle<small>x Sowhat Africa</small></span></a>
+        <p>Streetwear senegalais, capsule Lions de la Teranga et selection urbaine.</p>
+        <p>Dakar, Senegal</p>
+        <p>+221 77 337 47 62</p>
       </div>
-      <div class="footer-col">
-        <h4>Boutique</h4>
-        <a href="#products">Tous les produits</a>
-        <a href="#categories">Catégories</a>
-        <a href="#tryon">Essayage IA</a>
-      </div>
-      <div class="footer-col">
-        <h4>Aide</h4>
-        <a href="https://wa.me/221773374762">WhatsApp</a>
-        <a href="#">Livraison</a>
-        <a href="#">Retours</a>
-      </div>
-      <div class="footer-col">
-        <h4>Suivez-nous</h4>
-        <a href="#">Instagram</a>
-        <a href="#">TikTok</a>
-        <a href="#">Facebook</a>
-      </div>
+      <div><h4>Boutique</h4><a href="#products">Tous les produits</a><a href="#categories">Categories</a><a href="#story">Capsule</a></div>
+      <div><h4>Aide</h4><a href="https://wa.me/221773374762">WhatsApp</a><a href="#products">Commander</a><a href="#contact">Livraison</a></div>
+      <div><h4>Social</h4><a href="#">Instagram</a><a href="#">TikTok</a><a href="#">Facebook</a></div>
     </div>
-    <div class="footer-bottom">© 2026 DakarStyle.com — Fait avec ❤️ à Dakar 🇸🇳</div>
+    <div class="footer-bottom">© 2026 DakarStyle.com - Capsule Sowhat Africa.</div>
   </div>
 </footer>
 
-<!-- CART DRAWER -->
 <aside class="cart-drawer" id="cartDrawer">
-  <div class="cart-head">
-    <h3>🛒 Mon Panier</h3>
-    <button class="icon-btn" onclick="closeCart()">✕</button>
-  </div>
+  <div class="cart-head"><h3>Mon panier</h3><button class="icon-btn" onclick="closeCart()">×</button></div>
   <div class="cart-body" id="cartBody"></div>
   <div class="cart-foot" id="cartFoot" style="display:none">
-    <div class="cart-total">
-      <span>Total</span>
-      <span class="amount" id="cartTotal">0 FCFA</span>
-    </div>
-    <button class="cart-checkout" onclick="openCheckout()">💬 Commander via WhatsApp</button>
+    <div class="cart-total"><span>Total</span><span class="amount" id="cartTotal">0 FCFA</span></div>
+    <button class="cart-checkout" onclick="openCheckout()">Commander via WhatsApp</button>
   </div>
 </aside>
 
-<!-- CHECKOUT MODAL -->
 <div class="modal" id="checkoutModal">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('checkoutModal')">✕</button>
-    <h3>📋 Finaliser la commande</h3>
-    <label>Nom complet</label>
-    <input type="text" id="ckName" placeholder="Ton nom">
-    <label>Téléphone</label>
-    <input type="tel" id="ckPhone" placeholder="77 123 45 67">
-    <label>Adresse de livraison</label>
-    <textarea id="ckAddress" rows="2" placeholder="Quartier, rue, point de repère"></textarea>
-    <label>Code promo (facultatif)</label>
-    <input type="text" id="ckPromo" placeholder="DAKAR10, BIENVENUE...">
+    <button class="modal-close" onclick="closeModal('checkoutModal')">×</button>
+    <h3>Finaliser la commande</h3>
+    <label>Nom complet</label><input type="text" id="ckName" placeholder="Ton nom">
+    <label>Telephone</label><input type="tel" id="ckPhone" placeholder="77 123 45 67">
+    <label>Adresse de livraison</label><textarea id="ckAddress" rows="2" placeholder="Quartier, rue, point de repere"></textarea>
+    <label>Code promo facultatif</label><input type="text" id="ckPromo" placeholder="DAKAR10, BIENVENUE...">
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('checkoutModal')">Annuler</button>
-      <button class="btn btn-primary" onclick="sendOrder()">💬 Envoyer</button>
+      <button class="btn btn-primary" onclick="sendOrder()">Envoyer</button>
     </div>
   </div>
 </div>
 
-<!-- LOYALTY MODAL -->
 <div class="modal" id="loyaltyModal">
   <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('loyaltyModal')">✕</button>
-    <h3>⭐ Programme Fidélité</h3>
-    <p style="color:var(--muted);margin-bottom:20px">Plus tu commandes, plus tu gagnes !</p>
-    <div style="background:var(--card);padding:16px;border-radius:14px;margin-bottom:12px">
-      <strong>🥉 Bronze</strong> — 0 FCFA — Bienvenue
-    </div>
-    <div style="background:var(--card);padding:16px;border-radius:14px;margin-bottom:12px">
-      <strong>🥈 Argent</strong> — 75 000 FCFA — 5% de remise
-    </div>
-    <div style="background:var(--card);padding:16px;border-radius:14px;margin-bottom:12px">
-      <strong>🥇 Or</strong> — 200 000 FCFA — 10% + livraison gratuite
-    </div>
-    <div style="background:var(--card);padding:16px;border-radius:14px;margin-bottom:20px">
-      <strong>💎 Diamant</strong> — 500 000 FCFA — 15% + accès prioritaire
-    </div>
-    <p style="color:var(--muted);font-size:13px">Codes promo actifs : <strong>DAKAR10</strong> (-10%), <strong>BIENVENUE</strong> (-15%), <strong>LIONS2026</strong> (-5 000 FCFA), <strong>TERANGA</strong> (-20%)</p>
+    <button class="modal-close" onclick="closeModal('loyaltyModal')">×</button>
+    <h3>Programme Fidelite</h3>
+    <p style="color:var(--muted);margin-bottom:16px">Les codes existants restent actifs pour ne pas changer le fonctionnement commercial.</p>
+    <p><strong>DAKAR10</strong> - 10%</p>
+    <p><strong>BIENVENUE</strong> - 15% des 10 000 FCFA</p>
+    <p><strong>LIONS2026</strong> - 5 000 FCFA des 25 000 FCFA</p>
+    <p><strong>TERANGA</strong> - 20% des 50 000 FCFA</p>
   </div>
 </div>
 
-<!-- FABs -->
-<a href="https://wa.me/221773374762?text=Bonjour%20DakarStyle%20%F0%9F%91%8B" target="_blank" class="fab fab-wa" title="WhatsApp">💬</a>
-<button class="fab fab-chat" onclick="toggleChat()" title="Assistant">🤖</button>
-
-<!-- CHAT -->
+<a class="fab fab-wa" href="https://wa.me/221773374762?text=Bonjour%20DakarStyle" target="_blank" title="WhatsApp">WA</a>
+<button class="fab fab-chat" onclick="toggleChat()" title="Assistant">?</button>
 <div class="chat-window" id="chatWindow">
-  <div class="chat-head">
-    <div style="width:40px;height:40px;border-radius:50%;background:#000;color:var(--primary);display:grid;place-items:center;font-size:20px">🤖</div>
-    <div>
-      <h4>Assistant DakarStyle</h4>
-      <div class="status">● En ligne</div>
-    </div>
-    <button onclick="toggleChat()" style="margin-left:auto;font-size:20px;color:#000">✕</button>
-  </div>
+  <div class="chat-head"><strong>Assistant DakarStyle</strong><button onclick="toggleChat()" style="margin-left:auto;color:#06100b">×</button></div>
   <div class="chat-body" id="chatBody">
-    <div class="msg bot">Salam ! 👋 Je suis l'assistant DakarStyle. Comment puis-je t'aider ?</div>
-    <div class="msg bot">Tu peux me demander : prix d'un produit, livraison, paiement, tailles...</div>
+    <div class="msg bot">Salam. Je peux aider pour les prix, tailles, livraison et commande WhatsApp.</div>
   </div>
-  <div class="chat-foot">
-    <input type="text" id="chatInput" placeholder="Écris ton message..." onkeypress="if(event.key==='Enter')sendChat()">
-    <button onclick="sendChat()">➤</button>
-  </div>
+  <div class="chat-foot"><input id="chatInput" placeholder="Ecris ton message..." onkeypress="if(event.key==='Enter')sendChat()"><button onclick="sendChat()">OK</button></div>
 </div>
 
 <script>
-/* ====== DATA ====== */
 const WHATSAPP = "221773374762";
-const fmt = n => new Intl.NumberFormat('fr-FR').format(n) + " FCFA";
-
-const PRODUCTS = [
-  {id:1,name:"T-shirt Teranga Oversize",cat:"homme",type:"tshirt",price:12500,img:"https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=600&q=80",tag:"Nouveau"},
-  {id:2,name:"Maillot Lions Domicile 2026",cat:"homme",type:"maillot",price:25000,img:"https://images.unsplash.com/photo-1556906781-9a412961c28c?w=600&q=80",tag:"Officiel"},
-  {id:3,name:"Chemise Wax Premium",cat:"homme",type:"chemise",price:18000,img:"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=600&q=80"},
-  {id:4,name:"Sneakers Dakar Street",cat:"homme",type:"chaussure",price:35000,img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&q=80",tag:"Top"},
-  {id:5,name:"Casquette Lions Snapback",cat:"homme",type:"casquette",price:8500,img:"https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=600&q=80"},
-  {id:6,name:"Lunettes Soleil Urban",cat:"homme",type:"lunette",price:15000,img:"https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600&q=80"},
-  {id:7,name:"Pantalon Cargo Sahel",cat:"homme",type:"pantalon",price:22000,img:"https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=600&q=80"},
-  {id:8,name:"T-shirt Femme Teranga",cat:"femme",type:"tshirt",price:12500,img:"https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=600&q=80"},
-  {id:9,name:"Robe Wax Moderne",cat:"femme",type:"chemise",price:28000,img:"https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=600&q=80",tag:"Tendance"},
-  {id:10,name:"Sneakers Femme Pastel",cat:"femme",type:"chaussure",price:32000,img:"https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=600&q=80"},
-  {id:11,name:"Lunettes Femme Cat-Eye",cat:"femme",type:"lunette",price:14500,img:"https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=600&q=80"},
-  {id:12,name:"Casquette Femme Brodée",cat:"femme",type:"casquette",price:8500,img:"https://images.unsplash.com/photo-1521369909029-2afed882baee?w=600&q=80"},
-  {id:13,name:"Maillot Lions Femme",cat:"femme",type:"maillot",price:25000,img:"https://images.unsplash.com/photo-1577446281152-7f81da3a4cd2?w=600&q=80"},
-  {id:14,name:"Pantalon Femme Wide",cat:"femme",type:"pantalon",price:24000,img:"https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=600&q=80"},
-  {id:15,name:"T-shirt Enfant Lions",cat:"enfant",type:"tshirt",price:7500,img:"https://images.unsplash.com/photo-1519457431-44ccd64a579b?w=600&q=80"},
-  {id:16,name:"Maillot Mini Lion",cat:"enfant",type:"maillot",price:15000,img:"https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=600&q=80",tag:"Kids"},
-  {id:17,name:"Sneakers Enfant Color",cat:"enfant",type:"chaussure",price:18000,img:"https://images.unsplash.com/photo-1514989940723-e8e51635289c?w=600&q=80"},
-  {id:18,name:"Casquette Enfant",cat:"enfant",type:"casquette",price:5500,img:"https://images.unsplash.com/photo-1601925268032-c2c7777b6e3e?w=600&q=80"},
-  {id:19,name:"Chemise Wax Homme Royale",cat:"homme",type:"chemise",price:22000,img:"https://images.unsplash.com/photo-1596755094514-f87e34085b2c?w=600&q=80"},
-  {id:20,name:"Sneakers High Top",cat:"homme",type:"chaussure",price:42000,img:"https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=600&q=80",tag:"Premium"},
-  {id:21,name:"Lunettes Aviateur Dakar",cat:"homme",type:"lunette",price:18000,img:"https://images.unsplash.com/photo-1577803645773-f96470509666?w=600&q=80"},
-  {id:22,name:"T-shirt Graphic Dakar",cat:"homme",type:"tshirt",price:13500,img:"https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=600&q=80"}
+const fmt = n => new Intl.NumberFormat('fr-FR').format(Number(n || 0)) + " FCFA";
+let PRODUCTS = [];
+const FALLBACK_PRODUCTS = [
+{id:1,name:"Maillot Senegal 2026 - Lions de la Teranga - Blanc",cat:"homme",type:"maillot",price:24500,img:"assets/products/maillot-senegal-2026-blanc-short-sleeve.jpg",tag:"Capsule 2026",sizes:"M, L, XL, 3XL",desc:"Maillot blanc en mesh premium ultra-respirant, broderies Senegal, etoile centrale et details vert-jaune-rouge."},
+{id:2,name:"Maillot Senegal 2026 - Edition Limitee Manches Longues",cat:"homme",type:"maillot",price:27500,img:"assets/products/maillot-senegal-2026-blanc-longues-manches.jpg",tag:"Edition limitee",sizes:"M, L, XL, 3XL",desc:"Version manches longues avec badge World Cup, col tricolore et broderies haute densite."},
+{id:3,name:"Maillot Senegal 2026 Basquet - Lions de la Teranga - Blanc",cat:"femme",type:"maillot",price:24500,img:"assets/products/maillot-senegal-basket-2026-blanc.jpg",tag:"Basket",sizes:"S, M, L, XL",desc:"Coupe basket sans manches, maille legere, finitions tricolores et grande etoile brodee."},
+{id:4,name:"T-shirt Senegal 2026 Jersey Basketball - Noir",cat:"femme",type:"tshirt",price:18500,img:"assets/products/tshirts-senegal-noir-blanc-casquettes.jpg",tag:"Nouveau",sizes:"S, M, L, XL",desc:"T-shirt noir streetwear avec numero 10, blason Senegal et esprit Lions de la Teranga."},
+{id:5,name:"Maillot Senegal 2026 Basquet - Presentation Atelier",cat:"femme",type:"maillot",price:24500,img:"assets/products/maillot-basket-mannequin.jpg",tag:"Premium",sizes:"S, M, L, XL",desc:"Version vitrine du maillot basket, ideale pour montrer le tombe et les finitions."},
+{id:6,name:"Jersey Senegal CDM 2026 - Blanc",cat:"homme",type:"maillot",price:24500,img:"assets/products/jersey-senegal-cdm-2026-blanc.jpg",tag:"CDM 2026",sizes:"M, L, XL, 3XL",desc:"Jersey blanc coupe streetwear, col V tricolore, ecusson Lions et motif etoile."},
+{id:7,name:"T-shirt Senegal 10 - Blanc",cat:"homme",type:"tshirt",price:18500,img:"assets/products/tshirts-senegal-noir-blanc-casquettes.jpg",tag:"Sowhat",sizes:"S, M, L, XL, XXL",desc:"T-shirt blanc lifestyle avec numero 10, blason et details inspires du football senegalais."},
+{id:8,name:"Veste Denim S Special 121",cat:"femme",type:"chemise",price:32000,img:"assets/hero/special-121-lookbook.jpg",tag:"Lookbook",sizes:"S, M, L",desc:"Piece denim noire avec patch S Special et touches panafricaines, esprit atelier urbain."},
+{id:9,name:"T-shirt Teranga Oversize",cat:"homme",type:"tshirt",price:12500,img:"https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=900&q=80",tag:"Classique",sizes:"S, M, L, XL, XXL",desc:"T-shirt oversize simple pour completer la capsule Senegal."},
+{id:10,name:"Back to the Culture Oversize",cat:"homme",type:"tshirt",price:18000,img:"assets/hero/sowhat-africa-showroom.jpg",tag:"Culture",sizes:"S, M, L, XL",desc:"Coton premium streetwear, pense pour porter la culture africaine au quotidien."},
+{id:11,name:"Chemise Wax Premium",cat:"homme",type:"chemise",price:18000,img:"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=900&q=80",tag:"",sizes:"M, L, XL",desc:"Chemise wax moderne, confortable et facile a porter."},
+{id:12,name:"Robe Wax Moderne",cat:"femme",type:"chemise",price:28000,img:"https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=900&q=80",tag:"Tendance",sizes:"S, M, L",desc:"Robe inspiree wax pour une silhouette elegante et contemporaine."},
+{id:13,name:"Pantalon Cargo Sahel",cat:"homme",type:"pantalon",price:22000,img:"https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=900&q=80",tag:"",sizes:"S, M, L, XL",desc:"Cargo urbain, coupe confortable, pense pour la ville."},
+{id:14,name:"Pantalon Femme Wide",cat:"femme",type:"pantalon",price:24000,img:"https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=900&q=80",tag:"",sizes:"S, M, L, XL",desc:"Pantalon large feminin, fluide et facile a associer."},
+{id:15,name:"Maillot Mini Lion Enfant",cat:"enfant",type:"maillot",price:15000,img:"https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=900&q=80",tag:"Kids",sizes:"4, 6, 8, 10, 12 ans",desc:"Version enfant pour les mini supporters."},
+{id:16,name:"Casquette Lions S Brodee",cat:"homme",type:"casquette",price:8500,img:"assets/products/tshirts-senegal-noir-blanc-casquettes.jpg",tag:"Accessoire",sizes:"Taille reglable",desc:"Casquette noire brodee avec monogramme S et esprit Lions."},
+{id:17,name:"Sneakers Dakar Street",cat:"homme",type:"chaussure",price:35000,img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=900&q=80",tag:"Top",sizes:"40, 41, 42, 43, 44",desc:"Sneakers urbaines pour completer les looks Sowhat."},
+{id:18,name:"Sneakers High Top",cat:"homme",type:"chaussure",price:42000,img:"https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=900&q=80",tag:"Premium",sizes:"40, 41, 42, 43, 44",desc:"Sneakers montantes premium, style fort et confortable."},
+{id:19,name:"Lunettes Soleil Urban",cat:"homme",type:"lunette",price:15000,img:"https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=900&q=80",tag:"",sizes:"Unique",desc:"Lunettes solaires urbaines pour sorties et shooting."},
+{id:20,name:"Lunettes Aviateur Dakar",cat:"homme",type:"lunette",price:18000,img:"https://images.unsplash.com/photo-1577803645773-f96470509666?w=900&q=80",tag:"",sizes:"Unique",desc:"Monture aviateur, finition sobre et premium."}
 ];
 
 const PROMOS = {
-  'DAKAR10':{type:'percent',value:10,min:0},
-  'BIENVENUE':{type:'percent',value:15,min:10000},
-  'LIONS2026':{type:'fixed',value:5000,min:25000},
-  'TERANGA':{type:'percent',value:20,min:50000}
+  DAKAR10:{type:'percent',value:10,min:0},
+  BIENVENUE:{type:'percent',value:15,min:10000},
+  LIONS2026:{type:'fixed',value:5000,min:25000},
+  TERANGA:{type:'percent',value:20,min:50000}
 };
 
-let cart = JSON.parse(localStorage.getItem('ds_cart')||'[]');
+let cart = JSON.parse(localStorage.getItem('ds_cart') || '[]');
 let activeFilter = 'all';
 
-/* ====== HEADER SCROLL ====== */
-window.addEventListener('scroll',()=>{
-  document.getElementById('header').classList.toggle('scrolled',window.scrollY>20);
-});
+window.addEventListener('scroll',()=>document.getElementById('header').classList.toggle('scrolled',window.scrollY>20));
+function openMenu(){document.getElementById('mobileMenu').classList.add('open');document.getElementById('overlay').classList.add('show');document.body.style.overflow='hidden'}
+function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');document.getElementById('overlay').classList.remove('show');document.body.style.overflow=''}
+function closeAll(){closeMenu();closeCart()}
 
-/* ====== MOBILE MENU ====== */
-function openMenu(){
-  document.getElementById('mobileMenu').classList.add('open');
-  document.getElementById('overlay').classList.add('show');
-  document.body.style.overflow='hidden';
-}
-function closeMenu(){
-  document.getElementById('mobileMenu').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
-  document.body.style.overflow='';
-}
-function closeAll(){
-  closeMenu();closeCart();
-}
-
-/* ====== CAROUSEL ====== */
-let currentSlide = 0;
-const slides = document.querySelectorAll('.carousel-slide');
-const dots = document.querySelectorAll('.carousel-dot');
-function showSlide(i){
-  slides.forEach((s,idx)=>s.classList.toggle('active',idx===i));
-  dots.forEach((d,idx)=>d.classList.toggle('active',idx===i));
-  currentSlide = i;
-}
+let currentSlide=0;
+const slides=document.querySelectorAll('.slide');
+const dots=document.querySelectorAll('.dot');
+function showSlide(i){slides.forEach((s,idx)=>s.classList.toggle('active',idx===i));dots.forEach((d,idx)=>d.classList.toggle('active',idx===i));currentSlide=i}
 dots.forEach((d,i)=>d.addEventListener('click',()=>showSlide(i)));
-setInterval(()=>showSlide((currentSlide+1)%slides.length),4500);
+setInterval(()=>showSlide((currentSlide+1)%slides.length),4800);
 
-/* ====== PRODUCTS ====== */
+async function loadProducts(){
+  try{
+    const res = await fetch('data/products.json',{cache:'no-store'});
+    if(!res.ok) throw new Error('products.json absent');
+    const data = await res.json();
+    PRODUCTS = Array.isArray(data) && data.length ? data : FALLBACK_PRODUCTS;
+  }catch(err){
+    PRODUCTS = FALLBACK_PRODUCTS;
+  }
+}
+
 function renderProducts(){
-  const grid = document.getElementById('productGrid');
-  const list = PRODUCTS.filter(p=>{
-    if(activeFilter==='all')return true;
-    return p.cat===activeFilter || p.type===activeFilter;
-  });
-  grid.innerHTML = list.map(p=>`
-    <div class="product-card">
-      <div class="product-img-wrap">
+  const grid=document.getElementById('productGrid');
+  const list=PRODUCTS.filter(p=>activeFilter==='all'||p.cat===activeFilter||p.type===activeFilter);
+  grid.innerHTML=list.map(p=>`
+    <article class="product-card">
+      <div class="product-img">
         ${p.tag?`<span class="product-tag">${p.tag}</span>`:''}
         <img src="${p.img}" alt="${p.name}" loading="lazy">
       </div>
       <div class="product-info">
-        <div class="product-cat">${p.cat} • ${p.type}</div>
+        <div class="product-cat">${p.cat} / ${p.type}</div>
         <div class="product-name">${p.name}</div>
+        <p class="product-desc">${p.desc||''}</p>
+        <div class="product-sizes">${p.sizes?`Tailles: ${p.sizes}`:''}</div>
         <div class="product-bottom">
           <div class="product-price">${fmt(p.price)}</div>
           <button class="product-add" onclick="addToCart(${p.id})" title="Ajouter">+</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </article>`).join('');
 }
-document.querySelectorAll('.chip').forEach(c=>{
-  c.addEventListener('click',()=>{
+
+document.querySelectorAll('.chip').forEach(chip=>{
+  chip.addEventListener('click',()=>{
     document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
-    c.classList.add('active');
-    activeFilter = c.dataset.filter;
+    chip.classList.add('active');
+    activeFilter=chip.dataset.filter;
     renderProducts();
   });
 });
 function filterCat(type){
-  activeFilter = type;
-  document.querySelectorAll('.chip').forEach(x=>{
-    x.classList.toggle('active',x.dataset.filter===type);
-  });
+  activeFilter=type;
+  document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x.dataset.filter===type));
   renderProducts();
   document.getElementById('products').scrollIntoView({behavior:'smooth'});
 }
 
-/* ====== CART ====== */
-function saveCart(){localStorage.setItem('ds_cart',JSON.stringify(cart));updateCartBadge();}
-function updateCartBadge(){
-  document.getElementById('cartBadge').textContent = cart.reduce((s,i)=>s+i.qty,0);
-}
+function saveCart(){localStorage.setItem('ds_cart',JSON.stringify(cart));updateCartBadge()}
+function updateCartBadge(){document.getElementById('cartBadge').textContent=cart.reduce((s,i)=>s+i.qty,0)}
 function addToCart(id){
-  const p = PRODUCTS.find(x=>x.id===id);
-  const existing = cart.find(x=>x.id===id);
-  if(existing) existing.qty++;
+  const p=PRODUCTS.find(x=>Number(x.id)===Number(id));
+  if(!p)return;
+  const existing=cart.find(x=>Number(x.id)===Number(id));
+  if(existing)existing.qty++;
   else cart.push({...p,qty:1});
-  saveCart();
-  renderCart();
-  openCart();
+  saveCart();renderCart();openCart();
 }
 function changeQty(id,delta){
-  const item = cart.find(x=>x.id===id);
+  const item=cart.find(x=>Number(x.id)===Number(id));
   if(!item)return;
-  item.qty += delta;
-  if(item.qty<=0) cart = cart.filter(x=>x.id!==id);
-  saveCart();
-  renderCart();
+  item.qty+=delta;
+  if(item.qty<=0)cart=cart.filter(x=>Number(x.id)!==Number(id));
+  saveCart();renderCart();
 }
-function removeItem(id){
-  cart = cart.filter(x=>x.id!==id);
-  saveCart();
-  renderCart();
-}
+function removeItem(id){cart=cart.filter(x=>Number(x.id)!==Number(id));saveCart();renderCart()}
 function renderCart(){
-  const body = document.getElementById('cartBody');
-  const foot = document.getElementById('cartFoot');
-  if(cart.length===0){
-    body.innerHTML = `<div class="cart-empty"><div class="icon">🛒</div><h4>Panier vide</h4><p>Ajoute des produits pour commencer</p></div>`;
-    foot.style.display='none';
-    return;
-  }
-  body.innerHTML = cart.map(item=>`
+  const body=document.getElementById('cartBody');
+  const foot=document.getElementById('cartFoot');
+  if(cart.length===0){body.innerHTML='<div class="cart-empty"><h4>Panier vide</h4><p>Ajoute des produits pour commencer.</p></div>';foot.style.display='none';return}
+  body.innerHTML=cart.map(item=>`
     <div class="cart-item">
       <img src="${item.img}" alt="${item.name}">
       <div class="cart-item-info">
         <h5>${item.name}</h5>
         <div class="price">${fmt(item.price)}</div>
-        <div class="cart-item-controls">
+        <div class="cart-controls">
           <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
           <span class="qty-val">${item.qty}</span>
           <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
-          <button class="remove-btn" onclick="removeItem(${item.id})">🗑️</button>
+          <button class="remove-btn" onclick="removeItem(${item.id})">Supprimer</button>
         </div>
       </div>
-    </div>
-  `).join('');
-  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
-  document.getElementById('cartTotal').textContent = fmt(total);
+    </div>`).join('');
+  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  document.getElementById('cartTotal').textContent=fmt(total);
   foot.style.display='block';
 }
-function openCart(){
-  document.getElementById('cartDrawer').classList.add('open');
-  document.getElementById('overlay').classList.add('show');
-  document.body.style.overflow='hidden';
-  renderCart();
-}
-function closeCart(){
-  document.getElementById('cartDrawer').classList.remove('open');
-  document.getElementById('overlay').classList.remove('show');
-  document.body.style.overflow='';
-}
+function openCart(){document.getElementById('cartDrawer').classList.add('open');document.getElementById('overlay').classList.add('show');document.body.style.overflow='hidden';renderCart()}
+function closeCart(){document.getElementById('cartDrawer').classList.remove('open');document.getElementById('overlay').classList.remove('show');document.body.style.overflow=''}
+function openCheckout(){if(cart.length===0){alert('Ton panier est vide');return}document.getElementById('checkoutModal').classList.add('open')}
+function closeModal(id){document.getElementById(id).classList.remove('open')}
+function openLoyalty(){document.getElementById('loyaltyModal').classList.add('open')}
 
-/* ====== CHECKOUT ====== */
-function openCheckout(){
-  if(cart.length===0){alert('Ton panier est vide');return;}
-  document.getElementById('checkoutModal').classList.add('open');
-}
-function closeModal(id){
-  document.getElementById(id).classList.remove('open');
-}
 function sendOrder(){
-  const name = document.getElementById('ckName').value.trim();
-  const phone = document.getElementById('ckPhone').value.trim();
-  const address = document.getElementById('ckAddress').value.trim();
-  const promo = document.getElementById('ckPromo').value.trim().toUpperCase();
-  if(!name||!phone||!address){alert('Remplis tous les champs');return;}
-  let total = cart.reduce((s,i)=>s+i.price*i.qty,0);
-  let discount = 0;
-  let promoMsg = '';
-  if(promo && PROMOS[promo]){
-    const pr = PROMOS[promo];
+  const name=document.getElementById('ckName').value.trim();
+  const phone=document.getElementById('ckPhone').value.trim();
+  const address=document.getElementById('ckAddress').value.trim();
+  const promo=document.getElementById('ckPromo').value.trim().toUpperCase();
+  if(!name||!phone||!address){alert('Remplis tous les champs');return}
+  let total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  let discount=0;
+  let promoMsg='';
+  if(promo&&PROMOS[promo]){
+    const pr=PROMOS[promo];
     if(total>=pr.min){
-      discount = pr.type==='percent' ? Math.round(total*pr.value/100) : pr.value;
-      total -= discount;
-      promoMsg = `\n🎟️ Code: ${promo} (-${fmt(discount)})`;
+      discount=pr.type==='percent'?Math.round(total*pr.value/100):pr.value;
+      total-=discount;
+      promoMsg=`\nCode promo: ${promo} (-${fmt(discount)})`;
     }
   }
-  const items = cart.map(i=>`• ${i.name} x${i.qty} = ${fmt(i.price*i.qty)}`).join('\n');
-  const msg = `🛒 *NOUVELLE COMMANDE - DakarStyle*\n\n👤 *Client:* ${name}\n📱 *Tél:* ${phone}\n📍 *Adresse:* ${address}\n\n📦 *Produits:*\n${items}${promoMsg}\n\n💰 *TOTAL: ${fmt(total)}*\n\nMerci ! 🦁🇸🇳`;
-  const url = `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`;
-  window.open(url,'_blank');
+  const items=cart.map(i=>`- ${i.name} x${i.qty} = ${fmt(i.price*i.qty)}`).join('\n');
+  const msg=`NOUVELLE COMMANDE - DakarStyle\n\nClient: ${name}\nTel: ${phone}\nAdresse: ${address}\n\nProduits:\n${items}${promoMsg}\n\nTOTAL: ${fmt(total)}\n\nMerci.`;
+  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`,'_blank');
   closeModal('checkoutModal');
-  cart = [];saveCart();renderCart();closeCart();
+  cart=[];saveCart();renderCart();closeCart();
 }
 
-/* ====== LOYALTY ====== */
-function openLoyalty(){
-  document.getElementById('loyaltyModal').classList.add('open');
-}
-
-/* ====== TRYON ====== */
-function populateTryonSelect(){
-  const sel = document.getElementById('tryonProduct');
-  sel.innerHTML = '<option value="">— Choisir un produit —</option>' + 
-    PRODUCTS.map(p=>`<option value="${p.id}">${p.name} — ${fmt(p.price)}</option>`).join('');
-}
-let userPhoto = null;
-document.getElementById('photoInput').addEventListener('change',e=>{
-  const file = e.target.files[0];
-  if(!file)return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    userPhoto = ev.target.result;
-    document.getElementById('uploadBox').innerHTML = `<img src="${userPhoto}" style="max-height:200px;border-radius:12px;margin:0 auto"><p style="margin-top:10px;color:var(--primary)">✓ Photo prête</p>`;
-  };
-  reader.readAsDataURL(file);
-});
-function runTryOn(){
-  const pid = document.getElementById('tryonProduct').value;
-  if(!userPhoto){alert('Upload ta photo');return;}
-  if(!pid){alert('Choisis un produit');return;}
-  const p = PRODUCTS.find(x=>x.id==pid);
-  const prev = document.getElementById('tryonPreview');
-  prev.innerHTML = `<div style="position:relative;width:100%;height:100%"><img src="${userPhoto}" style="width:100%;height:100%;object-fit:cover"><img src="${p.img}" style="position:absolute;bottom:10px;right:10px;width:80px;height:80px;border-radius:12px;border:3px solid var(--primary)"></div>`;
-  setTimeout(()=>{
-    alert(`✨ Aperçu généré pour "${p.name}". Pour un essayage IA haute qualité, contacte-nous sur WhatsApp avec ta photo !`);
-  },800);
-}
-
-/* ====== CHAT ====== */
-function toggleChat(){
-  document.getElementById('chatWindow').classList.toggle('open');
-}
+function toggleChat(){document.getElementById('chatWindow').classList.toggle('open')}
 function sendChat(){
-  const inp = document.getElementById('chatInput');
-  const text = inp.value.trim();
+  const input=document.getElementById('chatInput');
+  const text=input.value.trim();
   if(!text)return;
-  const body = document.getElementById('chatBody');
-  body.innerHTML += `<div class="msg user">${text}</div>`;
-  inp.value='';
-  body.scrollTop = body.scrollHeight;
+  const body=document.getElementById('chatBody');
+  body.innerHTML+=`<div class="msg user">${text}</div>`;
+  input.value='';
+  body.scrollTop=body.scrollHeight;
   setTimeout(()=>{
-    let reply = "Merci pour ton message ! Pour une réponse rapide, contacte-nous sur WhatsApp 📱";
-    const t = text.toLowerCase();
-    if(t.includes('prix')||t.includes('coût')) reply = "Nos prix vont de 5 500 à 42 000 FCFA. Tu peux voir tous les produits dans la section Boutique 🛍️";
-    else if(t.includes('livraison')) reply = "🚚 Livraison 24h à Dakar et banlieue. Tarif selon zone, communiqué à la commande.";
-    else if(t.includes('paiement')||t.includes('wave')||t.includes('orange')) reply = "💳 Nous acceptons Wave, Orange Money, et paiement à la livraison à Dakar.";
-    else if(t.includes('taille')) reply = "📏 Toutes les tailles disponibles : S, M, L, XL, XXL. Précise ta taille lors de la commande.";
-    else if(t.includes('retour')) reply = "🔄 Retour possible sous 7 jours, produit non porté avec étiquettes.";
-    else if(t.includes('bonjour')||t.includes('salam')||t.includes('salut')) reply = "Salam ! 👋 Comment puis-je t'aider aujourd'hui ?";
-    else if(t.includes('whatsapp')||t.includes('contact')) reply = `📱 Contacte-nous au +221 77 337 47 62 ou clique sur l'icône WhatsApp verte 💬`;
-    body.innerHTML += `<div class="msg bot">${reply}</div>`;
-    body.scrollTop = body.scrollHeight;
-  },600);
+    const t=text.toLowerCase();
+    let reply='Merci. Pour une reponse rapide, contacte-nous sur WhatsApp.';
+    if(t.includes('prix'))reply='Les prix sont affiches sur chaque produit. Les maillots Sowhat commencent a 24 500 FCFA.';
+    else if(t.includes('taille'))reply='Les tailles disponibles sont indiquees sur chaque carte produit.';
+    else if(t.includes('livraison'))reply='Livraison 24h a Dakar et banlieue selon zone.';
+    else if(t.includes('paiement')||t.includes('wave')||t.includes('orange'))reply='Paiement Wave, Orange Money ou a la livraison.';
+    else if(t.includes('whatsapp')||t.includes('commande'))reply='Ajoute tes produits au panier puis clique sur Commander via WhatsApp.';
+    body.innerHTML+=`<div class="msg bot">${reply}</div>`;
+    body.scrollTop=body.scrollHeight;
+  },450);
 }
 
-/* ====== FADE IN OBSERVER ====== */
-const observer = new IntersectionObserver((entries)=>{
-  entries.forEach(e=>{
-    if(e.isIntersecting) e.target.classList.add('visible');
-  });
-},{threshold:0.1});
-document.querySelectorAll('.fade-in').forEach(el=>observer.observe(el));
-
-/* ====== INIT ====== */
-renderProducts();
-updateCartBadge();
-populateTryonSelect();
+loadProducts().then(()=>{renderProducts();updateCartBadge();renderCart()});
 </script>
 </body>
 </html>

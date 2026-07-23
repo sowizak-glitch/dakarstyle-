@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DakarStyle Admin Produits</title>
+  <style>
+    :root{font-family:Inter,system-ui,Arial,sans-serif;color:#111827;background:#f7f7f4}
+    *{box-sizing:border-box}
+    body{margin:0}
+    header{padding:28px 22px;background:#101418;color:white}
+    main{max-width:1100px;margin:0 auto;padding:22px;display:grid;gap:18px}
+    h1{margin:0;font-size:28px}
+    h2{margin:0 0 12px;font-size:18px}
+    p{line-height:1.5}
+    section{background:white;border:1px solid #deded6;border-radius:8px;padding:18px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    label{display:grid;gap:6px;font-size:13px;font-weight:700;color:#374151}
+    input,select,textarea{width:100%;border:1px solid #cfcfc7;border-radius:6px;padding:10px;font:inherit}
+    textarea{min-height:220px;font-family:ui-monospace,Consolas,monospace;font-size:13px}
+    button{border:0;border-radius:6px;padding:10px 14px;font-weight:800;cursor:pointer;background:#0bbf72;color:#06130d}
+    button.secondary{background:#e5e7eb;color:#111827}
+    button.danger{background:#fee2e2;color:#991b1b}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+    .card{border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;background:#fff}
+    .card img{width:100%;aspect-ratio:1;object-fit:cover;background:#eee}
+    .card div{padding:10px}
+    .muted{color:#6b7280;font-size:13px}
+    .ok{background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:10px;border-radius:6px;display:none}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>DakarStyle Admin Produits</h1>
+    <p>Ajoutez ou modifiez les produits, puis exportez le fichier <strong>products.json</strong> a mettre dans GitHub.</p>
+  </header>
+  <main>
+    <section>
+      <h2>1. Importer la liste actuelle</h2>
+      <p class="muted">Collez ici le contenu de <code>data/products.json</code>, ou utilisez la liste de depart integree.</p>
+      <textarea id="jsonBox"></textarea>
+      <div class="actions">
+        <button onclick="loadJson()">Charger la liste</button>
+        <button class="secondary" onclick="resetSample()">Recharger l'exemple</button>
+      </div>
+      <p class="ok" id="status"></p>
+    </section>
+
+    <section>
+      <h2>2. Ajouter ou modifier un produit</h2>
+      <div class="grid">
+        <label>Nom du produit<input id="name" placeholder="Ex: Boubou streetwear wax"></label>
+        <label>Prix FCFA<input id="price" type="number" min="0" step="500" placeholder="15000"></label>
+        <label>Clientele
+          <select id="cat">
+            <option value="homme">Homme</option>
+            <option value="femme">Femme</option>
+            <option value="enfant">Enfant</option>
+          </select>
+        </label>
+        <label>Categorie
+          <select id="type">
+            <option value="tshirt">T-shirt</option>
+            <option value="maillot">Maillot</option>
+            <option value="chemise">Chemise / robe wax</option>
+            <option value="chaussure">Chaussure</option>
+            <option value="casquette">Casquette</option>
+            <option value="lunette">Lunette</option>
+            <option value="pantalon">Pantalon</option>
+          </select>
+        </label>
+        <label>Image URL ou chemin GitHub<input id="img" placeholder="assets/products/mon-produit.jpg"></label>
+        <label>Badge facultatif<input id="tag" placeholder="Nouveau, Capsule 2026, Premium..."></label>
+        <label>Tailles<input id="sizes" placeholder="S, M, L, XL"></label>
+        <label>Description courte<input id="desc" placeholder="Texte court affiche sur la carte produit"></label>
+      </div>
+      <div class="actions">
+        <button onclick="saveProduct()">Ajouter le produit</button>
+        <button class="secondary" onclick="clearForm()">Vider le formulaire</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Apercu</h2>
+      <div class="products" id="preview"></div>
+    </section>
+
+    <section>
+      <h2>4. Exporter pour GitHub</h2>
+      <p class="muted">Telechargez le nouveau fichier puis remplacez <code>data/products.json</code> dans GitHub. Cloudflare publiera ensuite le site automatiquement.</p>
+      <div class="actions">
+        <button onclick="downloadJson()">Telecharger products.json</button>
+        <button class="secondary" onclick="copyJson()">Copier le JSON</button>
+      </div>
+    </section>
+  </main>
+  <script>
+    const sampleProducts = [
+      {"id":1,"name":"Maillot Senegal 2026 - Lions de la Teranga - Blanc","cat":"homme","type":"maillot","price":24500,"img":"assets/products/maillot-senegal-2026-blanc-short-sleeve.jpg","tag":"Capsule 2026","sizes":"M, L, XL, 3XL","desc":"Maillot blanc en mesh premium, broderies Senegal et details vert-jaune-rouge."},
+      {"id":2,"name":"Maillot Senegal 2026 Basquet - Lions de la Teranga - Blanc","cat":"femme","type":"maillot","price":24500,"img":"assets/products/maillot-senegal-basket-2026-blanc.jpg","tag":"Basket","sizes":"S, M, L, XL","desc":"Coupe basket sans manches, maille legere et grande etoile brodee."},
+      {"id":3,"name":"T-shirt Senegal 2026 Jersey Basketball - Noir","cat":"femme","type":"tshirt","price":18500,"img":"assets/products/tshirts-senegal-noir-blanc-casquettes.jpg","tag":"Nouveau","sizes":"S, M, L, XL","desc":"T-shirt noir streetwear avec numero 10 et blason Senegal."}
+    ];
+    let products = [];
+    const fmt = n => new Intl.NumberFormat('fr-FR').format(Number(n || 0)) + ' FCFA';
+
+    function showStatus(text){
+      const el = document.getElementById('status');
+      el.textContent = text;
+      el.style.display = 'block';
+    }
+    function syncBox(){
+      document.getElementById('jsonBox').value = JSON.stringify(products, null, 2);
+      render();
+    }
+    function resetSample(){
+      products = structuredClone(sampleProducts);
+      syncBox();
+      showStatus('Liste exemple chargee.');
+    }
+    function loadJson(){
+      try{
+        const parsed = JSON.parse(document.getElementById('jsonBox').value);
+        if(!Array.isArray(parsed)) throw new Error('Le JSON doit etre une liste.');
+        products = parsed.map((p, index) => ({...p, id: Number(p.id || index + 1), price: Number(p.price || 0)}));
+        syncBox();
+        showStatus(products.length + ' produit(s) charge(s).');
+      }catch(err){
+        alert('JSON invalide: ' + err.message);
+      }
+    }
+    function saveProduct(){
+      const name = document.getElementById('name').value.trim();
+      const price = Number(document.getElementById('price').value || 0);
+      const img = document.getElementById('img').value.trim();
+      if(!name || !price || !img){
+        alert('Nom, prix et image sont obligatoires.');
+        return;
+      }
+      const nextId = products.reduce((max, p) => Math.max(max, Number(p.id || 0)), 0) + 1;
+      const product = {
+        id: nextId,
+        name,
+        cat: document.getElementById('cat').value,
+        type: document.getElementById('type').value,
+        price,
+        img
+      };
+      const tag = document.getElementById('tag').value.trim();
+      if(tag) product.tag = tag;
+      const sizes = document.getElementById('sizes').value.trim();
+      if(sizes) product.sizes = sizes;
+      const desc = document.getElementById('desc').value.trim();
+      if(desc) product.desc = desc;
+      products.unshift(product);
+      clearForm();
+      syncBox();
+      showStatus('Produit ajoute: ' + name);
+    }
+    function clearForm(){
+      ['name','price','img','tag','sizes','desc'].forEach(id => document.getElementById(id).value = '');
+    }
+    function removeProduct(id){
+      products = products.filter(p => Number(p.id) !== Number(id));
+      syncBox();
+      showStatus('Produit supprime.');
+    }
+    function render(){
+      document.getElementById('preview').innerHTML = products.map(p => `
+        <article class="card">
+          <img src="${p.img}" alt="${p.name}" onerror="this.style.display='none'">
+          <div>
+            <strong>${p.name}</strong>
+            <p class="muted">${p.cat} / ${p.type}${p.tag ? ' / ' + p.tag : ''}</p>
+            <p class="muted">${p.sizes ? 'Tailles: ' + p.sizes : ''}</p>
+            <p class="muted">${p.desc || ''}</p>
+            <p>${fmt(p.price)}</p>
+            <button class="danger" onclick="removeProduct(${p.id})">Supprimer</button>
+          </div>
+        </article>
+      `).join('');
+    }
+    function downloadJson(){
+      const blob = new Blob([JSON.stringify(products, null, 2)], {type:'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'products.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    }
+    async function copyJson(){
+      await navigator.clipboard.writeText(JSON.stringify(products, null, 2));
+      showStatus('JSON copie.');
+    }
+    resetSample();
+  </script>
+</body>
+</html>
