@@ -6,3 +6,5 @@ Site e-commerce street wear sénégalais - DakarStyle.com
 Catalogue reorganise autour de la capsule Senegal 2026, avec images locales optimisees et produits geres via `data/products.json`.
 
 La vitrine comprend des statuts de disponibilite, un zoom produit accessible, un panier avec tailles et un recapitulatif WhatsApp qui conserve les mentions de precommande ou de fabrication sur commande.
+
+Déploiement Cloudflare relancé le 24 juillet 2026 pour publier la mise à jour du logo DakarStyle, des liens sociaux et de l’adresse de contact.
