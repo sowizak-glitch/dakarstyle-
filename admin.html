@@ -59,21 +59,25 @@
     "cat": "mixte",
     "type": "ensemble",
     "price": 18000,
-    "img": "assets/products/ensemble-senegal-vert.jpg",
-    "tag": "Top vente",
+    "img": "assets/products/ensemble-senegal-2026.jpg",
+    "tag": "Nouveau",
     "sizes": "S, M, L, XL, XXL",
-    "desc": "Ensemble complet inspire des couleurs du Senegal, pense pour un look sport et ville."
+    "availability": "Disponible",
+    "priority": 1,
+    "desc": "Debardeur et short assortis aux couleurs du Senegal, concus pour un porte leger, sportif et urbain."
   },
   {
     "id": 2,
-    "name": "Ensemble Dakar",
+    "name": "Ensemble Dakar avec short",
     "cat": "mixte",
     "type": "ensemble",
-    "price": 19000,
-    "img": "assets/products/ensemble-dakar-premium.jpg",
+    "price": 18000,
+    "img": "assets/products/ensemble-dakar-short-2026.jpg",
     "tag": "Dakar",
     "sizes": "S, M, L, XL, XXL",
-    "desc": "Ensemble premium Dakar, coupe confortable et detail Sowhat pour porter la culture au quotidien."
+    "availability": "Disponible",
+    "priority": 2,
+    "desc": "Debardeur Dakar et short wax assorti, entre energie urbaine et heritage senegalais. Casquette non incluse."
   },
   {
     "id": 3,
@@ -110,14 +114,17 @@
   },
   {
     "id": 6,
-    "name": "Ensemble blouson vert Sowhat Foot",
+    "name": "Ensemble S0SPECIAL 221",
     "cat": "mixte",
     "type": "ensemble",
     "price": 20000,
-    "img": "assets/products/ensemble-blouson-vert-sowhat-foot.jpg",
-    "tag": "Premium",
+    "img": "assets/products/ensemble-s0special-221.jpg",
+    "tag": "Sur commande",
     "sizes": "S, M, L, XL, XXL",
-    "desc": "Ensemble vert Sowhat Foot avec blouson coordonne, style sport chic et finitions premium."
+    "availability": "Disponible uniquement sur commande",
+    "status": "order",
+    "priority": 3,
+    "desc": "Ensemble cargo unisexe S0SPECIAL 221, construction utilitaire et finitions contrastees. Fabrication lancee apres confirmation."
   },
   {
     "id": 7,
@@ -143,14 +150,17 @@
   },
   {
     "id": 9,
-    "name": "Sneakers Dakar Street",
+    "name": "Sneakers Sowhat Africa 2026",
     "cat": "mixte",
     "type": "chaussure",
-    "price": 35000,
-    "img": "assets/products/sneakers-dakar-street.jpg",
-    "tag": "Chaussures",
+    "price": 25000,
+    "img": "assets/products/sneakers-sowhat-africa-precommande.jpg",
+    "tag": "Precommande",
     "sizes": "40, 41, 42, 43, 44",
-    "desc": "Sneakers blanches avec accent Senegal, faciles a associer avec la capsule."
+    "availability": "Disponible en precommande uniquement",
+    "status": "preorder",
+    "priority": 4,
+    "desc": "Sneakers montantes Sowhat Africa aux accents vert, jaune et rouge. Reservation ouverte avant disponibilite."
   },
   {
     "id": 10,
@@ -180,7 +190,12 @@
     document.getElementById("list").innerHTML = products.map(item => `
       <article class="item">
         <img src="${item.img}" alt="">
-        <div><strong>${item.name}</strong><span>${fmt(item.price)}</span><p>${item.desc}</p></div>
+        <div>
+          <strong>${item.name}</strong>
+          <span>${fmt(item.price)}</span>
+          <p>${item.availability || "Disponible"} · ${item.sizes}</p>
+          <p>${item.desc}</p>
+        </div>
       </article>
     `).join("");
     function downloadJson(){
