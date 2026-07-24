@@ -1,0 +1,189 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin local DakarStyle</title>
+  <style>
+    :root { --ink:#11110f; --green:#0f5f35; --gold:#d7a83f; --line:rgba(17,17,15,.13); --paper:#fffdf8; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter, system-ui, Segoe UI, sans-serif; color:var(--ink); background:var(--paper); letter-spacing:0; }
+    .wrap { width:min(1080px, calc(100% - 28px)); margin:0 auto; padding:32px 0; }
+    header { display:flex; justify-content:space-between; gap:16px; align-items:center; margin-bottom:22px; }
+    h1 { margin:0; font-size:clamp(30px, 5vw, 54px); line-height:1; letter-spacing:0; }
+    p { color:#68635b; line-height:1.6; }
+    .btn { min-height:42px; border:1px solid transparent; border-radius:8px; padding:0 14px; font-weight:900; cursor:pointer; background:#11110f; color:#fff; }
+    .btn.alt { background:#fff; color:#11110f; border-color:var(--line); }
+    .panel { background:#fff; border:1px solid var(--line); border-radius:8px; padding:18px; box-shadow:0 12px 30px rgba(0,0,0,.06); }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+    textarea { width:100%; min-height:520px; border:1px solid var(--line); border-radius:8px; padding:14px; font:13px ui-monospace, SFMono-Regular, Consolas, monospace; }
+    .products { display:grid; gap:10px; max-height:590px; overflow:auto; }
+    .item { border:1px solid var(--line); border-radius:8px; padding:12px; display:grid; grid-template-columns:64px 1fr; gap:12px; }
+    .item img { width:64px; height:78px; object-fit:cover; border-radius:8px; background:#eee; }
+    .item strong { display:block; }
+    .item span { color:var(--green); font-weight:900; }
+    .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; }
+    @media (max-width:800px){ header,.grid{display:block}.panel{margin-top:14px} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Admin local DakarStyle</h1>
+        <p>Outil simple pour verifier le catalogue avant une mise en ligne Cloudflare.</p>
+      </div>
+      <a class="btn alt" href="index.html">Voir le site</a>
+    </header>
+    <div class="grid">
+      <section class="panel">
+        <h2>Produits actuels</h2>
+        <div class="products" id="list"></div>
+      </section>
+      <section class="panel">
+        <h2>Fichier produits</h2>
+        <textarea id="jsonBox"></textarea>
+        <div class="actions">
+          <button class="btn" onclick="downloadJson()">Telecharger products.json</button>
+          <button class="btn alt" onclick="copyJson()">Copier</button>
+          <a class="btn alt" href="https://wa.me/221773374762" target="_blank">WhatsApp</a>
+        </div>
+      </section>
+    </div>
+  </div>
+  <script>
+    const products = [
+  {
+    "id": 1,
+    "name": "Ensemble Senegal",
+    "cat": "mixte",
+    "type": "ensemble",
+    "price": 18000,
+    "img": "assets/products/ensemble-senegal-vert.jpg",
+    "tag": "Top vente",
+    "sizes": "S, M, L, XL, XXL",
+    "desc": "Ensemble complet inspire des couleurs du Senegal, pense pour un look sport et ville."
+  },
+  {
+    "id": 2,
+    "name": "Ensemble Dakar",
+    "cat": "mixte",
+    "type": "ensemble",
+    "price": 19000,
+    "img": "assets/products/ensemble-dakar-premium.jpg",
+    "tag": "Dakar",
+    "sizes": "S, M, L, XL, XXL",
+    "desc": "Ensemble premium Dakar, coupe confortable et detail Sowhat pour porter la culture au quotidien."
+  },
+  {
+    "id": 3,
+    "name": "Debardeur Senegal",
+    "cat": "mixte",
+    "type": "maillot",
+    "price": 13000,
+    "img": "assets/products/debardeur-senegal-2026.jpg",
+    "tag": "Basket",
+    "sizes": "S, M, L, XL",
+    "desc": "Debardeur blanc en mesh leger avec bordures vert-jaune-rouge, blason Lions et grande etoile."
+  },
+  {
+    "id": 4,
+    "name": "Maillot Senegal",
+    "cat": "mixte",
+    "type": "maillot",
+    "price": 12000,
+    "img": "assets/products/maillot-senegal-cdm-2026.jpg",
+    "tag": "CDM 2026",
+    "sizes": "S, M, L, XL, XXL",
+    "desc": "Maillot blanc Senegal 2026, col tricolore, broderies fortes et finition respirante."
+  },
+  {
+    "id": 5,
+    "name": "T-shirt noir et blanc Wear the Culture",
+    "cat": "mixte",
+    "type": "tshirt",
+    "price": 7000,
+    "img": "assets/products/tshirt-wear-the-culture-noir-blanc.jpg",
+    "tag": "Culture",
+    "sizes": "S, M, L, XL, XXL",
+    "desc": "Pack esprit streetwear en noir et blanc, logo Senegal et message Wear the Culture."
+  },
+  {
+    "id": 6,
+    "name": "Ensemble blouson vert Sowhat Foot",
+    "cat": "mixte",
+    "type": "ensemble",
+    "price": 20000,
+    "img": "assets/products/ensemble-blouson-vert-sowhat-foot.jpg",
+    "tag": "Premium",
+    "sizes": "S, M, L, XL, XXL",
+    "desc": "Ensemble vert Sowhat Foot avec blouson coordonne, style sport chic et finitions premium."
+  },
+  {
+    "id": 7,
+    "name": "T-shirt numero 10 noir et blanc",
+    "cat": "mixte",
+    "type": "tshirt",
+    "price": 9000,
+    "img": "assets/products/tshirt-numero-10-noir-blanc.jpg",
+    "tag": "Numero 10",
+    "sizes": "S, M, L, XL, XXL",
+    "desc": "T-shirt numero 10 noir et blanc, coupe urbaine, blason Lions et etiquette Sowhat Africa."
+  },
+  {
+    "id": 8,
+    "name": "Casquette Sowhat Africa 2026",
+    "cat": "mixte",
+    "type": "accessoire",
+    "price": 8500,
+    "img": "assets/products/casquette-sowhat-africa-2026.jpg",
+    "tag": "Accessoire",
+    "sizes": "Taille reglable",
+    "desc": "Casquette noire brodee Sowhat Africa, presentation premium et details panafricains."
+  },
+  {
+    "id": 9,
+    "name": "Sneakers Dakar Street",
+    "cat": "mixte",
+    "type": "chaussure",
+    "price": 35000,
+    "img": "assets/products/sneakers-dakar-street.jpg",
+    "tag": "Chaussures",
+    "sizes": "40, 41, 42, 43, 44",
+    "desc": "Sneakers blanches avec accent Senegal, faciles a associer avec la capsule."
+  },
+  {
+    "id": 10,
+    "name": "Lunettes Soleil Urban",
+    "cat": "mixte",
+    "type": "lunette",
+    "price": 15000,
+    "img": "assets/products/lunettes-soleil-urban.jpg",
+    "tag": "Lunettes",
+    "sizes": "Unique",
+    "desc": "Lunettes solaires style urbain pour completer les looks Sowhat Africa."
+  }
+];
+    const fmt = value => new Intl.NumberFormat("fr-FR").format(value) + " FCFA";
+    document.getElementById("jsonBox").value = JSON.stringify(products, null, 2);
+    document.getElementById("list").innerHTML = products.map(item => `
+      <article class="item">
+        <img src="${item.img}" alt="">
+        <div><strong>${item.name}</strong><span>${fmt(item.price)}</span><p>${item.desc}</p></div>
+      </article>
+    `).join("");
+    function downloadJson(){
+      const blob = new Blob([document.getElementById("jsonBox").value], { type:"application/json" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "products.json";
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    async function copyJson(){
+      await navigator.clipboard.writeText(document.getElementById("jsonBox").value);
+      alert("Catalogue copie.");
+    }
+  </script>
+</body>
+</html>
