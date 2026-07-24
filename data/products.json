@@ -1,14 +1,14 @@
 [
   {
     "id": 1,
-    "name": "Ensemble Senegal",
+    "name": "Ensemble Sénégal",
     "cat": "mixte",
     "type": "ensemble",
     "price": 18000,
     "img": "assets/products/ensemble-senegal-vert.jpg",
     "tag": "Top vente",
     "sizes": "S, M, L, XL, XXL",
-    "desc": "Ensemble complet inspire des couleurs du Senegal, pense pour un look sport et ville."
+    "desc": "Ensemble complet inspiré des couleurs du Sénégal, pensé pour un look sport et ville."
   },
   {
     "id": 2,
@@ -19,29 +19,29 @@
     "img": "assets/products/ensemble-dakar-premium.jpg",
     "tag": "Dakar",
     "sizes": "S, M, L, XL, XXL",
-    "desc": "Ensemble premium Dakar, coupe confortable et detail Sowhat pour porter la culture au quotidien."
+    "desc": "Ensemble premium Dakar, coupe confortable et détail Sowhat pour porter la culture au quotidien."
   },
   {
     "id": 3,
-    "name": "Debardeur Senegal",
+    "name": "Débardeur Sénégal",
     "cat": "mixte",
     "type": "maillot",
     "price": 13000,
     "img": "assets/products/debardeur-senegal-2026.jpg",
     "tag": "Basket",
     "sizes": "S, M, L, XL",
-    "desc": "Debardeur blanc en mesh leger avec bordures vert-jaune-rouge, blason Lions et grande etoile."
+    "desc": "Débardeur blanc en mesh léger avec bordures vert-jaune-rouge, blason Lions et grande étoile."
   },
   {
     "id": 4,
-    "name": "Maillot Senegal",
+    "name": "Maillot Sénégal",
     "cat": "mixte",
     "type": "maillot",
     "price": 12000,
     "img": "assets/products/maillot-senegal-cdm-2026.jpg",
     "tag": "CDM 2026",
     "sizes": "S, M, L, XL, XXL",
-    "desc": "Maillot blanc Senegal 2026, col tricolore, broderies fortes et finition respirante."
+    "desc": "Maillot blanc Sénégal 2026, col tricolore, broderies fortes et finition respirante."
   },
   {
     "id": 5,
@@ -52,7 +52,7 @@
     "img": "assets/products/tshirt-wear-the-culture-noir-blanc.jpg",
     "tag": "Culture",
     "sizes": "S, M, L, XL, XXL",
-    "desc": "Pack esprit streetwear en noir et blanc, logo Senegal et message Wear the Culture."
+    "desc": "Pack esprit streetwear en noir et blanc, logo Sénégal et message Wear the Culture."
   },
   {
     "id": 6,
@@ -63,18 +63,18 @@
     "img": "assets/products/ensemble-blouson-vert-sowhat-foot.jpg",
     "tag": "Premium",
     "sizes": "S, M, L, XL, XXL",
-    "desc": "Ensemble vert Sowhat Foot avec blouson coordonne, style sport chic et finitions premium."
+    "desc": "Ensemble vert Sowhat Foot avec blouson coordonné, style sport chic et finitions premium."
   },
   {
     "id": 7,
-    "name": "T-shirt numero 10 noir et blanc",
+    "name": "T-shirt numéro 10 noir et blanc",
     "cat": "mixte",
     "type": "tshirt",
     "price": 9000,
     "img": "assets/products/tshirt-numero-10-noir-blanc.jpg",
-    "tag": "Numero 10",
+    "tag": "Numéro 10",
     "sizes": "S, M, L, XL, XXL",
-    "desc": "T-shirt numero 10 noir et blanc, coupe urbaine, blason Lions et etiquette Sowhat Africa."
+    "desc": "T-shirt numéro 10 noir et blanc, coupe urbaine, blason Lions et étiquette Sowhat Africa."
   },
   {
     "id": 8,
@@ -82,10 +82,10 @@
     "cat": "mixte",
     "type": "accessoire",
     "price": 8500,
-    "img": "assets/products/casquette-sowhat-africa-2026.jpg",
+    "img": "assets/products/tshirts-senegal-noir-blanc-casquettes.jpg",
     "tag": "Accessoire",
-    "sizes": "Taille reglable",
-    "desc": "Casquette noire brodee Sowhat Africa, presentation premium et details panafricains."
+    "sizes": "Taille réglable",
+    "desc": "Casquette noire brodée Sowhat Africa, présentation premium et détails panafricains."
   },
   {
     "id": 9,
@@ -96,7 +96,7 @@
     "img": "assets/products/sneakers-dakar-street.jpg",
     "tag": "Chaussures",
     "sizes": "40, 41, 42, 43, 44",
-    "desc": "Sneakers blanches avec accent Senegal, faciles a associer avec la capsule."
+    "desc": "Sneakers blanches avec accent Sénégal, faciles à associer avec la capsule."
   },
   {
     "id": 10,
@@ -107,6 +107,6 @@
     "img": "assets/products/lunettes-soleil-urban.jpg",
     "tag": "Lunettes",
     "sizes": "Unique",
-    "desc": "Lunettes solaires style urbain pour completer les looks Sowhat Africa."
+    "desc": "Lunettes solaires style urbain pour compléter les looks Sowhat Africa."
   }
 ]
