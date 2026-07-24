@@ -4,10 +4,14 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DakarStyle x Sowhat Africa | Wear the Culture</title>
-  <meta name="description" content="Boutique DakarStyle x Sowhat Africa : ensembles, maillots, debardeurs, t-shirts et accessoires Senegal 2026. Commande directe sur WhatsApp.">
+  <meta name="description" content="Boutique DakarStyle x Sowhat Africa : ensembles, maillots, débardeurs, t-shirts et accessoires Sénégal 2026. Commande directe sur WhatsApp.">
+  <link rel="canonical" href="https://dakarstyle.com/">
+  <link rel="icon" href="assets/brand/sowhat-africa-logo.png">
   <meta property="og:title" content="DakarStyle x Sowhat Africa">
-  <meta property="og:description" content="Capsule Senegal 2026 - Wear the Culture. Commande directe sur WhatsApp.">
-  <meta property="og:image" content="assets/hero/wear-the-culture-2026.jpg">
+  <meta property="og:description" content="Capsule Sénégal 2026 — Wear the Culture. Commande directe sur WhatsApp.">
+  <meta property="og:url" content="https://dakarstyle.com/">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="https://dakarstyle.com/assets/hero/sowhat-africa-coupe-du-monde.jpg">
   <style>
     :root {
       --ink: #11110f;
@@ -178,29 +182,60 @@
       min-height: calc(100vh - 108px);
       position: relative;
       display: flex;
-      align-items: end;
-      color: #fff;
+      align-items: center;
+      color: var(--ink);
       overflow: hidden;
-      background: #050805 url("assets/hero/wear-the-culture-2026.jpg") center / cover no-repeat;
+      background:
+        radial-gradient(circle at 10% 8%, rgba(215,168,63,.20), transparent 34%),
+        radial-gradient(circle at 92% 88%, rgba(15,95,53,.16), transparent 32%),
+        var(--cream);
     }
     .hero::before {
       content: "";
       position: absolute;
-      inset: 0;
-      background:
-        linear-gradient(90deg, rgba(4,6,4,.86) 0%, rgba(4,6,4,.54) 42%, rgba(4,6,4,.18) 100%),
-        linear-gradient(0deg, rgba(4,6,4,.74) 0%, rgba(4,6,4,.10) 44%, rgba(4,6,4,.36) 100%);
+      width: 220px;
+      height: 220px;
+      right: -70px;
+      top: -80px;
+      border: 46px solid rgba(15,95,53,.08);
+      border-radius: 50%;
     }
     .hero .container {
       position: relative;
       z-index: 1;
-      padding: clamp(56px, 8vw, 110px) 0 44px;
+      padding: clamp(42px, 6vw, 78px) 0 38px;
+    }
+    .hero-layout {
+      display: grid;
+      grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
+      align-items: center;
+      gap: clamp(32px, 5vw, 72px);
+    }
+    .hero-copy {
+      min-width: 0;
+    }
+    .hero-visual {
+      display: grid;
+      grid-template-columns: 1.15fr .85fr;
+      grid-template-rows: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      height: clamp(460px, 58vh, 640px);
+    }
+    .hero-visual img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .hero-visual img:first-child {
+      grid-row: 1 / 3;
     }
     .eyebrow {
       display: inline-flex;
       align-items: center;
       gap: 10px;
-      color: #f8dc8d;
+      color: var(--forest);
       font-weight: 900;
       text-transform: uppercase;
       font-size: 13px;
@@ -212,17 +247,17 @@
       background: var(--gold);
     }
     .hero h1 {
-      max-width: 860px;
+      max-width: 680px;
       margin: 16px 0 16px;
-      font-size: clamp(44px, 8vw, 104px);
-      line-height: .92;
+      font-size: clamp(48px, 6vw, 88px);
+      line-height: .94;
       font-weight: 950;
       letter-spacing: 0;
     }
     .hero p {
-      max-width: 650px;
-      color: rgba(255,255,255,.86);
-      font-size: clamp(17px, 2vw, 22px);
+      max-width: 610px;
+      color: var(--muted);
+      font-size: clamp(17px, 1.7vw, 21px);
       line-height: 1.55;
       margin: 0 0 28px;
     }
@@ -231,14 +266,14 @@
       margin-top: 42px;
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(255,255,255,.08);
-      backdrop-filter: blur(12px);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.76);
+      box-shadow: 0 12px 34px rgba(17,17,15,.08);
     }
-    .hero-strip div { padding: 18px; border-right: 1px solid rgba(255,255,255,.14); }
+    .hero-strip div { padding: 18px; border-right: 1px solid var(--line); }
     .hero-strip div:last-child { border-right: 0; }
-    .hero-strip strong { display: block; color: #fff; font-size: 22px; }
-    .hero-strip span { color: rgba(255,255,255,.7); font-size: 13px; font-weight: 800; }
+    .hero-strip strong { display: block; color: var(--ink); font-size: 22px; }
+    .hero-strip span { color: var(--muted); font-size: 13px; font-weight: 800; }
 
     .section { padding: clamp(52px, 7vw, 86px) 0; }
     .section-head {
@@ -354,6 +389,26 @@
       font-size: 14px;
     }
     .meta { color: var(--forest); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .size-picker {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 900;
+    }
+    .size-picker select {
+      min-width: 0;
+      width: 100%;
+      height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 10px;
+      font-weight: 800;
+    }
     .buy-line {
       margin-top: auto;
       display: flex;
@@ -376,6 +431,7 @@
       background: var(--night);
       color: #fff;
     }
+    .lookbook .eyebrow { color: #f8dc8d; }
     .lookbook-layout {
       display: grid;
       grid-template-columns: .95fr 1.05fr;
@@ -557,9 +613,12 @@
     @media (max-width: 980px) {
       .nav-links { display: none; }
       .menu-btn { display: inline-grid; }
+      .hero-layout { grid-template-columns: 1fr; }
+      .hero-copy { max-width: 760px; }
+      .hero-visual { height: 540px; }
       .hero-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .hero-strip div:nth-child(2) { border-right: 0; }
-      .hero-strip div:nth-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.14); }
+      .hero-strip div:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
       .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .lookbook-layout { grid-template-columns: 1fr; }
       .look-copy { min-height: auto; padding-right: 0; }
@@ -574,12 +633,21 @@
       .nav { min-height: 64px; }
       .brand small { display: none; }
       .nav-actions .btn { display: none; }
-      .hero { min-height: 84vh; background-position: 58% center; }
+      .hero { min-height: auto; }
       .hero .container { padding-bottom: 32px; }
       .hero h1 { font-size: clamp(42px, 15vw, 66px); }
       .hero-actions .btn { width: 100%; }
+      .hero-visual {
+        height: auto;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 350px 210px;
+      }
+      .hero-visual img:first-child {
+        grid-column: 1 / 3;
+        grid-row: 1;
+      }
       .hero-strip { grid-template-columns: 1fr; margin-top: 28px; }
-      .hero-strip div { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.14); }
+      .hero-strip div { border-right: 0; border-bottom: 1px solid var(--line); }
       .hero-strip div:last-child { border-bottom: 0; }
       .section-head { display: block; }
       .section-head p { margin-top: 12px; }
@@ -638,17 +706,26 @@
   <main id="top">
     <section class="hero">
       <div class="container">
-        <span class="eyebrow">Capsule Senegal 2026</span>
-        <h1>Wear the Culture.</h1>
-        <p>Une vitrine plus moderne pour les ensembles, maillots, debardeurs, t-shirts et accessoires Sowhat Africa. Les clients commandent directement sur WhatsApp.</p>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="#products">Voir la collection</a>
-          <a class="btn btn-outline" href="https://wa.me/c/221773374762" target="_blank" rel="noopener">Catalogue WhatsApp</a>
+        <div class="hero-layout">
+          <div class="hero-copy">
+            <span class="eyebrow">Capsule Sénégal 2026</span>
+            <h1>Wear the Culture.</h1>
+            <p>Ensembles, maillots, débardeurs et accessoires Sowhat Africa : choisissez votre taille et commandez directement sur WhatsApp.</p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#products">Voir la collection</a>
+              <a class="btn btn-soft" href="https://wa.me/c/221773374762" target="_blank" rel="noopener">Catalogue WhatsApp</a>
+            </div>
+          </div>
+          <div class="hero-visual" aria-label="Collection Sowhat Africa Sénégal 2026">
+            <img src="assets/hero/sowhat-africa-coupe-du-monde.jpg" alt="Collection Sénégal Coupe du Monde 2026 Sowhat Africa">
+            <img src="assets/hero/special-121-lookbook.jpg" alt="Lookbook urbain Sowhat Africa">
+            <img src="assets/hero/showroom-sowhat-africa.jpg" alt="Showroom Sowhat Africa">
+          </div>
         </div>
         <div class="hero-strip" aria-label="Informations boutique">
-          <div><strong>Capsule 2026</strong><span>Senegal et Dakar</span></div>
-          <div><strong>10 produits</strong><span>Vetements et accessoires</span></div>
-          <div><strong>S a XXL</strong><span>Selon le modele</span></div>
+          <div><strong>Capsule 2026</strong><span>Sénégal et Dakar</span></div>
+          <div><strong>10 produits</strong><span>Vêtements et accessoires</span></div>
+          <div><strong>S à XXL</strong><span>Selon le modèle</span></div>
           <div><strong>WhatsApp</strong><span>Commande directe</span></div>
         </div>
       </div>
@@ -661,7 +738,7 @@
             <span class="section-kicker">Boutique</span>
             <h2>Collection Sowhat Africa.</h2>
           </div>
-          <p>Ajoutez au panier, renseignez les informations client, puis la commande part sur WhatsApp avec le total.</p>
+          <p>Choisissez votre taille, ajoutez au panier, puis envoyez le récapitulatif complet sur WhatsApp.</p>
         </div>
         <div class="toolbar">
           <input class="search" id="searchInput" placeholder="Rechercher un produit" oninput="setSearch(this.value)">
@@ -675,8 +752,8 @@
       <div class="container lookbook-layout">
         <div class="look-copy">
           <span class="eyebrow">Sowhat Africa</span>
-          <h2>Le Senegal se porte avec fierte.</h2>
-          <p>Des pieces inspirees par Dakar, les Lions et la diaspora. Choisissez votre modele, ajoutez-le au panier et commandez directement sur WhatsApp.</p>
+          <h2>Le Sénégal se porte avec fierté.</h2>
+          <p>Des pièces inspirées par Dakar, les Lions et la diaspora. Choisissez votre modèle, ajoutez-le au panier et commandez directement sur WhatsApp.</p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="#products">Commander maintenant</a>
             <a class="btn btn-outline" href="https://www.instagram.com/sowhatafrika?igsh=Y3JodGd0aHkzMTMy" target="_blank" rel="noopener">Voir Instagram</a>
@@ -694,14 +771,14 @@
         <div class="section-head">
           <div>
             <span class="section-kicker">Commande</span>
-            <h2>Votre selection, directement sur WhatsApp.</h2>
+            <h2>Votre sélection, directement sur WhatsApp.</h2>
           </div>
-          <p>Trois etapes suffisent pour preparer et envoyer votre commande a DakarStyle.</p>
+          <p>Trois étapes suffisent pour préparer et envoyer votre commande à DakarStyle.</p>
         </div>
         <div class="service">
-          <div class="service-item"><strong>1. Choisissez</strong><p>Selectionnez vos produits, tailles et quantites dans la boutique.</p></div>
-          <div class="service-item"><strong>2. Verifiez</strong><p>Consultez votre panier et le total avant de confirmer.</p></div>
-          <div class="service-item"><strong>3. Envoyez</strong><p>Votre demande est preparee automatiquement pour WhatsApp.</p></div>
+          <div class="service-item"><strong>1. Choisissez</strong><p>Sélectionnez vos produits, tailles et quantités dans la boutique.</p></div>
+          <div class="service-item"><strong>2. Vérifiez</strong><p>Consultez votre panier et le total avant de confirmer.</p></div>
+          <div class="service-item"><strong>3. Envoyez</strong><p>Votre demande est préparée automatiquement pour WhatsApp.</p></div>
         </div>
       </div>
     </section>
@@ -712,7 +789,7 @@
       <div class="footer-grid">
         <div>
           <h3>DakarStyle x Sowhat Africa</h3>
-          <p>Capsule Senegal 2026. Ensembles, maillots, t-shirts, accessoires et pieces culturelles.</p>
+          <p>Capsule Sénégal 2026. Ensembles, maillots, t-shirts, accessoires et pièces culturelles.</p>
         </div>
         <div>
           <h4>Commande</h4>
@@ -750,11 +827,11 @@
   <div class="modal" id="checkoutModal">
     <div class="modal-box">
       <h3>Finaliser la commande</h3>
-      <p>Le recapitulatif sera envoye sur WhatsApp avec les produits, le total et les informations client.</p>
+      <p>Le récapitulatif sera envoyé sur WhatsApp avec les produits, les tailles, le total et vos informations.</p>
       <div class="form-grid">
-        <label>Nom complet<input id="clientName" autocomplete="name" placeholder="Votre nom"></label>
-        <label>Telephone<input id="clientPhone" autocomplete="tel" placeholder="77 000 00 00"></label>
-        <label>Adresse<textarea id="clientAddress" placeholder="Quartier, ville, indication livraison"></textarea></label>
+        <label>Nom complet<input id="clientName" autocomplete="name" placeholder="Votre nom" required></label>
+        <label>Téléphone<input id="clientPhone" type="tel" autocomplete="tel" inputmode="tel" placeholder="77 000 00 00" required></label>
+        <label>Localité et adresse<textarea id="clientAddress" placeholder="Ville, quartier, indication de livraison" required></textarea></label>
       </div>
       <div class="modal-actions">
         <button class="btn btn-soft" onclick="closeCheckout()">Annuler</button>
@@ -767,11 +844,18 @@
 
   <script>
     const WHATSAPP = "221773374762";
-    const FALLBACK_PRODUCTS = [{"id": 1, "name": "Ensemble Senegal", "cat": "mixte", "type": "ensemble", "price": 18000, "img": "assets/products/ensemble-senegal-vert.jpg", "tag": "Top vente", "sizes": "S, M, L, XL, XXL", "desc": "Ensemble complet inspire des couleurs du Senegal, pense pour un look sport et ville."}, {"id": 2, "name": "Ensemble Dakar", "cat": "mixte", "type": "ensemble", "price": 19000, "img": "assets/products/ensemble-dakar-premium.jpg", "tag": "Dakar", "sizes": "S, M, L, XL, XXL", "desc": "Ensemble premium Dakar, coupe confortable et detail Sowhat pour porter la culture au quotidien."}, {"id": 3, "name": "Debardeur Senegal", "cat": "mixte", "type": "maillot", "price": 13000, "img": "assets/products/debardeur-senegal-2026.jpg", "tag": "Basket", "sizes": "S, M, L, XL", "desc": "Debardeur blanc en mesh leger avec bordures vert-jaune-rouge, blason Lions et grande etoile."}, {"id": 4, "name": "Maillot Senegal", "cat": "mixte", "type": "maillot", "price": 12000, "img": "assets/products/maillot-senegal-cdm-2026.jpg", "tag": "CDM 2026", "sizes": "S, M, L, XL, XXL", "desc": "Maillot blanc Senegal 2026, col tricolore, broderies fortes et finition respirante."}, {"id": 5, "name": "T-shirt noir et blanc Wear the Culture", "cat": "mixte", "type": "tshirt", "price": 7000, "img": "assets/products/tshirt-wear-the-culture-noir-blanc.jpg", "tag": "Culture", "sizes": "S, M, L, XL, XXL", "desc": "Pack esprit streetwear en noir et blanc, logo Senegal et message Wear the Culture."}, {"id": 6, "name": "Ensemble blouson vert Sowhat Foot", "cat": "mixte", "type": "ensemble", "price": 20000, "img": "assets/products/ensemble-blouson-vert-sowhat-foot.jpg", "tag": "Premium", "sizes": "S, M, L, XL, XXL", "desc": "Ensemble vert Sowhat Foot avec blouson coordonne, style sport chic et finitions premium."}, {"id": 7, "name": "T-shirt numero 10 noir et blanc", "cat": "mixte", "type": "tshirt", "price": 9000, "img": "assets/products/tshirt-numero-10-noir-blanc.jpg", "tag": "Numero 10", "sizes": "S, M, L, XL, XXL", "desc": "T-shirt numero 10 noir et blanc, coupe urbaine, blason Lions et etiquette Sowhat Africa."}, {"id": 8, "name": "Casquette Sowhat Africa 2026", "cat": "mixte", "type": "accessoire", "price": 8500, "img": "assets/products/casquette-sowhat-africa-2026.jpg", "tag": "Accessoire", "sizes": "Taille reglable", "desc": "Casquette noire brodee Sowhat Africa, presentation premium et details panafricains."}, {"id": 9, "name": "Sneakers Dakar Street", "cat": "mixte", "type": "chaussure", "price": 35000, "img": "assets/products/sneakers-dakar-street.jpg", "tag": "Chaussures", "sizes": "40, 41, 42, 43, 44", "desc": "Sneakers blanches avec accent Senegal, faciles a associer avec la capsule."}, {"id": 10, "name": "Lunettes Soleil Urban", "cat": "mixte", "type": "lunette", "price": 15000, "img": "assets/products/lunettes-soleil-urban.jpg", "tag": "Lunettes", "sizes": "Unique", "desc": "Lunettes solaires style urbain pour completer les looks Sowhat Africa."}];
+    const CART_KEY = "ds_cart_sized_v1";
+    const FALLBACK_PRODUCTS = [{"id":1,"name":"Ensemble Sénégal","cat":"mixte","type":"ensemble","price":18000,"img":"assets/products/ensemble-senegal-vert.jpg","tag":"Top vente","sizes":"S, M, L, XL, XXL","desc":"Ensemble complet inspiré des couleurs du Sénégal, pensé pour un look sport et ville."},{"id":2,"name":"Ensemble Dakar","cat":"mixte","type":"ensemble","price":19000,"img":"assets/products/ensemble-dakar-premium.jpg","tag":"Dakar","sizes":"S, M, L, XL, XXL","desc":"Ensemble premium Dakar, coupe confortable et détail Sowhat pour porter la culture au quotidien."},{"id":3,"name":"Débardeur Sénégal","cat":"mixte","type":"maillot","price":13000,"img":"assets/products/debardeur-senegal-2026.jpg","tag":"Basket","sizes":"S, M, L, XL","desc":"Débardeur blanc en mesh léger avec bordures vert-jaune-rouge, blason Lions et grande étoile."},{"id":4,"name":"Maillot Sénégal","cat":"mixte","type":"maillot","price":12000,"img":"assets/products/maillot-senegal-cdm-2026.jpg","tag":"CDM 2026","sizes":"S, M, L, XL, XXL","desc":"Maillot blanc Sénégal 2026, col tricolore, broderies fortes et finition respirante."},{"id":5,"name":"T-shirt noir et blanc Wear the Culture","cat":"mixte","type":"tshirt","price":7000,"img":"assets/products/tshirt-wear-the-culture-noir-blanc.jpg","tag":"Culture","sizes":"S, M, L, XL, XXL","desc":"Pack esprit streetwear en noir et blanc, logo Sénégal et message Wear the Culture."},{"id":6,"name":"Ensemble blouson vert Sowhat Foot","cat":"mixte","type":"ensemble","price":20000,"img":"assets/products/ensemble-blouson-vert-sowhat-foot.jpg","tag":"Premium","sizes":"S, M, L, XL, XXL","desc":"Ensemble vert Sowhat Foot avec blouson coordonné, style sport chic et finitions premium."},{"id":7,"name":"T-shirt numéro 10 noir et blanc","cat":"mixte","type":"tshirt","price":9000,"img":"assets/products/tshirt-numero-10-noir-blanc.jpg","tag":"Numéro 10","sizes":"S, M, L, XL, XXL","desc":"T-shirt numéro 10 noir et blanc, coupe urbaine, blason Lions et étiquette Sowhat Africa."},{"id":8,"name":"Casquette Sowhat Africa 2026","cat":"mixte","type":"accessoire","price":8500,"img":"assets/products/tshirts-senegal-noir-blanc-casquettes.jpg","tag":"Accessoire","sizes":"Taille réglable","desc":"Casquette noire brodée Sowhat Africa, présentation premium et détails panafricains."},{"id":9,"name":"Sneakers Dakar Street","cat":"mixte","type":"chaussure","price":35000,"img":"assets/products/sneakers-dakar-street.jpg","tag":"Chaussures","sizes":"40, 41, 42, 43, 44","desc":"Sneakers blanches avec accent Sénégal, faciles à associer avec la capsule."},{"id":10,"name":"Lunettes Soleil Urban","cat":"mixte","type":"lunette","price":15000,"img":"assets/products/lunettes-soleil-urban.jpg","tag":"Lunettes","sizes":"Unique","desc":"Lunettes solaires style urbain pour compléter les looks Sowhat Africa."}];
     let PRODUCTS = FALLBACK_PRODUCTS.slice();
     let activeFilter = "all";
     let searchText = "";
-    let cart = JSON.parse(localStorage.getItem("ds_cart_modern") || "[]");
+    let cart = [];
+    try {
+      const savedCart = JSON.parse(localStorage.getItem(CART_KEY) || "[]");
+      if (Array.isArray(savedCart)) cart = savedCart;
+    } catch (error) {
+      localStorage.removeItem(CART_KEY);
+    }
 
     const fmt = value => new Intl.NumberFormat("fr-FR").format(Number(value || 0)) + " FCFA";
 
@@ -822,14 +906,25 @@
       });
     }
 
+    function productSizes(product) {
+      return String(product.sizes || "Unique")
+        .split(",")
+        .map(size => size.trim())
+        .filter(Boolean);
+    }
+
     function renderProducts() {
       const grid = document.getElementById("productGrid");
       const items = filteredProducts();
       if (!items.length) {
-        grid.innerHTML = `<p>Aucun produit ne correspond a cette recherche.</p>`;
+        grid.innerHTML = `<p>Aucun produit ne correspond à cette recherche.</p>`;
         return;
       }
-      grid.innerHTML = items.map(product => `
+      grid.innerHTML = items.map(product => {
+        const sizes = productSizes(product);
+        const options = sizes.map(size => `<option value="${size}">${size}</option>`).join("");
+        const prompt = sizes.length > 1 ? `<option value="">Choisir</option>` : "";
+        return `
         <article class="product">
           <div class="product-media">
             <img src="${product.img}" alt="${product.name}" loading="lazy">
@@ -839,35 +934,52 @@
             <span class="meta">${product.type} - ${product.sizes}</span>
             <h3>${product.name}</h3>
             <p>${product.desc}</p>
+            <label class="size-picker" for="size-${product.id}">
+              Taille
+              <select id="size-${product.id}" aria-label="Taille pour ${product.name}">
+                ${prompt}${options}
+              </select>
+            </label>
             <div class="buy-line">
               <span class="price">${fmt(product.price)}</span>
               <button class="add" onclick="addToCart(${product.id})" aria-label="Ajouter ${product.name} au panier">+</button>
             </div>
           </div>
         </article>
-      `).join("");
+      `;
+      }).join("");
     }
 
     function saveCart() {
-      localStorage.setItem("ds_cart_modern", JSON.stringify(cart));
+      localStorage.setItem(CART_KEY, JSON.stringify(cart));
       document.getElementById("cartCount").textContent = cart.reduce((sum, item) => sum + item.qty, 0);
     }
 
     function addToCart(id) {
       const product = PRODUCTS.find(item => Number(item.id) === Number(id));
       if (!product) return;
-      const current = cart.find(item => Number(item.id) === Number(id));
+      const sizeSelect = document.getElementById(`size-${id}`);
+      const size = sizeSelect ? sizeSelect.value.trim() : "";
+      if (!size) {
+        sizeSelect?.focus();
+        alert("Choisissez d'abord la taille.");
+        return;
+      }
+      const current = cart.find(item => Number(item.id) === Number(id) && item.size === size);
       if (current) current.qty += 1;
-      else cart.push({ id: product.id, name: product.name, price: product.price, img: product.img, qty: 1 });
+      else cart.push({ id: product.id, name: product.name, price: product.price, img: product.img, size, qty: 1 });
       renderCart();
       openCart();
     }
 
-    function changeQty(id, delta) {
-      const item = cart.find(product => Number(product.id) === Number(id));
+    function changeQty(id, encodedSize, delta) {
+      const size = decodeURIComponent(encodedSize);
+      const item = cart.find(product => Number(product.id) === Number(id) && product.size === size);
       if (!item) return;
       item.qty += delta;
-      if (item.qty <= 0) cart = cart.filter(product => Number(product.id) !== Number(id));
+      if (item.qty <= 0) {
+        cart = cart.filter(product => !(Number(product.id) === Number(id) && product.size === size));
+      }
       renderCart();
     }
 
@@ -888,11 +1000,11 @@
           <img src="${item.img}" alt="">
           <div>
             <h4>${item.name}</h4>
-            <p>${fmt(item.price)} chacun</p>
+            <p>Taille : ${item.size} · ${fmt(item.price)} chacun</p>
             <div class="qty">
-              <button onclick="changeQty(${item.id}, -1)" aria-label="Retirer">-</button>
+              <button onclick="changeQty(${item.id}, '${encodeURIComponent(item.size)}', -1)" aria-label="Retirer">-</button>
               <span>${item.qty}</span>
-              <button onclick="changeQty(${item.id}, 1)" aria-label="Ajouter">+</button>
+              <button onclick="changeQty(${item.id}, '${encodeURIComponent(item.size)}', 1)" aria-label="Ajouter">+</button>
             </div>
           </div>
           <strong>${fmt(item.price * item.qty)}</strong>
@@ -924,14 +1036,14 @@
       const phone = document.getElementById("clientPhone").value.trim();
       const address = document.getElementById("clientAddress").value.trim();
       if (!name || !phone || !address) {
-        alert("Merci de remplir le nom, le telephone et l'adresse.");
+        alert("Merci de remplir le nom, le téléphone et la localité.");
         return;
       }
-      const lines = cart.map(item => `- ${item.name} x${item.qty} = ${fmt(item.price * item.qty)}`).join("\n");
-      const message = `NOUVELLE COMMANDE - DakarStyle x Sowhat Africa\n\nClient: ${name}\nTelephone: ${phone}\nAdresse: ${address}\n\nProduits:\n${lines}\n\nTOTAL: ${fmt(cartTotal())}\n\nMerci.`;
+      const lines = cart
+        .map(item => `- ${item.name} | Taille: ${item.size} | Qté: ${item.qty} | ${fmt(item.price * item.qty)}`)
+        .join("\n");
+      const message = `NOUVELLE COMMANDE — DakarStyle x Sowhat Africa\n\nClient : ${name}\nTéléphone : ${phone}\nLocalité / adresse : ${address}\n\nProduits :\n${lines}\n\nTOTAL : ${fmt(cartTotal())}\n\nMerci.`;
       window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`, "_blank");
-      cart = [];
-      renderCart();
       closeCheckout();
       closeCart();
     }
