@@ -263,27 +263,6 @@
       font-weight: 600;
     }
 
-    .price-row {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(180px, 1fr));
-      gap: 10px;
-      overflow-x: auto;
-      padding: 2px 2px 16px;
-      scrollbar-width: thin;
-    }
-    .price-pill {
-      border: 1px solid var(--line);
-      background: #fff;
-      border-radius: 8px;
-      padding: 14px;
-      min-height: 86px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-    }
-    .price-pill span { color: var(--muted); font-weight: 850; font-size: 13px; }
-    .price-pill strong { color: var(--ink); font-size: 21px; }
-
     .toolbar {
       margin-top: 24px;
       display: grid;
@@ -667,24 +646,11 @@
           <a class="btn btn-outline" href="https://wa.me/c/221773374762" target="_blank" rel="noopener">Catalogue WhatsApp</a>
         </div>
         <div class="hero-strip" aria-label="Informations boutique">
-          <div><strong>7 000 FCFA</strong><span>T-shirt Wear the Culture</span></div>
-          <div><strong>12 000 FCFA</strong><span>Maillot Senegal</span></div>
-          <div><strong>18 000 FCFA</strong><span>Ensemble Senegal</span></div>
-          <div><strong>24h</strong><span>Commande WhatsApp rapide</span></div>
+          <div><strong>Capsule 2026</strong><span>Senegal et Dakar</span></div>
+          <div><strong>10 produits</strong><span>Vetements et accessoires</span></div>
+          <div><strong>S a XXL</strong><span>Selon le modele</span></div>
+          <div><strong>WhatsApp</strong><span>Commande directe</span></div>
         </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="container">
-        <div class="section-head">
-          <div>
-            <span class="section-kicker">Prix officiels</span>
-            <h2>Les articles prioritaires.</h2>
-          </div>
-          <p>Les nouveaux produits sont places en haut de la boutique avec les prix que vous avez fournis.</p>
-        </div>
-        <div class="price-row" id="priceRow"></div>
       </div>
     </section>
 
@@ -708,9 +674,9 @@
     <section class="section lookbook" id="lookbook">
       <div class="container lookbook-layout">
         <div class="look-copy">
-          <span class="eyebrow">Landing page premium</span>
-          <h2>Une image plus forte pour Dakar et la diaspora.</h2>
-          <p>La page met en avant les visuels Senegal, les tons noir, or, vert et rouge, et une experience plus directe : voir le produit, comprendre le prix, commander sur WhatsApp.</p>
+          <span class="eyebrow">Sowhat Africa</span>
+          <h2>Le Senegal se porte avec fierte.</h2>
+          <p>Des pieces inspirees par Dakar, les Lions et la diaspora. Choisissez votre modele, ajoutez-le au panier et commandez directement sur WhatsApp.</p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="#products">Commander maintenant</a>
             <a class="btn btn-outline" href="https://www.instagram.com/sowhatafrika?igsh=Y3JodGd0aHkzMTMy" target="_blank" rel="noopener">Voir Instagram</a>
@@ -728,14 +694,14 @@
         <div class="section-head">
           <div>
             <span class="section-kicker">Commande</span>
-            <h2>Le fonctionnement reste simple.</h2>
+            <h2>Votre selection, directement sur WhatsApp.</h2>
           </div>
-          <p>Le tunnel de commande WhatsApp est conserve : aucun changement complique pour les clients.</p>
+          <p>Trois etapes suffisent pour preparer et envoyer votre commande a DakarStyle.</p>
         </div>
         <div class="service">
-          <div class="service-item"><strong>Panier clair</strong><p>Les produits et quantites sont gardes jusqu'a l'envoi de la commande.</p></div>
-          <div class="service-item"><strong>Total automatique</strong><p>Le total est calcule en FCFA avec les nouveaux prix officiels.</p></div>
-          <div class="service-item"><strong>WhatsApp direct</strong><p>Le message arrive deja rempli au numero +221 77 337 47 62.</p></div>
+          <div class="service-item"><strong>1. Choisissez</strong><p>Selectionnez vos produits, tailles et quantites dans la boutique.</p></div>
+          <div class="service-item"><strong>2. Verifiez</strong><p>Consultez votre panier et le total avant de confirmer.</p></div>
+          <div class="service-item"><strong>3. Envoyez</strong><p>Votre demande est preparee automatiquement pour WhatsApp.</p></div>
         </div>
       </div>
     </section>
@@ -817,20 +783,9 @@
       } catch (error) {
         PRODUCTS = FALLBACK_PRODUCTS.slice();
       }
-      renderPriceRow();
       renderFilters();
       renderProducts();
       renderCart();
-    }
-
-    function renderPriceRow() {
-      const row = document.getElementById("priceRow");
-      row.innerHTML = PRODUCTS.slice(0, 7).map(product => `
-        <article class="price-pill">
-          <span>${product.name}</span>
-          <strong>${fmt(product.price)}</strong>
-        </article>
-      `).join("");
     }
 
     function renderFilters() {
