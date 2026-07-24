@@ -1,537 +1,999 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="DakarStyle x Sowhat Africa - capsule Senegal 2026, maillots Lions de la Teranga, streetwear, sneakers et accessoires. Livraison Dakar 24h.">
-<title>DakarStyle x Sowhat Africa - Capsule Senegal 2026</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Bricolage+Grotesque:wght@600;800&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#080a0b;--bg2:#101316;--card:#171b20;--line:rgba(255,255,255,.1);--text:#f7f7f2;--muted:#aeb4ad;--green:#00b871;--gold:#f3c240;--red:#d32924;--shadow:0 22px 70px rgba(0,0,0,.45);--grad:linear-gradient(135deg,#00b871,#f3c240)}
-html{scroll-behavior:smooth}
-body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.55;overflow-x:hidden}
-img{display:block;max-width:100%}
-a{color:inherit;text-decoration:none}
-button,input,select,textarea{font:inherit}
-button{border:0;cursor:pointer;color:inherit;background:none}
-h1,h2,h3,h4{font-family:'Bricolage Grotesque',sans-serif;line-height:1.1;letter-spacing:0}
-.container{max-width:1240px;margin:0 auto;padding:0 22px}
-.header{position:fixed;inset:0 0 auto;z-index:1000;background:rgba(8,10,11,.74);backdrop-filter:blur(18px);border-bottom:1px solid transparent;transition:.25s}
-.header.scrolled{background:rgba(8,10,11,.96);border-bottom-color:var(--line)}
-.header-inner{min-height:72px;display:flex;align-items:center;justify-content:space-between;gap:20px}
-.logo{display:flex;align-items:center;gap:12px;font-weight:800;font-size:22px}
-.logo-mark{width:42px;height:42px;border-radius:8px;background:var(--grad);display:grid;place-items:center;color:#06100b;font-weight:900;box-shadow:0 10px 30px rgba(0,184,113,.25)}
-.logo small{display:block;color:var(--muted);font-size:11px;font-weight:600;margin-top:2px}
-.nav{display:flex;gap:26px;color:var(--muted);font-size:14px;font-weight:700}
-.nav a:hover{color:var(--text)}
-.header-actions{display:flex;gap:10px;align-items:center}
-.icon-btn{width:42px;height:42px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.05);display:grid;place-items:center;position:relative}
-.icon-btn:hover{background:rgba(255,255,255,.1)}
-.cart-badge{position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--green);color:#00110a;font-size:11px;font-weight:900;display:grid;place-items:center;border:2px solid var(--bg)}
-.menu-toggle{display:none}
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.62);backdrop-filter:blur(4px);z-index:1500;opacity:0;pointer-events:none;transition:.25s}
-.overlay.show{opacity:1;pointer-events:auto}
-.mobile-menu{position:fixed;top:0;right:-100%;z-index:2000;width:min(86vw,340px);height:100vh;background:var(--bg2);border-left:1px solid var(--line);padding:78px 24px 24px;transition:.3s}
-.mobile-menu.open{right:0;box-shadow:-20px 0 70px rgba(0,0,0,.55)}
-.mobile-menu a{display:block;padding:16px 0;border-bottom:1px solid var(--line);font-weight:800}
-.menu-close{position:absolute;top:20px;right:20px}
-.hero{min-height:100vh;padding:128px 0 72px;display:flex;align-items:center;background:linear-gradient(180deg,#0d1210,#080a0b)}
-.hero-grid{display:grid;grid-template-columns:.92fr 1.08fr;gap:54px;align-items:center}
-.eyebrow{display:inline-flex;align-items:center;gap:9px;border:1px solid rgba(0,184,113,.35);background:rgba(0,184,113,.08);color:#7df0bb;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:800;margin-bottom:20px}
-.eyebrow::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 14px var(--green)}
-.hero h1{font-size:clamp(42px,6vw,76px);font-weight:800;margin-bottom:20px}
-.hero h1 span{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
-.hero p{font-size:18px;color:var(--muted);max-width:590px;margin-bottom:28px}
-.hero-cta{display:flex;gap:12px;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:8px;padding:14px 20px;font-weight:900;transition:.2s}
-.btn-primary{background:var(--grad);color:#06100b;box-shadow:0 12px 34px rgba(0,184,113,.25)}
-.btn-primary:hover,.btn-ghost:hover{transform:translateY(-2px)}
-.btn-ghost{border:1px solid var(--line);background:rgba(255,255,255,.05)}
-.hero-stats{display:flex;gap:26px;flex-wrap:wrap;margin-top:34px;padding-top:26px;border-top:1px solid var(--line)}
-.hero-stats strong{display:block;font-size:26px;color:var(--gold)}
-.hero-stats span{font-size:13px;color:var(--muted)}
-.carousel{position:relative;height:min(70vh,690px);min-height:480px;border-radius:8px;overflow:hidden;box-shadow:var(--shadow);border:1px solid var(--line)}
-.slide{position:absolute;inset:0;opacity:0;transition:opacity .8s,transform 5s;transform:scale(1.04)}
-.slide.active{opacity:1;transform:scale(1)}
-.slide img{width:100%;height:100%;object-fit:cover}
-.slide::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.05) 25%,rgba(0,0,0,.72))}
-.caption{position:absolute;left:24px;right:24px;bottom:24px;z-index:2}
-.caption h3{font-size:28px;margin-bottom:6px}
-.caption p{color:rgba(255,255,255,.82);font-size:14px}
-.dots{position:absolute;right:24px;bottom:24px;z-index:3;display:flex;gap:8px}
-.dot{width:34px;height:4px;border-radius:4px;background:rgba(255,255,255,.45)}
-.dot.active{background:var(--green);width:46px}
-section{padding:78px 0}
-.section-head{text-align:center;margin-bottom:38px}
-.section-tag{color:var(--green);font-size:13px;font-weight:900;letter-spacing:2px;text-transform:uppercase;margin-bottom:10px}
-.section-head h2{font-size:clamp(30px,4vw,48px);margin-bottom:12px}
-.section-head p{max-width:660px;margin:0 auto;color:var(--muted)}
-.cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.cat-card{position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--line);cursor:pointer;background:#222}
-.cat-card img{width:100%;height:100%;object-fit:cover;transition:.45s}
-.cat-card:hover img{transform:scale(1.06)}
-.cat-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.84))}
-.cat-card div{position:absolute;left:18px;right:18px;bottom:18px;z-index:2}
-.cat-card h3{font-size:20px;margin-bottom:4px}
-.cat-card span{font-size:13px;color:rgba(255,255,255,.78)}
-.filters{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-bottom:32px}
-.chip{border:1px solid var(--line);background:rgba(255,255,255,.05);border-radius:999px;padding:9px 16px;font-size:14px;font-weight:800}
-.chip.active{background:var(--grad);color:#06100b;border-color:transparent}
-.product-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
-.product-card{background:var(--card);border:1px solid var(--line);border-radius:8px;overflow:hidden;transition:.25s}
-.product-card:hover{transform:translateY(-5px);border-color:rgba(0,184,113,.45);box-shadow:0 18px 42px rgba(0,184,113,.11)}
-.product-img{position:relative;aspect-ratio:1;background:#111;overflow:hidden}
-.product-img img{width:100%;height:100%;object-fit:cover;transition:.4s}
-.product-card:hover .product-img img{transform:scale(1.05)}
-.product-tag{position:absolute;top:12px;left:12px;background:var(--grad);color:#06100b;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:900}
-.product-info{padding:15px}
-.product-cat{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#7df0bb;font-weight:900;margin-bottom:7px}
-.product-name{font-weight:900;font-size:15px;line-height:1.25;margin-bottom:8px;min-height:38px}
-.product-desc{color:var(--muted);font-size:12px;line-height:1.35;margin-bottom:10px;min-height:48px}
-.product-sizes{font-size:11px;color:#d7d7cd;margin-bottom:12px}
-.product-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.product-price{font-weight:900;font-size:17px;color:var(--gold)}
-.product-add{width:38px;height:38px;border-radius:50%;background:var(--grad);color:#06100b;font-size:22px;font-weight:900;display:grid;place-items:center;flex:0 0 auto}
-.story{background:#0c0f10;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-.story-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:34px;align-items:center}
-.story img{border-radius:8px;border:1px solid var(--line);box-shadow:var(--shadow);width:100%;aspect-ratio:4/3;object-fit:cover}
-.story h2{font-size:clamp(30px,4vw,46px);margin-bottom:16px}
-.story p{color:var(--muted);margin-bottom:14px}
-.features-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
-.feature{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:22px;text-align:center}
-.feature b{display:block;color:var(--gold);font-size:18px;margin-bottom:6px}
-.feature p{color:var(--muted);font-size:13px}
-.footer{background:var(--bg2);border-top:1px solid var(--line);padding:48px 0 26px}
-.footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:28px;margin-bottom:30px}
-.footer p,.footer a{display:block;color:var(--muted);font-size:14px;margin-bottom:9px}
-.footer h4{margin-bottom:12px}
-.footer-bottom{border-top:1px solid var(--line);padding-top:20px;text-align:center;color:var(--muted);font-size:13px}
-.cart-drawer{position:fixed;top:0;right:-100%;width:min(92vw,430px);height:100vh;background:var(--bg2);z-index:2100;transition:.32s;display:flex;flex-direction:column;box-shadow:-20px 0 70px rgba(0,0,0,.48)}
-.cart-drawer.open{right:0}
-.cart-head{padding:22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}
-.cart-body{flex:1;overflow-y:auto;padding:18px}
-.cart-empty{text-align:center;color:var(--muted);padding:58px 18px}
-.cart-item{display:flex;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:10px}
-.cart-item img{width:72px;height:72px;border-radius:6px;object-fit:cover}
-.cart-item-info{flex:1;min-width:0}
-.cart-item h5{font-size:14px;margin-bottom:4px}
-.cart-item .price{color:var(--gold);font-weight:900;font-size:13px}
-.cart-controls{display:flex;align-items:center;gap:6px;margin-top:8px}
-.qty-btn{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:var(--bg);display:grid;place-items:center}
-.qty-val{min-width:24px;text-align:center;font-weight:900;font-size:13px}
-.remove-btn{margin-left:auto;color:#ff6a6a}
-.cart-foot{border-top:1px solid var(--line);padding:18px}
-.cart-total{display:flex;justify-content:space-between;font-weight:900;font-size:18px;margin-bottom:14px}
-.cart-total .amount{color:var(--gold)}
-.cart-checkout{width:100%;border-radius:8px;background:var(--grad);color:#06100b;font-weight:900;padding:15px}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.72);backdrop-filter:blur(7px);z-index:2200;display:none;align-items:center;justify-content:center;padding:18px}
-.modal.open{display:flex}
-.modal-box{width:min(100%,490px);max-height:92vh;overflow:auto;background:var(--bg2);border:1px solid var(--line);border-radius:8px;padding:24px}
-.modal-close{float:right;font-size:24px;color:var(--muted)}
-.modal-box h3{font-size:24px;margin-bottom:18px}
-.modal-box label{display:block;color:var(--muted);font-size:13px;font-weight:800;margin:13px 0 6px}
-.modal-box input,.modal-box textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:12px}
-.modal-actions{display:flex;gap:10px;margin-top:20px}
-.modal-actions .btn{flex:1}
-.fab{position:fixed;right:22px;width:58px;height:58px;border-radius:50%;z-index:920;display:grid;place-items:center;box-shadow:0 12px 34px rgba(0,0,0,.42);font-weight:900}
-.fab-wa{bottom:92px;background:#25d366;color:#fff}
-.fab-chat{bottom:22px;background:var(--grad);color:#06100b}
-.chat-window{position:fixed;right:22px;bottom:88px;width:min(92vw,360px);height:480px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;z-index:930;display:none;flex-direction:column;overflow:hidden;box-shadow:var(--shadow)}
-.chat-window.open{display:flex}
-.chat-head{padding:16px;background:var(--grad);color:#06100b;display:flex;align-items:center;gap:10px}
-.chat-body{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
-.msg{max-width:82%;font-size:13px;line-height:1.35;border-radius:12px;padding:10px 12px}
-.msg.bot{align-self:flex-start;background:var(--card);border:1px solid var(--line)}
-.msg.user{align-self:flex-end;background:var(--grad);color:#06100b}
-.chat-foot{display:flex;gap:8px;border-top:1px solid var(--line);padding:10px}
-.chat-foot input{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px}
-.chat-foot button{border-radius:8px;background:var(--grad);color:#06100b;font-weight:900;padding:0 14px}
-@media(max-width:1050px){.product-grid{grid-template-columns:repeat(3,1fr)}.hero-grid,.story-grid{grid-template-columns:1fr}.carousel{height:560px}.footer-grid{grid-template-columns:1fr 1fr}}
-@media(max-width:780px){.nav{display:none}.menu-toggle{display:grid}.hero{padding-top:112px}.carousel{min-height:390px;height:430px}.cat-grid,.features-grid{grid-template-columns:1fr 1fr}.product-grid{grid-template-columns:1fr 1fr;gap:14px}.product-desc{display:none}.footer-grid{grid-template-columns:1fr}.hero-stats{gap:18px}}
-@media(max-width:480px){.container{padding:0 16px}.product-grid{grid-template-columns:1fr}.cat-grid{grid-template-columns:1fr}.features-grid{grid-template-columns:1fr}.hero h1{font-size:40px}.modal-actions{flex-direction:column}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DakarStyle x Sowhat Africa | Wear the Culture</title>
+  <meta name="description" content="Boutique DakarStyle x Sowhat Africa : ensembles, maillots, debardeurs, t-shirts et accessoires Senegal 2026. Commande directe sur WhatsApp.">
+  <meta property="og:title" content="DakarStyle x Sowhat Africa">
+  <meta property="og:description" content="Capsule Senegal 2026 - Wear the Culture. Commande directe sur WhatsApp.">
+  <meta property="og:image" content="assets/hero/wear-the-culture-2026.jpg">
+  <style>
+    :root {
+      --ink: #11110f;
+      --night: #090d0a;
+      --forest: #0f5f35;
+      --gold: #d7a83f;
+      --red: #ca242c;
+      --cream: #f7f2e7;
+      --paper: #fffdf8;
+      --muted: #746f66;
+      --line: rgba(17, 17, 15, .12);
+      --shadow: 0 18px 46px rgba(8, 10, 8, .18);
+      --radius: 8px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      letter-spacing: 0;
+    }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+    button, input, select, textarea { font: inherit; }
+    button { border: 0; cursor: pointer; }
+
+    .skip { position: absolute; left: -999px; top: 8px; background: #fff; color: #000; padding: 10px; z-index: 20; }
+    .skip:focus { left: 8px; }
+    .container { width: min(1180px, calc(100% - 32px)); margin: 0 auto; }
+
+    .topline {
+      background: var(--night);
+      color: #fff;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255,255,255,.12);
+    }
+    .topline .container {
+      min-height: 36px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .topline a { color: #f6d98c; }
+    .topline-links { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 15;
+      background: rgba(255,253,248,.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav {
+      min-height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+    .brand-mark {
+      width: 42px;
+      height: 42px;
+      border: 1px solid var(--line);
+      background: #fff;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      border-radius: 50%;
+    }
+    .brand-mark img { width: 40px; height: 40px; object-fit: cover; }
+    .brand span { display: block; line-height: 1.05; }
+    .brand small {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      margin-top: 3px;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      color: #2c2b27;
+      font-weight: 800;
+      font-size: 14px;
+    }
+    .nav-actions { display: flex; align-items: center; gap: 10px; }
+    .icon-btn, .menu-btn {
+      height: 42px;
+      min-width: 42px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 8px;
+      display: inline-grid;
+      place-items: center;
+      font-weight: 900;
+    }
+    .cart-count {
+      margin-left: 5px;
+      min-width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      background: var(--red);
+      color: #fff;
+      font-size: 12px;
+    }
+    .menu-btn { display: none; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 18px;
+      border-radius: 8px;
+      font-weight: 900;
+      border: 1px solid transparent;
+      transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+      white-space: nowrap;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--gold); color: #161006; box-shadow: 0 14px 30px rgba(215,168,63,.25); }
+    .btn-dark { background: var(--night); color: #fff; }
+    .btn-outline { background: transparent; color: #fff; border-color: rgba(255,255,255,.55); }
+    .btn-soft { background: #fff; border-color: var(--line); color: var(--ink); }
+
+    .mobile-panel {
+      display: none;
+      position: fixed;
+      inset: 0 0 auto 0;
+      z-index: 30;
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 22px;
+    }
+    .mobile-panel.open { display: block; }
+    .mobile-panel a, .mobile-panel button {
+      width: 100%;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+      background: transparent;
+      font-weight: 900;
+      color: var(--ink);
+    }
+
+    .hero {
+      min-height: calc(100vh - 108px);
+      position: relative;
+      display: flex;
+      align-items: end;
+      color: #fff;
+      overflow: hidden;
+      background: #050805 url("assets/hero/wear-the-culture-2026.jpg") center / cover no-repeat;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(4,6,4,.86) 0%, rgba(4,6,4,.54) 42%, rgba(4,6,4,.18) 100%),
+        linear-gradient(0deg, rgba(4,6,4,.74) 0%, rgba(4,6,4,.10) 44%, rgba(4,6,4,.36) 100%);
+    }
+    .hero .container {
+      position: relative;
+      z-index: 1;
+      padding: clamp(56px, 8vw, 110px) 0 44px;
+    }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #f8dc8d;
+      font-weight: 900;
+      text-transform: uppercase;
+      font-size: 13px;
+    }
+    .eyebrow::before {
+      content: "";
+      width: 32px;
+      height: 2px;
+      background: var(--gold);
+    }
+    .hero h1 {
+      max-width: 860px;
+      margin: 16px 0 16px;
+      font-size: clamp(44px, 8vw, 104px);
+      line-height: .92;
+      font-weight: 950;
+      letter-spacing: 0;
+    }
+    .hero p {
+      max-width: 650px;
+      color: rgba(255,255,255,.86);
+      font-size: clamp(17px, 2vw, 22px);
+      line-height: 1.55;
+      margin: 0 0 28px;
+    }
+    .hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
+    .hero-strip {
+      margin-top: 42px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.08);
+      backdrop-filter: blur(12px);
+    }
+    .hero-strip div { padding: 18px; border-right: 1px solid rgba(255,255,255,.14); }
+    .hero-strip div:last-child { border-right: 0; }
+    .hero-strip strong { display: block; color: #fff; font-size: 22px; }
+    .hero-strip span { color: rgba(255,255,255,.7); font-size: 13px; font-weight: 800; }
+
+    .section { padding: clamp(52px, 7vw, 86px) 0; }
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .section-kicker { color: var(--forest); font-weight: 950; text-transform: uppercase; font-size: 13px; }
+    h2 {
+      margin: 8px 0 0;
+      font-size: clamp(31px, 4.5vw, 58px);
+      line-height: 1;
+      letter-spacing: 0;
+    }
+    .section-head p {
+      margin: 0;
+      max-width: 460px;
+      color: var(--muted);
+      line-height: 1.6;
+      font-weight: 600;
+    }
+
+    .price-row {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(180px, 1fr));
+      gap: 10px;
+      overflow-x: auto;
+      padding: 2px 2px 16px;
+      scrollbar-width: thin;
+    }
+    .price-pill {
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 86px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .price-pill span { color: var(--muted); font-weight: 850; font-size: 13px; }
+    .price-pill strong { color: var(--ink); font-size: 21px; }
+
+    .toolbar {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      align-items: center;
+    }
+    .search {
+      min-height: 48px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 0 15px;
+      outline: none;
+    }
+    .filters {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+    }
+    .chip {
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 8px;
+      background: #fff;
+      border: 1px solid var(--line);
+      font-weight: 900;
+      white-space: nowrap;
+    }
+    .chip.active { background: var(--night); color: #fff; border-color: var(--night); }
+
+    .grid {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+    }
+    .product {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 8px 26px rgba(13,16,12,.06);
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .product-media {
+      position: relative;
+      aspect-ratio: 4 / 5;
+      background: #ebe6dc;
+      overflow: hidden;
+    }
+    .product-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform .35s ease;
+    }
+    .product:hover .product-media img { transform: scale(1.035); }
+    .tag {
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      background: rgba(8,10,8,.88);
+      color: #fff;
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .product-body {
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+    .product h3 {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+    .product p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    .meta { color: var(--forest); font-size: 12px; font-weight: 900; text-transform: uppercase; }
+    .buy-line {
+      margin-top: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .price { font-size: 21px; font-weight: 950; color: var(--ink); white-space: nowrap; }
+    .add {
+      min-width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: var(--forest);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 950;
+    }
+
+    .lookbook {
+      background: var(--night);
+      color: #fff;
+    }
+    .lookbook-layout {
+      display: grid;
+      grid-template-columns: .95fr 1.05fr;
+      gap: 24px;
+      align-items: stretch;
+    }
+    .look-copy {
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-right: 24px;
+    }
+    .look-copy p { color: rgba(255,255,255,.72); line-height: 1.65; font-size: 17px; }
+    .look-images {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .look-images img {
+      width: 100%;
+      height: 100%;
+      min-height: 520px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .service {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    .service-item {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 22px;
+    }
+    .service-item strong { display: block; font-size: 18px; margin-bottom: 8px; }
+    .service-item p { margin: 0; color: var(--muted); line-height: 1.55; }
+
+    .footer {
+      background: #0b0e0a;
+      color: #fff;
+      padding: 46px 0 24px;
+    }
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1.3fr repeat(3, .7fr);
+      gap: 24px;
+    }
+    .footer h3, .footer h4 { margin: 0 0 12px; }
+    .footer p, .footer a { color: rgba(255,255,255,.72); line-height: 1.7; }
+    .footer a { display: block; }
+    .footer-bottom {
+      margin-top: 32px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(255,255,255,.12);
+      color: rgba(255,255,255,.58);
+      font-size: 13px;
+    }
+
+    .drawer {
+      position: fixed;
+      inset: 0 0 0 auto;
+      width: min(430px, 100%);
+      background: #fff;
+      z-index: 40;
+      transform: translateX(105%);
+      transition: transform .25s ease;
+      box-shadow: -18px 0 42px rgba(0,0,0,.18);
+      display: flex;
+      flex-direction: column;
+    }
+    .drawer.open { transform: translateX(0); }
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 35;
+      display: none;
+    }
+    .overlay.open { display: block; }
+    .drawer-head, .drawer-foot {
+      padding: 18px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .drawer-foot {
+      border-top: 1px solid var(--line);
+      border-bottom: 0;
+      display: block;
+    }
+    .drawer-body { padding: 16px; overflow: auto; flex: 1; }
+    .cart-item {
+      display: grid;
+      grid-template-columns: 74px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .cart-item img {
+      width: 74px;
+      height: 86px;
+      object-fit: cover;
+      border-radius: 8px;
+      background: #eee;
+    }
+    .cart-item h4 { margin: 0 0 4px; font-size: 15px; }
+    .cart-item p { margin: 0; color: var(--muted); font-size: 13px; }
+    .qty {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .qty button { width: 30px; height: 30px; background: #fff; font-weight: 900; }
+    .qty span { min-width: 28px; text-align: center; font-weight: 900; }
+    .cart-total {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-weight: 950;
+      font-size: 22px;
+      margin-bottom: 12px;
+    }
+    .checkout { width: 100%; background: var(--gold); color: #151007; }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      z-index: 50;
+      background: rgba(0,0,0,.55);
+      padding: 16px;
+    }
+    .modal.open { display: grid; }
+    .modal-box {
+      width: min(540px, 100%);
+      background: #fff;
+      border-radius: 8px;
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+    .modal-box h3 { margin: 0 0 6px; font-size: 26px; }
+    .modal-box p { margin: 0 0 18px; color: var(--muted); line-height: 1.5; }
+    .form-grid { display: grid; gap: 12px; }
+    label { display: grid; gap: 6px; font-weight: 900; }
+    input, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 13px;
+      min-height: 46px;
+      outline: none;
+      background: #fff;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    .modal-actions { display: flex; gap: 10px; margin-top: 16px; justify-content: end; flex-wrap: wrap; }
+
+    .floating-wa {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      z-index: 18;
+      min-height: 52px;
+      background: #21a366;
+      color: #fff;
+      box-shadow: 0 12px 30px rgba(0,0,0,.22);
+    }
+
+    @media (max-width: 980px) {
+      .nav-links { display: none; }
+      .menu-btn { display: inline-grid; }
+      .hero-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .hero-strip div:nth-child(2) { border-right: 0; }
+      .hero-strip div:nth-child(-n+2) { border-bottom: 1px solid rgba(255,255,255,.14); }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .lookbook-layout { grid-template-columns: 1fr; }
+      .look-copy { min-height: auto; padding-right: 0; }
+      .look-images img { min-height: 420px; }
+      .service { grid-template-columns: 1fr; }
+      .footer-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 680px) {
+      .topline .container { align-items: flex-start; flex-direction: column; padding: 9px 0; }
+      .topline-links { gap: 10px; }
+      .nav { min-height: 64px; }
+      .brand small { display: none; }
+      .nav-actions .btn { display: none; }
+      .hero { min-height: 84vh; background-position: 58% center; }
+      .hero .container { padding-bottom: 32px; }
+      .hero h1 { font-size: clamp(42px, 15vw, 66px); }
+      .hero-actions .btn { width: 100%; }
+      .hero-strip { grid-template-columns: 1fr; margin-top: 28px; }
+      .hero-strip div { border-right: 0; border-bottom: 1px solid rgba(255,255,255,.14); }
+      .hero-strip div:last-child { border-bottom: 0; }
+      .section-head { display: block; }
+      .section-head p { margin-top: 12px; }
+      .toolbar { grid-template-columns: 1fr; }
+      .grid { grid-template-columns: 1fr; }
+      .product-media { aspect-ratio: 1 / 1.08; }
+      .look-images { grid-template-columns: 1fr; }
+      .look-images img { min-height: 320px; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .floating-wa { left: 16px; right: 16px; bottom: 12px; }
+    }
+  </style>
 </head>
 <body>
-<header class="header" id="header">
-  <div class="container header-inner">
-    <a class="logo" href="#">
-      <span class="logo-mark">S</span>
-      <span>DakarStyle<small>x Sowhat Africa</small></span>
-    </a>
-    <nav class="nav">
-      <a href="#categories">Categories</a>
-      <a href="#products">Boutique</a>
-      <a href="#story">Capsule</a>
-      <a href="#contact">Contact</a>
-    </nav>
-    <div class="header-actions">
-      <button class="icon-btn" onclick="openLoyalty()" title="Fidelite">★</button>
-      <button class="icon-btn" onclick="openCart()" title="Panier">🛒<span class="cart-badge" id="cartBadge">0</span></button>
-      <button class="icon-btn menu-toggle" onclick="openMenu()" title="Menu">☰</button>
-    </div>
-  </div>
-</header>
-
-<div class="overlay" id="overlay" onclick="closeAll()"></div>
-<aside class="mobile-menu" id="mobileMenu">
-  <button class="icon-btn menu-close" onclick="closeMenu()">×</button>
-  <a href="#categories" onclick="closeMenu()">Categories</a>
-  <a href="#products" onclick="closeMenu()">Boutique</a>
-  <a href="#story" onclick="closeMenu()">Capsule Sowhat</a>
-  <a href="#contact" onclick="closeMenu()">Contact</a>
-  <a href="https://wa.me/221773374762" target="_blank" onclick="closeMenu()">WhatsApp</a>
-</aside>
-
-<section class="hero">
-  <div class="container hero-grid">
-    <div>
-      <div class="eyebrow">Capsule Senegal 2026 disponible</div>
-      <h1>Porter la culture. <span>Gagner le monde.</span></h1>
-      <p>La selection DakarStyle met en avant les maillots Sowhat Africa, les pieces Lions de la Teranga et les essentiels streetwear pour Dakar.</p>
-      <div class="hero-cta">
-        <a class="btn btn-primary" href="#products">Voir les produits</a>
-        <a class="btn btn-ghost" href="https://wa.me/221773374762?text=Bonjour%20DakarStyle%2C%20je%20veux%20des%20infos%20sur%20la%20capsule%20Sowhat%20Africa" target="_blank">Demander sur WhatsApp</a>
-      </div>
-      <div class="hero-stats">
-        <div><strong>15</strong><span>habits maximum</span></div>
-        <div><strong>24h</strong><span>livraison Dakar</span></div>
-        <div><strong>2026</strong><span>capsule CDM</span></div>
+  <a class="skip" href="#products">Aller aux produits</a>
+  <div class="topline">
+    <div class="container">
+      <span>Commande directe DakarStyle x Sowhat Africa</span>
+      <div class="topline-links">
+        <a href="tel:+221773374762">+221 77 337 47 62</a>
+        <a href="https://www.instagram.com/sowhatafrika?igsh=Y3JodGd0aHkzMTMy" target="_blank" rel="noopener">Instagram</a>
+        <a href="https://www.facebook.com/share/19BecpZ71j/" target="_blank" rel="noopener">Facebook</a>
+        <a href="https://wa.me/c/221773374762" target="_blank" rel="noopener">Catalogue WhatsApp</a>
       </div>
     </div>
-    <div class="carousel" id="carousel">
-      <div class="slide active">
-        <img src="assets/hero/sowhat-africa-coupe-du-monde.jpg" alt="Capsule Coupe du Monde Sowhat Africa">
-        <div class="caption"><h3>Coupe du Monde FIFA 2026</h3><p>Maillots et casquettes inspires par les Lions de la Teranga.</p></div>
+  </div>
+
+  <header class="header">
+    <div class="container nav">
+      <a class="brand" href="#top" aria-label="DakarStyle x Sowhat Africa">
+        <span class="brand-mark"><img src="assets/brand/sowhat-africa-logo.png" alt=""></span>
+        <span>DakarStyle <small>x Sowhat Africa</small></span>
+      </a>
+      <nav class="nav-links" aria-label="Navigation principale">
+        <a href="#products">Produits</a>
+        <a href="#lookbook">Lookbook</a>
+        <a href="#commande">Commande</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="btn btn-dark" href="https://wa.me/221773374762?text=Bonjour%20DakarStyle%2C%20je%20veux%20commander%20Sowhat%20Africa" target="_blank" rel="noopener">WhatsApp</a>
+        <button class="icon-btn" onclick="openCart()" aria-label="Ouvrir le panier">Panier <span class="cart-count" id="cartCount">0</span></button>
+        <button class="menu-btn" onclick="toggleMenu()" aria-label="Ouvrir le menu">Menu</button>
       </div>
-      <div class="slide">
-        <img src="assets/hero/sowhat-africa-showroom.jpg" alt="Showroom Sowhat Africa">
-        <div class="caption"><h3>Showroom Sowhat Africa</h3><p>Capsule Juin 2026, selection speciale DakarStyle.</p></div>
-      </div>
-      <div class="slide">
-        <img src="assets/hero/special-121-lookbook.jpg" alt="Lookbook S Special 121">
-        <div class="caption"><h3>S Special 121</h3><p>Streetwear, denim, maillot et accessoires en scene.</p></div>
-      </div>
-      <div class="dots"><span class="dot active" data-i="0"></span><span class="dot" data-i="1"></span><span class="dot" data-i="2"></span></div>
     </div>
-  </div>
-</section>
+  </header>
 
-<section id="categories">
-  <div class="container">
-    <div class="section-head">
-      <div class="section-tag">Selection</div>
-      <h2>Categories principales</h2>
-      <p>Les nouveaux produits Sowhat Africa sont affiches en premier, puis les essentiels DakarStyle restent en bas.</p>
-    </div>
-    <div class="cat-grid">
-      <article class="cat-card" onclick="filterCat('maillot')"><img src="assets/products/maillot-senegal-2026-blanc-short-sleeve.jpg" alt="Maillots Senegal"><div><h3>Maillots</h3><span>Capsule 2026</span></div></article>
-      <article class="cat-card" onclick="filterCat('tshirt')"><img src="assets/products/tshirts-senegal-noir-blanc-casquettes.jpg" alt="T-shirts Senegal"><div><h3>T-shirts</h3><span>Numero 10 et culture</span></div></article>
-      <article class="cat-card" onclick="filterCat('casquette')"><img src="assets/products/tshirts-senegal-noir-blanc-casquettes.jpg" alt="Casquettes Lions"><div><h3>Casquettes</h3><span>S brode</span></div></article>
-      <article class="cat-card" onclick="filterCat('chaussure')"><img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=900&q=80" alt="Chaussures"><div><h3>Chaussures</h3><span>Sneakers urbaines</span></div></article>
-    </div>
-  </div>
-</section>
+  <aside class="mobile-panel" id="mobilePanel" aria-label="Menu mobile">
+    <button onclick="toggleMenu()">Fermer</button>
+    <a href="#products" onclick="toggleMenu()">Produits</a>
+    <a href="#lookbook" onclick="toggleMenu()">Lookbook</a>
+    <a href="#commande" onclick="toggleMenu()">Commande</a>
+    <a href="https://wa.me/c/221773374762" target="_blank" rel="noopener">Catalogue WhatsApp</a>
+  </aside>
 
-<section id="products">
-  <div class="container">
-    <div class="section-head">
-      <div class="section-tag">Boutique</div>
-      <h2>Produits en avant</h2>
-      <p>Les maillots Sowhat Africa sont places en haut. Le reste de la collection est garde plus bas pour completer les commandes.</p>
-    </div>
-    <div class="filters">
-      <button class="chip active" data-filter="all">Tout</button>
-      <button class="chip" data-filter="homme">Homme</button>
-      <button class="chip" data-filter="femme">Femme</button>
-      <button class="chip" data-filter="enfant">Enfant</button>
-      <button class="chip" data-filter="maillot">Maillots</button>
-      <button class="chip" data-filter="tshirt">T-shirts</button>
-      <button class="chip" data-filter="chaussure">Chaussures</button>
-      <button class="chip" data-filter="lunette">Lunettes</button>
-      <button class="chip" data-filter="casquette">Casquettes</button>
-    </div>
-    <div class="product-grid" id="productGrid"></div>
-  </div>
-</section>
-
-<section class="story" id="story">
-  <div class="container story-grid">
-    <img src="assets/products/maillot-basket-hanger.jpg" alt="Maillot basketball Senegal sur cintre">
-    <div>
-      <div class="section-tag">Capsule Sowhat Africa</div>
-      <h2>Une boutique plus senegalaise, plus directe.</h2>
-      <p>Cette mise a jour remplace les visuels generiques par les produits reels : maillots blancs Senegal, editions basket, t-shirts numero 10, casquettes et looks atelier.</p>
-      <p>Le parcours de commande reste simple : le client ajoute au panier, renseigne ses informations, puis la commande part automatiquement sur WhatsApp.</p>
-      <a class="btn btn-primary" href="#products">Commander la capsule</a>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="container features-grid">
-    <div class="feature"><b>Livraison 24h</b><p>Dakar et banlieue selon disponibilite.</p></div>
-    <div class="feature"><b>Wave & OM</b><p>Paiement mobile ou paiement a la livraison.</p></div>
-    <div class="feature"><b>Tailles claires</b><p>Chaque produit indique les tailles disponibles.</p></div>
-    <div class="feature"><b>WhatsApp</b><p>La commande arrive pre-remplie avec le panier.</p></div>
-  </div>
-</section>
-
-<footer class="footer" id="contact">
-  <div class="container">
-    <div class="footer-grid">
-      <div>
-        <a class="logo" href="#"><span class="logo-mark">S</span><span>DakarStyle<small>x Sowhat Africa</small></span></a>
-        <p>Streetwear senegalais, capsule Lions de la Teranga et selection urbaine.</p>
-        <p>Dakar, Senegal</p>
-        <p>+221 77 337 47 62</p>
-      </div>
-      <div><h4>Boutique</h4><a href="#products">Tous les produits</a><a href="#categories">Categories</a><a href="#story">Capsule</a></div>
-      <div><h4>Aide</h4><a href="https://wa.me/221773374762">WhatsApp</a><a href="#products">Commander</a><a href="#contact">Livraison</a></div>
-      <div><h4>Social</h4><a href="#">Instagram</a><a href="#">TikTok</a><a href="#">Facebook</a></div>
-    </div>
-    <div class="footer-bottom">© 2026 DakarStyle.com - Capsule Sowhat Africa.</div>
-  </div>
-</footer>
-
-<aside class="cart-drawer" id="cartDrawer">
-  <div class="cart-head"><h3>Mon panier</h3><button class="icon-btn" onclick="closeCart()">×</button></div>
-  <div class="cart-body" id="cartBody"></div>
-  <div class="cart-foot" id="cartFoot" style="display:none">
-    <div class="cart-total"><span>Total</span><span class="amount" id="cartTotal">0 FCFA</span></div>
-    <button class="cart-checkout" onclick="openCheckout()">Commander via WhatsApp</button>
-  </div>
-</aside>
-
-<div class="modal" id="checkoutModal">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('checkoutModal')">×</button>
-    <h3>Finaliser la commande</h3>
-    <label>Nom complet</label><input type="text" id="ckName" placeholder="Ton nom">
-    <label>Telephone</label><input type="tel" id="ckPhone" placeholder="77 123 45 67">
-    <label>Adresse de livraison</label><textarea id="ckAddress" rows="2" placeholder="Quartier, rue, point de repere"></textarea>
-    <label>Code promo facultatif</label><input type="text" id="ckPromo" placeholder="DAKAR10, BIENVENUE...">
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('checkoutModal')">Annuler</button>
-      <button class="btn btn-primary" onclick="sendOrder()">Envoyer</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal" id="loyaltyModal">
-  <div class="modal-box">
-    <button class="modal-close" onclick="closeModal('loyaltyModal')">×</button>
-    <h3>Programme Fidelite</h3>
-    <p style="color:var(--muted);margin-bottom:16px">Les codes existants restent actifs pour ne pas changer le fonctionnement commercial.</p>
-    <p><strong>DAKAR10</strong> - 10%</p>
-    <p><strong>BIENVENUE</strong> - 15% des 10 000 FCFA</p>
-    <p><strong>LIONS2026</strong> - 5 000 FCFA des 25 000 FCFA</p>
-    <p><strong>TERANGA</strong> - 20% des 50 000 FCFA</p>
-  </div>
-</div>
-
-<a class="fab fab-wa" href="https://wa.me/221773374762?text=Bonjour%20DakarStyle" target="_blank" title="WhatsApp">WA</a>
-<button class="fab fab-chat" onclick="toggleChat()" title="Assistant">?</button>
-<div class="chat-window" id="chatWindow">
-  <div class="chat-head"><strong>Assistant DakarStyle</strong><button onclick="toggleChat()" style="margin-left:auto;color:#06100b">×</button></div>
-  <div class="chat-body" id="chatBody">
-    <div class="msg bot">Salam. Je peux aider pour les prix, tailles, livraison et commande WhatsApp.</div>
-  </div>
-  <div class="chat-foot"><input id="chatInput" placeholder="Ecris ton message..." onkeypress="if(event.key==='Enter')sendChat()"><button onclick="sendChat()">OK</button></div>
-</div>
-
-<script>
-const WHATSAPP = "221773374762";
-const fmt = n => new Intl.NumberFormat('fr-FR').format(Number(n || 0)) + " FCFA";
-let PRODUCTS = [];
-const FALLBACK_PRODUCTS = [
-{id:1,name:"Maillot Senegal 2026 - Lions de la Teranga - Blanc",cat:"homme",type:"maillot",price:24500,img:"assets/products/maillot-senegal-2026-blanc-short-sleeve.jpg",tag:"Capsule 2026",sizes:"M, L, XL, 3XL",desc:"Maillot blanc en mesh premium ultra-respirant, broderies Senegal, etoile centrale et details vert-jaune-rouge."},
-{id:2,name:"Maillot Senegal 2026 - Edition Limitee Manches Longues",cat:"homme",type:"maillot",price:27500,img:"assets/products/maillot-senegal-2026-blanc-longues-manches.jpg",tag:"Edition limitee",sizes:"M, L, XL, 3XL",desc:"Version manches longues avec badge World Cup, col tricolore et broderies haute densite."},
-{id:3,name:"Maillot Senegal 2026 Basquet - Lions de la Teranga - Blanc",cat:"femme",type:"maillot",price:24500,img:"assets/products/maillot-senegal-basket-2026-blanc.jpg",tag:"Basket",sizes:"S, M, L, XL",desc:"Coupe basket sans manches, maille legere, finitions tricolores et grande etoile brodee."},
-{id:4,name:"T-shirt Senegal 2026 Jersey Basketball - Noir",cat:"femme",type:"tshirt",price:18500,img:"assets/products/tshirts-senegal-noir-blanc-casquettes.jpg",tag:"Nouveau",sizes:"S, M, L, XL",desc:"T-shirt noir streetwear avec numero 10, blason Senegal et esprit Lions de la Teranga."},
-{id:5,name:"Maillot Senegal 2026 Basquet - Presentation Atelier",cat:"femme",type:"maillot",price:24500,img:"assets/products/maillot-basket-mannequin.jpg",tag:"Premium",sizes:"S, M, L, XL",desc:"Version vitrine du maillot basket, ideale pour montrer le tombe et les finitions."},
-{id:6,name:"Jersey Senegal CDM 2026 - Blanc",cat:"homme",type:"maillot",price:24500,img:"assets/products/jersey-senegal-cdm-2026-blanc.jpg",tag:"CDM 2026",sizes:"M, L, XL, 3XL",desc:"Jersey blanc coupe streetwear, col V tricolore, ecusson Lions et motif etoile."},
-{id:7,name:"T-shirt Senegal 10 - Blanc",cat:"homme",type:"tshirt",price:18500,img:"assets/products/tshirts-senegal-noir-blanc-casquettes.jpg",tag:"Sowhat",sizes:"S, M, L, XL, XXL",desc:"T-shirt blanc lifestyle avec numero 10, blason et details inspires du football senegalais."},
-{id:8,name:"Veste Denim S Special 121",cat:"femme",type:"chemise",price:32000,img:"assets/hero/special-121-lookbook.jpg",tag:"Lookbook",sizes:"S, M, L",desc:"Piece denim noire avec patch S Special et touches panafricaines, esprit atelier urbain."},
-{id:9,name:"T-shirt Teranga Oversize",cat:"homme",type:"tshirt",price:12500,img:"https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=900&q=80",tag:"Classique",sizes:"S, M, L, XL, XXL",desc:"T-shirt oversize simple pour completer la capsule Senegal."},
-{id:10,name:"Back to the Culture Oversize",cat:"homme",type:"tshirt",price:18000,img:"assets/hero/sowhat-africa-showroom.jpg",tag:"Culture",sizes:"S, M, L, XL",desc:"Coton premium streetwear, pense pour porter la culture africaine au quotidien."},
-{id:11,name:"Chemise Wax Premium",cat:"homme",type:"chemise",price:18000,img:"https://images.unsplash.com/photo-1602810318383-e386cc2a3ccf?w=900&q=80",tag:"",sizes:"M, L, XL",desc:"Chemise wax moderne, confortable et facile a porter."},
-{id:12,name:"Robe Wax Moderne",cat:"femme",type:"chemise",price:28000,img:"https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=900&q=80",tag:"Tendance",sizes:"S, M, L",desc:"Robe inspiree wax pour une silhouette elegante et contemporaine."},
-{id:13,name:"Pantalon Cargo Sahel",cat:"homme",type:"pantalon",price:22000,img:"https://images.unsplash.com/photo-1473966968600-fa801b869a1a?w=900&q=80",tag:"",sizes:"S, M, L, XL",desc:"Cargo urbain, coupe confortable, pense pour la ville."},
-{id:14,name:"Pantalon Femme Wide",cat:"femme",type:"pantalon",price:24000,img:"https://images.unsplash.com/photo-1594633312681-425c7b97ccd1?w=900&q=80",tag:"",sizes:"S, M, L, XL",desc:"Pantalon large feminin, fluide et facile a associer."},
-{id:15,name:"Maillot Mini Lion Enfant",cat:"enfant",type:"maillot",price:15000,img:"https://images.unsplash.com/photo-1503944583220-79d8926ad5e2?w=900&q=80",tag:"Kids",sizes:"4, 6, 8, 10, 12 ans",desc:"Version enfant pour les mini supporters."},
-{id:16,name:"Casquette Lions S Brodee",cat:"homme",type:"casquette",price:8500,img:"assets/products/tshirts-senegal-noir-blanc-casquettes.jpg",tag:"Accessoire",sizes:"Taille reglable",desc:"Casquette noire brodee avec monogramme S et esprit Lions."},
-{id:17,name:"Sneakers Dakar Street",cat:"homme",type:"chaussure",price:35000,img:"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=900&q=80",tag:"Top",sizes:"40, 41, 42, 43, 44",desc:"Sneakers urbaines pour completer les looks Sowhat."},
-{id:18,name:"Sneakers High Top",cat:"homme",type:"chaussure",price:42000,img:"https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=900&q=80",tag:"Premium",sizes:"40, 41, 42, 43, 44",desc:"Sneakers montantes premium, style fort et confortable."},
-{id:19,name:"Lunettes Soleil Urban",cat:"homme",type:"lunette",price:15000,img:"https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=900&q=80",tag:"",sizes:"Unique",desc:"Lunettes solaires urbaines pour sorties et shooting."},
-{id:20,name:"Lunettes Aviateur Dakar",cat:"homme",type:"lunette",price:18000,img:"https://images.unsplash.com/photo-1577803645773-f96470509666?w=900&q=80",tag:"",sizes:"Unique",desc:"Monture aviateur, finition sobre et premium."}
-];
-
-const PROMOS = {
-  DAKAR10:{type:'percent',value:10,min:0},
-  BIENVENUE:{type:'percent',value:15,min:10000},
-  LIONS2026:{type:'fixed',value:5000,min:25000},
-  TERANGA:{type:'percent',value:20,min:50000}
-};
-
-let cart = JSON.parse(localStorage.getItem('ds_cart') || '[]');
-let activeFilter = 'all';
-
-window.addEventListener('scroll',()=>document.getElementById('header').classList.toggle('scrolled',window.scrollY>20));
-function openMenu(){document.getElementById('mobileMenu').classList.add('open');document.getElementById('overlay').classList.add('show');document.body.style.overflow='hidden'}
-function closeMenu(){document.getElementById('mobileMenu').classList.remove('open');document.getElementById('overlay').classList.remove('show');document.body.style.overflow=''}
-function closeAll(){closeMenu();closeCart()}
-
-let currentSlide=0;
-const slides=document.querySelectorAll('.slide');
-const dots=document.querySelectorAll('.dot');
-function showSlide(i){slides.forEach((s,idx)=>s.classList.toggle('active',idx===i));dots.forEach((d,idx)=>d.classList.toggle('active',idx===i));currentSlide=i}
-dots.forEach((d,i)=>d.addEventListener('click',()=>showSlide(i)));
-setInterval(()=>showSlide((currentSlide+1)%slides.length),4800);
-
-async function loadProducts(){
-  try{
-    const res = await fetch('data/products.json',{cache:'no-store'});
-    if(!res.ok) throw new Error('products.json absent');
-    const data = await res.json();
-    PRODUCTS = Array.isArray(data) && data.length ? data : FALLBACK_PRODUCTS;
-  }catch(err){
-    PRODUCTS = FALLBACK_PRODUCTS;
-  }
-}
-
-function renderProducts(){
-  const grid=document.getElementById('productGrid');
-  const list=PRODUCTS.filter(p=>activeFilter==='all'||p.cat===activeFilter||p.type===activeFilter);
-  grid.innerHTML=list.map(p=>`
-    <article class="product-card">
-      <div class="product-img">
-        ${p.tag?`<span class="product-tag">${p.tag}</span>`:''}
-        <img src="${p.img}" alt="${p.name}" loading="lazy">
-      </div>
-      <div class="product-info">
-        <div class="product-cat">${p.cat} / ${p.type}</div>
-        <div class="product-name">${p.name}</div>
-        <p class="product-desc">${p.desc||''}</p>
-        <div class="product-sizes">${p.sizes?`Tailles: ${p.sizes}`:''}</div>
-        <div class="product-bottom">
-          <div class="product-price">${fmt(p.price)}</div>
-          <button class="product-add" onclick="addToCart(${p.id})" title="Ajouter">+</button>
+  <main id="top">
+    <section class="hero">
+      <div class="container">
+        <span class="eyebrow">Capsule Senegal 2026</span>
+        <h1>Wear the Culture.</h1>
+        <p>Une vitrine plus moderne pour les ensembles, maillots, debardeurs, t-shirts et accessoires Sowhat Africa. Les clients commandent directement sur WhatsApp.</p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="#products">Voir la collection</a>
+          <a class="btn btn-outline" href="https://wa.me/c/221773374762" target="_blank" rel="noopener">Catalogue WhatsApp</a>
+        </div>
+        <div class="hero-strip" aria-label="Informations boutique">
+          <div><strong>7 000 FCFA</strong><span>T-shirt Wear the Culture</span></div>
+          <div><strong>12 000 FCFA</strong><span>Maillot Senegal</span></div>
+          <div><strong>18 000 FCFA</strong><span>Ensemble Senegal</span></div>
+          <div><strong>24h</strong><span>Commande WhatsApp rapide</span></div>
         </div>
       </div>
-    </article>`).join('');
-}
+    </section>
 
-document.querySelectorAll('.chip').forEach(chip=>{
-  chip.addEventListener('click',()=>{
-    document.querySelectorAll('.chip').forEach(x=>x.classList.remove('active'));
-    chip.classList.add('active');
-    activeFilter=chip.dataset.filter;
-    renderProducts();
-  });
-});
-function filterCat(type){
-  activeFilter=type;
-  document.querySelectorAll('.chip').forEach(x=>x.classList.toggle('active',x.dataset.filter===type));
-  renderProducts();
-  document.getElementById('products').scrollIntoView({behavior:'smooth'});
-}
+    <section class="section">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">Prix officiels</span>
+            <h2>Les articles prioritaires.</h2>
+          </div>
+          <p>Les nouveaux produits sont places en haut de la boutique avec les prix que vous avez fournis.</p>
+        </div>
+        <div class="price-row" id="priceRow"></div>
+      </div>
+    </section>
 
-function saveCart(){localStorage.setItem('ds_cart',JSON.stringify(cart));updateCartBadge()}
-function updateCartBadge(){document.getElementById('cartBadge').textContent=cart.reduce((s,i)=>s+i.qty,0)}
-function addToCart(id){
-  const p=PRODUCTS.find(x=>Number(x.id)===Number(id));
-  if(!p)return;
-  const existing=cart.find(x=>Number(x.id)===Number(id));
-  if(existing)existing.qty++;
-  else cart.push({...p,qty:1});
-  saveCart();renderCart();openCart();
-}
-function changeQty(id,delta){
-  const item=cart.find(x=>Number(x.id)===Number(id));
-  if(!item)return;
-  item.qty+=delta;
-  if(item.qty<=0)cart=cart.filter(x=>Number(x.id)!==Number(id));
-  saveCart();renderCart();
-}
-function removeItem(id){cart=cart.filter(x=>Number(x.id)!==Number(id));saveCart();renderCart()}
-function renderCart(){
-  const body=document.getElementById('cartBody');
-  const foot=document.getElementById('cartFoot');
-  if(cart.length===0){body.innerHTML='<div class="cart-empty"><h4>Panier vide</h4><p>Ajoute des produits pour commencer.</p></div>';foot.style.display='none';return}
-  body.innerHTML=cart.map(item=>`
-    <div class="cart-item">
-      <img src="${item.img}" alt="${item.name}">
-      <div class="cart-item-info">
-        <h5>${item.name}</h5>
-        <div class="price">${fmt(item.price)}</div>
-        <div class="cart-controls">
-          <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
-          <span class="qty-val">${item.qty}</span>
-          <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
-          <button class="remove-btn" onclick="removeItem(${item.id})">Supprimer</button>
+    <section class="section" id="products">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">Boutique</span>
+            <h2>Collection Sowhat Africa.</h2>
+          </div>
+          <p>Ajoutez au panier, renseignez les informations client, puis la commande part sur WhatsApp avec le total.</p>
+        </div>
+        <div class="toolbar">
+          <input class="search" id="searchInput" placeholder="Rechercher un produit" oninput="setSearch(this.value)">
+          <div class="filters" id="filters"></div>
+        </div>
+        <div class="grid" id="productGrid"></div>
+      </div>
+    </section>
+
+    <section class="section lookbook" id="lookbook">
+      <div class="container lookbook-layout">
+        <div class="look-copy">
+          <span class="eyebrow">Landing page premium</span>
+          <h2>Une image plus forte pour Dakar et la diaspora.</h2>
+          <p>La page met en avant les visuels Senegal, les tons noir, or, vert et rouge, et une experience plus directe : voir le produit, comprendre le prix, commander sur WhatsApp.</p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#products">Commander maintenant</a>
+            <a class="btn btn-outline" href="https://www.instagram.com/sowhatafrika?igsh=Y3JodGd0aHkzMTMy" target="_blank" rel="noopener">Voir Instagram</a>
+          </div>
+        </div>
+        <div class="look-images">
+          <img src="assets/hero/showroom-sowhat-africa.jpg" alt="Showroom Sowhat Africa">
+          <img src="assets/hero/special-121-lookbook.jpg" alt="Lookbook Sowhat Africa">
         </div>
       </div>
-    </div>`).join('');
-  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
-  document.getElementById('cartTotal').textContent=fmt(total);
-  foot.style.display='block';
-}
-function openCart(){document.getElementById('cartDrawer').classList.add('open');document.getElementById('overlay').classList.add('show');document.body.style.overflow='hidden';renderCart()}
-function closeCart(){document.getElementById('cartDrawer').classList.remove('open');document.getElementById('overlay').classList.remove('show');document.body.style.overflow=''}
-function openCheckout(){if(cart.length===0){alert('Ton panier est vide');return}document.getElementById('checkoutModal').classList.add('open')}
-function closeModal(id){document.getElementById(id).classList.remove('open')}
-function openLoyalty(){document.getElementById('loyaltyModal').classList.add('open')}
+    </section>
 
-function sendOrder(){
-  const name=document.getElementById('ckName').value.trim();
-  const phone=document.getElementById('ckPhone').value.trim();
-  const address=document.getElementById('ckAddress').value.trim();
-  const promo=document.getElementById('ckPromo').value.trim().toUpperCase();
-  if(!name||!phone||!address){alert('Remplis tous les champs');return}
-  let total=cart.reduce((s,i)=>s+i.price*i.qty,0);
-  let discount=0;
-  let promoMsg='';
-  if(promo&&PROMOS[promo]){
-    const pr=PROMOS[promo];
-    if(total>=pr.min){
-      discount=pr.type==='percent'?Math.round(total*pr.value/100):pr.value;
-      total-=discount;
-      promoMsg=`\nCode promo: ${promo} (-${fmt(discount)})`;
+    <section class="section" id="commande">
+      <div class="container">
+        <div class="section-head">
+          <div>
+            <span class="section-kicker">Commande</span>
+            <h2>Le fonctionnement reste simple.</h2>
+          </div>
+          <p>Le tunnel de commande WhatsApp est conserve : aucun changement complique pour les clients.</p>
+        </div>
+        <div class="service">
+          <div class="service-item"><strong>Panier clair</strong><p>Les produits et quantites sont gardes jusqu'a l'envoi de la commande.</p></div>
+          <div class="service-item"><strong>Total automatique</strong><p>Le total est calcule en FCFA avec les nouveaux prix officiels.</p></div>
+          <div class="service-item"><strong>WhatsApp direct</strong><p>Le message arrive deja rempli au numero +221 77 337 47 62.</p></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer" id="contact">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <h3>DakarStyle x Sowhat Africa</h3>
+          <p>Capsule Senegal 2026. Ensembles, maillots, t-shirts, accessoires et pieces culturelles.</p>
+        </div>
+        <div>
+          <h4>Commande</h4>
+          <a href="https://wa.me/221773374762" target="_blank" rel="noopener">WhatsApp</a>
+          <a href="https://wa.me/c/221773374762" target="_blank" rel="noopener">Catalogue</a>
+        </div>
+        <div>
+          <h4>Social</h4>
+          <a href="https://www.instagram.com/sowhatafrika?igsh=Y3JodGd0aHkzMTMy" target="_blank" rel="noopener">Instagram</a>
+          <a href="https://www.facebook.com/share/19BecpZ71j/" target="_blank" rel="noopener">Facebook</a>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <a href="tel:+221773374762">+221 77 337 47 62</a>
+          <a href="mailto:idrissaminata@gmail.com">idrissaminata@gmail.com</a>
+        </div>
+      </div>
+      <div class="footer-bottom">2026 DakarStyle.com - Sowhat Africa. Wear the Culture.</div>
+    </div>
+  </footer>
+
+  <div class="overlay" id="overlay" onclick="closeCart()"></div>
+  <aside class="drawer" id="cartDrawer" aria-label="Panier">
+    <div class="drawer-head">
+      <strong>Panier</strong>
+      <button class="icon-btn" onclick="closeCart()" aria-label="Fermer le panier">X</button>
+    </div>
+    <div class="drawer-body" id="cartBody"></div>
+    <div class="drawer-foot">
+      <div class="cart-total"><span>Total</span><span id="cartTotal">0 FCFA</span></div>
+      <button class="btn checkout" onclick="openCheckout()">Commander via WhatsApp</button>
+    </div>
+  </aside>
+
+  <div class="modal" id="checkoutModal">
+    <div class="modal-box">
+      <h3>Finaliser la commande</h3>
+      <p>Le recapitulatif sera envoye sur WhatsApp avec les produits, le total et les informations client.</p>
+      <div class="form-grid">
+        <label>Nom complet<input id="clientName" autocomplete="name" placeholder="Votre nom"></label>
+        <label>Telephone<input id="clientPhone" autocomplete="tel" placeholder="77 000 00 00"></label>
+        <label>Adresse<textarea id="clientAddress" placeholder="Quartier, ville, indication livraison"></textarea></label>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-soft" onclick="closeCheckout()">Annuler</button>
+        <button class="btn btn-dark" onclick="sendOrder()">Envoyer sur WhatsApp</button>
+      </div>
+    </div>
+  </div>
+
+  <a class="btn floating-wa" href="https://wa.me/221773374762?text=Bonjour%20DakarStyle%2C%20je%20veux%20commander%20Sowhat%20Africa" target="_blank" rel="noopener">Commander sur WhatsApp</a>
+
+  <script>
+    const WHATSAPP = "221773374762";
+    const FALLBACK_PRODUCTS = [{"id": 1, "name": "Ensemble Senegal", "cat": "mixte", "type": "ensemble", "price": 18000, "img": "assets/products/ensemble-senegal-vert.jpg", "tag": "Top vente", "sizes": "S, M, L, XL, XXL", "desc": "Ensemble complet inspire des couleurs du Senegal, pense pour un look sport et ville."}, {"id": 2, "name": "Ensemble Dakar", "cat": "mixte", "type": "ensemble", "price": 19000, "img": "assets/products/ensemble-dakar-premium.jpg", "tag": "Dakar", "sizes": "S, M, L, XL, XXL", "desc": "Ensemble premium Dakar, coupe confortable et detail Sowhat pour porter la culture au quotidien."}, {"id": 3, "name": "Debardeur Senegal", "cat": "mixte", "type": "maillot", "price": 13000, "img": "assets/products/debardeur-senegal-2026.jpg", "tag": "Basket", "sizes": "S, M, L, XL", "desc": "Debardeur blanc en mesh leger avec bordures vert-jaune-rouge, blason Lions et grande etoile."}, {"id": 4, "name": "Maillot Senegal", "cat": "mixte", "type": "maillot", "price": 12000, "img": "assets/products/maillot-senegal-cdm-2026.jpg", "tag": "CDM 2026", "sizes": "S, M, L, XL, XXL", "desc": "Maillot blanc Senegal 2026, col tricolore, broderies fortes et finition respirante."}, {"id": 5, "name": "T-shirt noir et blanc Wear the Culture", "cat": "mixte", "type": "tshirt", "price": 7000, "img": "assets/products/tshirt-wear-the-culture-noir-blanc.jpg", "tag": "Culture", "sizes": "S, M, L, XL, XXL", "desc": "Pack esprit streetwear en noir et blanc, logo Senegal et message Wear the Culture."}, {"id": 6, "name": "Ensemble blouson vert Sowhat Foot", "cat": "mixte", "type": "ensemble", "price": 20000, "img": "assets/products/ensemble-blouson-vert-sowhat-foot.jpg", "tag": "Premium", "sizes": "S, M, L, XL, XXL", "desc": "Ensemble vert Sowhat Foot avec blouson coordonne, style sport chic et finitions premium."}, {"id": 7, "name": "T-shirt numero 10 noir et blanc", "cat": "mixte", "type": "tshirt", "price": 9000, "img": "assets/products/tshirt-numero-10-noir-blanc.jpg", "tag": "Numero 10", "sizes": "S, M, L, XL, XXL", "desc": "T-shirt numero 10 noir et blanc, coupe urbaine, blason Lions et etiquette Sowhat Africa."}, {"id": 8, "name": "Casquette Sowhat Africa 2026", "cat": "mixte", "type": "accessoire", "price": 8500, "img": "assets/products/casquette-sowhat-africa-2026.jpg", "tag": "Accessoire", "sizes": "Taille reglable", "desc": "Casquette noire brodee Sowhat Africa, presentation premium et details panafricains."}, {"id": 9, "name": "Sneakers Dakar Street", "cat": "mixte", "type": "chaussure", "price": 35000, "img": "assets/products/sneakers-dakar-street.jpg", "tag": "Chaussures", "sizes": "40, 41, 42, 43, 44", "desc": "Sneakers blanches avec accent Senegal, faciles a associer avec la capsule."}, {"id": 10, "name": "Lunettes Soleil Urban", "cat": "mixte", "type": "lunette", "price": 15000, "img": "assets/products/lunettes-soleil-urban.jpg", "tag": "Lunettes", "sizes": "Unique", "desc": "Lunettes solaires style urbain pour completer les looks Sowhat Africa."}];
+    let PRODUCTS = FALLBACK_PRODUCTS.slice();
+    let activeFilter = "all";
+    let searchText = "";
+    let cart = JSON.parse(localStorage.getItem("ds_cart_modern") || "[]");
+
+    const fmt = value => new Intl.NumberFormat("fr-FR").format(Number(value || 0)) + " FCFA";
+
+    async function loadProducts() {
+      try {
+        const response = await fetch("data/products.json", { cache: "no-store" });
+        const data = await response.json();
+        if (Array.isArray(data) && data.length) PRODUCTS = data;
+      } catch (error) {
+        PRODUCTS = FALLBACK_PRODUCTS.slice();
+      }
+      renderPriceRow();
+      renderFilters();
+      renderProducts();
+      renderCart();
     }
-  }
-  const items=cart.map(i=>`- ${i.name} x${i.qty} = ${fmt(i.price*i.qty)}`).join('\n');
-  const msg=`NOUVELLE COMMANDE - DakarStyle\n\nClient: ${name}\nTel: ${phone}\nAdresse: ${address}\n\nProduits:\n${items}${promoMsg}\n\nTOTAL: ${fmt(total)}\n\nMerci.`;
-  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`,'_blank');
-  closeModal('checkoutModal');
-  cart=[];saveCart();renderCart();closeCart();
-}
 
-function toggleChat(){document.getElementById('chatWindow').classList.toggle('open')}
-function sendChat(){
-  const input=document.getElementById('chatInput');
-  const text=input.value.trim();
-  if(!text)return;
-  const body=document.getElementById('chatBody');
-  body.innerHTML+=`<div class="msg user">${text}</div>`;
-  input.value='';
-  body.scrollTop=body.scrollHeight;
-  setTimeout(()=>{
-    const t=text.toLowerCase();
-    let reply='Merci. Pour une reponse rapide, contacte-nous sur WhatsApp.';
-    if(t.includes('prix'))reply='Les prix sont affiches sur chaque produit. Les maillots Sowhat commencent a 24 500 FCFA.';
-    else if(t.includes('taille'))reply='Les tailles disponibles sont indiquees sur chaque carte produit.';
-    else if(t.includes('livraison'))reply='Livraison 24h a Dakar et banlieue selon zone.';
-    else if(t.includes('paiement')||t.includes('wave')||t.includes('orange'))reply='Paiement Wave, Orange Money ou a la livraison.';
-    else if(t.includes('whatsapp')||t.includes('commande'))reply='Ajoute tes produits au panier puis clique sur Commander via WhatsApp.';
-    body.innerHTML+=`<div class="msg bot">${reply}</div>`;
-    body.scrollTop=body.scrollHeight;
-  },450);
-}
+    function renderPriceRow() {
+      const row = document.getElementById("priceRow");
+      row.innerHTML = PRODUCTS.slice(0, 7).map(product => `
+        <article class="price-pill">
+          <span>${product.name}</span>
+          <strong>${fmt(product.price)}</strong>
+        </article>
+      `).join("");
+    }
 
-loadProducts().then(()=>{renderProducts();updateCartBadge();renderCart()});
-</script>
+    function renderFilters() {
+      const filters = [
+        ["all", "Tous"],
+        ["ensemble", "Ensembles"],
+        ["maillot", "Maillots"],
+        ["tshirt", "T-shirts"],
+        ["accessoire", "Accessoires"],
+        ["chaussure", "Chaussures"],
+        ["lunette", "Lunettes"]
+      ];
+      document.getElementById("filters").innerHTML = filters.map(([key, label]) => `
+        <button class="chip ${activeFilter === key ? "active" : ""}" onclick="setFilter('${key}')">${label}</button>
+      `).join("");
+    }
+
+    function setFilter(key) {
+      activeFilter = key;
+      renderFilters();
+      renderProducts();
+    }
+
+    function setSearch(value) {
+      searchText = value.trim().toLowerCase();
+      renderProducts();
+    }
+
+    function filteredProducts() {
+      return PRODUCTS.filter(product => {
+        const matchType = activeFilter === "all" || product.type === activeFilter;
+        const haystack = [product.name, product.desc, product.tag, product.type].join(" ").toLowerCase();
+        return matchType && (!searchText || haystack.includes(searchText));
+      });
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById("productGrid");
+      const items = filteredProducts();
+      if (!items.length) {
+        grid.innerHTML = `<p>Aucun produit ne correspond a cette recherche.</p>`;
+        return;
+      }
+      grid.innerHTML = items.map(product => `
+        <article class="product">
+          <div class="product-media">
+            <img src="${product.img}" alt="${product.name}" loading="lazy">
+            ${product.tag ? `<span class="tag">${product.tag}</span>` : ""}
+          </div>
+          <div class="product-body">
+            <span class="meta">${product.type} - ${product.sizes}</span>
+            <h3>${product.name}</h3>
+            <p>${product.desc}</p>
+            <div class="buy-line">
+              <span class="price">${fmt(product.price)}</span>
+              <button class="add" onclick="addToCart(${product.id})" aria-label="Ajouter ${product.name} au panier">+</button>
+            </div>
+          </div>
+        </article>
+      `).join("");
+    }
+
+    function saveCart() {
+      localStorage.setItem("ds_cart_modern", JSON.stringify(cart));
+      document.getElementById("cartCount").textContent = cart.reduce((sum, item) => sum + item.qty, 0);
+    }
+
+    function addToCart(id) {
+      const product = PRODUCTS.find(item => Number(item.id) === Number(id));
+      if (!product) return;
+      const current = cart.find(item => Number(item.id) === Number(id));
+      if (current) current.qty += 1;
+      else cart.push({ id: product.id, name: product.name, price: product.price, img: product.img, qty: 1 });
+      renderCart();
+      openCart();
+    }
+
+    function changeQty(id, delta) {
+      const item = cart.find(product => Number(product.id) === Number(id));
+      if (!item) return;
+      item.qty += delta;
+      if (item.qty <= 0) cart = cart.filter(product => Number(product.id) !== Number(id));
+      renderCart();
+    }
+
+    function cartTotal() {
+      return cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    }
+
+    function renderCart() {
+      saveCart();
+      const body = document.getElementById("cartBody");
+      document.getElementById("cartTotal").textContent = fmt(cartTotal());
+      if (!cart.length) {
+        body.innerHTML = `<p>Votre panier est vide.</p>`;
+        return;
+      }
+      body.innerHTML = cart.map(item => `
+        <div class="cart-item">
+          <img src="${item.img}" alt="">
+          <div>
+            <h4>${item.name}</h4>
+            <p>${fmt(item.price)} chacun</p>
+            <div class="qty">
+              <button onclick="changeQty(${item.id}, -1)" aria-label="Retirer">-</button>
+              <span>${item.qty}</span>
+              <button onclick="changeQty(${item.id}, 1)" aria-label="Ajouter">+</button>
+            </div>
+          </div>
+          <strong>${fmt(item.price * item.qty)}</strong>
+        </div>
+      `).join("");
+    }
+
+    function openCart() {
+      document.getElementById("cartDrawer").classList.add("open");
+      document.getElementById("overlay").classList.add("open");
+    }
+
+    function closeCart() {
+      document.getElementById("cartDrawer").classList.remove("open");
+      document.getElementById("overlay").classList.remove("open");
+    }
+
+    function openCheckout() {
+      if (!cart.length) return;
+      document.getElementById("checkoutModal").classList.add("open");
+    }
+
+    function closeCheckout() {
+      document.getElementById("checkoutModal").classList.remove("open");
+    }
+
+    function sendOrder() {
+      const name = document.getElementById("clientName").value.trim();
+      const phone = document.getElementById("clientPhone").value.trim();
+      const address = document.getElementById("clientAddress").value.trim();
+      if (!name || !phone || !address) {
+        alert("Merci de remplir le nom, le telephone et l'adresse.");
+        return;
+      }
+      const lines = cart.map(item => `- ${item.name} x${item.qty} = ${fmt(item.price * item.qty)}`).join("\n");
+      const message = `NOUVELLE COMMANDE - DakarStyle x Sowhat Africa\n\nClient: ${name}\nTelephone: ${phone}\nAdresse: ${address}\n\nProduits:\n${lines}\n\nTOTAL: ${fmt(cartTotal())}\n\nMerci.`;
+      window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(message)}`, "_blank");
+      cart = [];
+      renderCart();
+      closeCheckout();
+      closeCart();
+    }
+
+    function toggleMenu() {
+      document.getElementById("mobilePanel").classList.toggle("open");
+    }
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape") {
+        closeCart();
+        closeCheckout();
+        document.getElementById("mobilePanel").classList.remove("open");
+      }
+    });
+
+    loadProducts();
+  </script>
 </body>
 </html>
