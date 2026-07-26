@@ -1,11 +1,26 @@
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+
+/
+  Critical-CH: Sec-CH-Viewport-Width, Sec-CH-DPR
+  Permissions-Policy: ch-dpr=("https://dakarstyle.com"), ch-viewport-width=("https://dakarstyle.com"), camera=(), microphone=(), geolocation=()
+  Cache-Control: public, max-age=0, must-revalidate
+
+/index.html
+  Critical-CH: Sec-CH-Viewport-Width, Sec-CH-DPR
+  Permissions-Policy: ch-dpr=("https://dakarstyle.com"), ch-viewport-width=("https://dakarstyle.com"), camera=(), microphone=(), geolocation=()
+  Cache-Control: public, max-age=0, must-revalidate
+
 /assets/*
   Cache-Control: public, max-age=604800, stale-while-revalidate=2592000
 
+/assets/css/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
+/assets/js/*
+  Cache-Control: public, max-age=86400, stale-while-revalidate=604800
+
 /data/*
   Cache-Control: public, max-age=300, stale-while-revalidate=86400
-
-/index.html
-  Cache-Control: public, max-age=0, must-revalidate
-
-/
-  Cache-Control: public, max-age=0, must-revalidate
