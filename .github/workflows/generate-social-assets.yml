@@ -1,0 +1,65 @@
+name: Generate Social Assets — Sowhat Organic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/products/**'
+      - 'assets/hero/**'
+      - '.github/workflows/generate-social-assets.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-social-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg
+
+      - name: Generate 1x1, 4x5 and 9x16 assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/social/1x1 assets/social/4x5 assets/social/9x16
+
+          find assets/products assets/hero -type f \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) -print0 | while IFS= read -r -d '' src; do
+            base="$(basename "$src")"
+            slug="${base%.*}"
+
+            ffmpeg -hide_banner -loglevel error -y -i "$src" \
+              -vf "scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:(ow-iw)/2:(oh-ih)/2:color=white" \
+              -frames:v 1 -q:v 2 "assets/social/1x1/${slug}.jpg"
+
+            ffmpeg -hide_banner -loglevel error -y -i "$src" \
+              -vf "scale=1080:1350:force_original_aspect_ratio=decrease,pad=1080:1350:(ow-iw)/2:(oh-ih)/2:color=white" \
+              -frames:v 1 -q:v 2 "assets/social/4x5/${slug}.jpg"
+
+            ffmpeg -hide_banner -loglevel error -y -loop 1 -i "$src" -t 6 -r 30 \
+              -vf "scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:(ow-iw)/2:(oh-ih)/2:color=white" \
+              -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p -movflags +faststart \
+              "assets/social/9x16/${slug}.mp4"
+          done
+
+      - name: Commit generated social assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'sowhat-organic-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add assets/social
+          if git diff --cached --quiet; then
+            echo 'No social asset changes.'
+            exit 0
+          fi
+          git commit -m 'Generate organic social media assets [skip ci]'
+          git push
