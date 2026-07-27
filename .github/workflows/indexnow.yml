@@ -1,0 +1,59 @@
+name: IndexNow — DakarStyle Organic Discovery
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'products/**'
+      - 'sitemap.xml'
+      - 'merchant-feed.xml'
+      - 'assets/products/**'
+      - 'assets/hero/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  notify-indexnow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Submit current sitemap URLs to IndexNow
+        shell: bash
+        run: |
+          set -euo pipefail
+          KEY='3c1568dbd24f8e50c1875a76882f449d'
+          HOST='dakarstyle.com'
+          KEY_LOCATION="https://${HOST}/${KEY}.txt"
+          URLS='[
+            "https://dakarstyle.com/",
+            "https://dakarstyle.com/products/ensemble-senegal/",
+            "https://dakarstyle.com/products/ensemble-dakar/",
+            "https://dakarstyle.com/products/s0special-221/",
+            "https://dakarstyle.com/products/sneakers-sowhat-africa/",
+            "https://dakarstyle.com/products/maillot-senegal-2026/"
+          ]'
+          BODY=$(cat <<JSON
+          {
+            "host": "${HOST}",
+            "key": "${KEY}",
+            "keyLocation": "${KEY_LOCATION}",
+            "urlList": ${URLS}
+          }
+JSON
+          )
+          for attempt in 1 2 3 4; do
+            code=$(curl -sS -o /tmp/indexnow-response.txt -w '%{http_code}' \
+              -X POST 'https://api.indexnow.org/indexnow' \
+              -H 'Content-Type: application/json; charset=utf-8' \
+              --data "$BODY" || true)
+            echo "IndexNow HTTP ${code} (attempt ${attempt})"
+            cat /tmp/indexnow-response.txt || true
+            if [ "$code" = '200' ] || [ "$code" = '202' ]; then
+              exit 0
+            fi
+            sleep 30
+          done
+          echo 'IndexNow did not accept the submission after retries.' >&2
+          exit 1
