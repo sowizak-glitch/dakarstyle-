@@ -1,3 +1,5 @@
+const SOWHAT_UPLOAD_KEY_SHA256 = 'ed51c5e5e73785e254d4ee5974193b22cecbb29b667c5651641d838e5bbcde35';
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -26,7 +28,8 @@ async function handleUpload(request, env) {
   const cors = corsHeaders();
   try {
     const apiKey = request.headers.get('X-SOWHAT-KEY') || '';
-    if (!env.SOWHAT_UPLOAD_API_KEY || apiKey !== env.SOWHAT_UPLOAD_API_KEY) {
+    const apiKeyHash = await sha256Text(apiKey);
+    if (!apiKey || apiKeyHash !== SOWHAT_UPLOAD_KEY_SHA256) {
       return json({ ok: false, error: 'unauthorized' }, 401, cors);
     }
     if (!env.VISUALS_BUCKET) {
@@ -186,6 +189,11 @@ function inferExtension(file) {
 
 function contentTypeFromExtension(ext) {
   return ({ jpg: 'image/jpeg', png: 'image/png', webp: 'image/webp', mp4: 'video/mp4', mov: 'video/quicktime', m4v: 'video/x-m4v' })[ext] || 'application/octet-stream';
+}
+
+async function sha256Text(value) {
+  const bytes = new TextEncoder().encode(String(value));
+  return sha256Hex(bytes.buffer);
 }
 
 async function sha256Hex(buffer) {
