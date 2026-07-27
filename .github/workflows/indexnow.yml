@@ -32,7 +32,13 @@ jobs:
             "https://dakarstyle.com/products/ensemble-dakar/",
             "https://dakarstyle.com/products/s0special-221/",
             "https://dakarstyle.com/products/sneakers-sowhat-africa/",
-            "https://dakarstyle.com/products/maillot-senegal-2026/"
+            "https://dakarstyle.com/products/maillot-senegal-2026/",
+            "https://dakarstyle.com/products/debardeur-senegal/",
+            "https://dakarstyle.com/products/wear-the-culture/",
+            "https://dakarstyle.com/products/tshirt-numero-10/",
+            "https://dakarstyle.com/products/casquette-sowhat-africa/",
+            "https://dakarstyle.com/products/lunettes-soleil-urban/",
+            "https://dakarstyle.com/products/nomad-spirit/"
           ]'
           BODY=$(cat <<JSON
           {
