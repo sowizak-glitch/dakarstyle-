@@ -10,6 +10,11 @@ export default {
       return handleUpload(request, env);
     }
 
+    if (url.pathname === '/visuals/instagram-image') {
+      if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method Not Allowed', { status: 405 });
+      return handleInstagramImage(request);
+    }
+
     if (url.pathname.startsWith('/visuals/media/')) {
       if (request.method !== 'GET' && request.method !== 'HEAD') return new Response('Method Not Allowed', { status: 405 });
       return serveR2Object(request, env, 'visuals/media/', '/visuals/media/');
@@ -75,7 +80,12 @@ async function handleUpload(request, env) {
     });
 
     const origin = new URL(request.url).origin;
-    const mediaUrl = `${origin}/visuals/media/${assetId}.${ext}`;
+    const originalMediaUrl = `${origin}/visuals/media/${assetId}.${ext}`;
+    // Instagram image publishing is most reliable with a public JPEG URL.
+    // Keep the original immutable in R2, but give Instagram a normalized JPEG endpoint.
+    const instagramReadyUrl = mediaKind === 'IMAGE'
+      ? `${origin}/visuals/instagram-image?src=${encodeURIComponent(originalMediaUrl)}`
+      : originalMediaUrl;
     const manifestUrl = `${origin}/visuals/manifest/${assetId}.json`;
     const manifest = {
       ok: true,
@@ -85,8 +95,10 @@ async function handleUpload(request, env) {
       product,
       publication_type: publicationType,
       media_kind: mediaKind,
-      media_url: mediaUrl,
-      canonical_url: mediaUrl,
+      media_url: instagramReadyUrl,
+      instagram_ready_url: instagramReadyUrl,
+      original_media_url: originalMediaUrl,
+      canonical_url: originalMediaUrl,
       manifest_url: manifestUrl,
       alt_text: altText,
       publish,
@@ -106,6 +118,58 @@ async function handleUpload(request, env) {
     return json(manifest, 200, cors);
   } catch (error) {
     return json({ ok: false, error: 'upload_failed', detail: error instanceof Error ? error.message : String(error) }, 500, cors);
+  }
+}
+
+async function handleInstagramImage(request) {
+  try {
+    const url = new URL(request.url);
+    const src = String(url.searchParams.get('src') || '').trim();
+    if (!src) return json({ ok: false, error: 'src_required' }, 400);
+
+    let source;
+    try {
+      source = new URL(src);
+    } catch {
+      return json({ ok: false, error: 'invalid_src' }, 400);
+    }
+
+    const allowedHosts = new Set([
+      'dakarstyle.com',
+      'www.dakarstyle.com',
+      'dakarstyle-visual-upload.idrissaminata.workers.dev',
+    ]);
+    if (source.protocol !== 'https:' || !allowedHosts.has(source.hostname) || !source.pathname.startsWith('/visuals/media/')) {
+      return json({ ok: false, error: 'src_not_allowed' }, 403);
+    }
+
+    const transformed = await fetch(source.toString(), {
+      cf: {
+        image: {
+          format: 'jpeg',
+          fit: 'scale-down',
+          width: 1080,
+          quality: 90,
+          metadata: 'none',
+        },
+      },
+    });
+
+    if (!transformed.ok) {
+      return json({ ok: false, error: 'image_transform_failed', upstream_status: transformed.status }, 502);
+    }
+
+    const headers = new Headers(transformed.headers);
+    headers.set('content-type', 'image/jpeg');
+    headers.set('cache-control', 'public, max-age=31536000, immutable');
+    headers.set('access-control-allow-origin', '*');
+    headers.set('x-content-type-options', 'nosniff');
+    headers.delete('set-cookie');
+
+    if (request.method === 'HEAD') return new Response(null, { status: 200, headers });
+    return new Response(transformed.body, { status: 200, headers });
+  } catch (error) {
+    return json({ ok: false, error: 'image_transform_failed', detail: error instanceof Error ? error.message : String(error) }, 500);
   }
 }
 
