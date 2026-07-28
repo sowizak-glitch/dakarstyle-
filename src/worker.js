@@ -1,5 +1,5 @@
 import coreWorker from './index.js';
-import { handlePerformanceDashboard, handlePerformanceSnapshot } from './performance-dashboard.js';
+import { handlePerformanceDashboard, handlePerformanceSnapshot } from './performance-dashboard-v2.js';
 
 export default {
   async fetch(request, env, ctx) {
