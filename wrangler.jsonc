@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dakarstyle",
-  "main": "src/index.js",
+  "main": "src/worker.js",
   "compatibility_date": "2026-05-21",
   "observability": {
     "enabled": true
@@ -12,7 +12,8 @@
     "run_worker_first": [
       "/visuals/api/*",
       "/visuals/media/*",
-      "/visuals/manifest/*"
+      "/visuals/manifest/*",
+      "/sowhat-performance-dashboard*"
     ]
   },
   "r2_buckets": [
