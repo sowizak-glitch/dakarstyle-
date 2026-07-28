@@ -1,18 +1,8 @@
-import { handlePerformanceDashboard, handlePerformanceSnapshot } from './performance-dashboard-v2.js';
-
 const SOWHAT_UPLOAD_KEY_SHA256 = 'ed51c5e5e73785e254d4ee5974193b22cecbb29b667c5651641d838e5bbcde35';
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-
-    if (url.pathname === '/visuals/api/performance') {
-      return handlePerformanceSnapshot(request, env);
-    }
-
-    if (url.pathname === '/sowhat-performance-dashboard') {
-      return handlePerformanceDashboard(request, env);
-    }
 
     if (url.pathname === '/visuals/api/upload') {
       if (request.method === 'OPTIONS') return corsPreflight();
