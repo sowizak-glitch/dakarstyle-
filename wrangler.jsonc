@@ -1,7 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dakarstyle",
-  "main": "src/worker.js",
+  "main": "src/index.js",
   "compatibility_date": "2026-05-21",
   "observability": {
     "enabled": true
