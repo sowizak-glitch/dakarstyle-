@@ -1,8 +1,18 @@
+import { handlePerformanceDashboard, handlePerformanceSnapshot } from './performance-dashboard-v2.js';
+
 const SOWHAT_UPLOAD_KEY_SHA256 = 'ed51c5e5e73785e254d4ee5974193b22cecbb29b667c5651641d838e5bbcde35';
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (url.pathname === '/visuals/api/performance') {
+      return handlePerformanceSnapshot(request, env);
+    }
+
+    if (url.pathname === '/sowhat-performance-dashboard') {
+      return handlePerformanceDashboard(request, env);
+    }
 
     if (url.pathname === '/visuals/api/upload') {
       if (request.method === 'OPTIONS') return corsPreflight();
@@ -81,8 +91,6 @@ async function handleUpload(request, env) {
 
     const origin = new URL(request.url).origin;
     const originalMediaUrl = `${origin}/visuals/media/${assetId}.${ext}`;
-    // Instagram image publishing is most reliable with a public JPEG URL.
-    // Keep the original immutable in R2, but give Instagram a normalized JPEG endpoint.
     const instagramReadyUrl = mediaKind === 'IMAGE'
       ? `${origin}/visuals/instagram-image?src=${encodeURIComponent(originalMediaUrl)}`
       : originalMediaUrl;
