@@ -1,7 +1,7 @@
 {
   "status": "NOT_READY",
-  "checked_at_utc": "2026-07-27T22:43:49Z",
+  "checked_at_utc": "2026-07-28T00:00:10Z",
   "url": "https://dakarstyle.com/visuals/api/upload",
   "http_code": "403",
-  "response_preview": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"content-security-policy\" content=\"default-src &#39;none&#39;; script-src &#39;nonce-sXCbL5B9cDwHsHLFSmfUcc&#39; &#39;unsafe-eval&#39; https://challenges.cloudflare.com; script-s"
+  "response_preview": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"content-security-policy\" content=\"default-src &#39;none&#39;; script-src &#39;nonce-yiuHSIGr9kmbsQRXBsG5rw&#39; &#39;unsafe-eval&#39; https://challenges.cloudflare.com; script-s"
 }
