@@ -1,0 +1,143 @@
+name: SAMABUSINESS native PWA and security
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/worker-entry.js'
+      - 'supabase/functions/samabusiness-field-ux/**'
+      - 'supabase/functions/samabusiness-audio-api/**'
+      - 'supabase/migrations/20260803095000_samabusiness_audio_security.sql'
+      - 'tests/samabusiness-native-pwa-live.mjs'
+      - '.github/workflows/samabusiness-native-pwa-security.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/worker-entry.js'
+      - 'supabase/functions/samabusiness-field-ux/**'
+      - 'supabase/functions/samabusiness-audio-api/**'
+      - 'tests/samabusiness-native-pwa-live.mjs'
+      - '.github/workflows/samabusiness-native-pwa-security.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SAMABUSINESS_URL: https://samabusiness.dakarstyle.com
+  E2E_OUTPUT_DIR: test-results/samabusiness-native-pwa
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate JavaScript and security markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/worker-entry.js
+          node --check supabase/functions/samabusiness-field-ux/parts/part-09.js
+          node --check tests/samabusiness-native-pwa-live.mjs
+          grep -q "display: 'standalone'" src/worker-entry.js
+          grep -q "share_target" src/worker-entry.js
+          grep -q "serviceWorker.register" src/worker-entry.js
+          grep -q "frame-ancestors 'none'" src/worker-entry.js
+          grep -q "Importer un vocal WhatsApp" supabase/functions/samabusiness-field-ux/parts/part-09.js
+          grep -q "gpt-4o-mini-transcribe" supabase/functions/samabusiness-audio-api/index.ts
+          grep -q "MAX_REQUESTS_PER_HOUR" supabase/functions/samabusiness-audio-api/index.ts
+          grep -q "revoke all on table public.sama_audio_transcriptions" supabase/migrations/20260803095000_samabusiness_audio_security.sql
+
+      - name: Verify deployed Edge Functions
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-field-ux \
+            -o /tmp/field-ux.js
+          test "$(wc -c < /tmp/field-ux.js)" -gt 60000
+          grep -q "__SAMABUSINESS_NATIVE_PWA__" /tmp/field-ux.js
+          grep -q "Importer un vocal WhatsApp" /tmp/field-ux.js
+          curl --fail --silent --show-error \
+            -H 'Origin: https://samabusiness.dakarstyle.com' \
+            https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-audio-api \
+            -o /tmp/audio-health.json
+          python3 - <<'PY'
+          import json
+          payload=json.load(open('/tmp/audio-health.json'))
+          assert payload['ok'] is True
+          assert payload['version']=='10.3.0'
+          assert payload['audio_retained'] is False
+          print('audio configured:', payload['configured'])
+          PY
+
+  live-native-pwa:
+    if: github.event_name != 'pull_request'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Wait for production 10.3.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 40); do
+            headers=$(curl --silent --show-error --dump-header - --output /dev/null --max-time 20 "$SAMABUSINESS_URL/?deploy-check=$GITHUB_RUN_ID" | tr -d '\r')
+            if grep -qi '^x-samabusiness-version: 10.3.0$' <<<"$headers"; then
+              echo 'SAMABUSINESS 10.3.0 is live.'
+              exit 0
+            fi
+            echo "Waiting for production deployment ($attempt/40)..."
+            sleep 20
+          done
+          echo 'SAMABUSINESS 10.3.0 was not detected in production.' >&2
+          exit 1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.1
+          npx playwright install --with-deps chromium
+
+      - name: Run native PWA journey
+        run: node tests/samabusiness-native-pwa-live.mjs
+
+      - name: Publish summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f "$E2E_OUTPUT_DIR/native-pwa-report.json" ]; then
+            python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          report=json.loads(Path('test-results/samabusiness-native-pwa/native-pwa-report.json').read_text())
+          print('# SAMABUSINESS — PWA Android native 10.3.0')
+          print()
+          print(f"- Résultat : **{'SUCCÈS' if report.get('ok') else 'ÉCHEC'}**")
+          print(f"- Contrôles réussis : **{len(report.get('checks', []))}**")
+          print(f"- Transcription cloud : **{'active' if report.get('audioConfigured') else 'fallback'}**")
+          print(f"- Erreurs JavaScript : **{len(report.get('pageErrors', []))}**")
+          print(f"- Réponses serveur 5xx : **{len(report.get('serverErrors', []))}**")
+          for check in report.get('checks', []): print(f"- ✅ {check.get('name')}")
+          if report.get('failure'):
+              print('\n## Échec\n```')
+              print(report['failure'][:4000])
+              print('```')
+          PY
+          fi
+
+      - name: Upload native PWA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-native-pwa-${{ github.run_id }}
+          path: test-results/samabusiness-native-pwa
+          if-no-files-found: warn
+          retention-days: 14

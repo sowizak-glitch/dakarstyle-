@@ -1,8 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const VERSION = "10.2.0";
-const SOURCE_REF = "0e116d2d49fd2be10c201a35557ad9b943257b02";
-const PARTS = Array.from({ length: 9 }, (_, index) =>
+const VERSION = "10.3.0";
+const SOURCE_REF = "62de4076ff7b717770b3b6ff1b8821b0fbf5950f";
+const PARTS = Array.from({ length: 10 }, (_, index) =>
   `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-${String(index).padStart(2, "0")}.js`
 );
 let cachedSource = "";
@@ -14,8 +14,15 @@ async function loadSource(): Promise<string> {
     throw new Error(`Field UX source unavailable: ${responses.map((response) => response.status).join(",")}`);
   }
   const source = (await Promise.all(responses.map((response) => response.text()))).join("");
-  const markers = ["__SAMABUSINESS_FIELD_UX__", "Partager sur WhatsApp", "Commander sur WhatsApp", "Wolof activé"];
-  if (source.length < 50000 || !markers.every((marker) => source.includes(marker))) {
+  const markers = [
+    "__SAMABUSINESS_FIELD_UX__",
+    "Partager sur WhatsApp",
+    "Commander sur WhatsApp",
+    "Wolof activé",
+    "__SAMABUSINESS_NATIVE_PWA__",
+    "Importer un vocal WhatsApp",
+  ];
+  if (source.length < 60000 || !markers.every((marker) => source.includes(marker))) {
     throw new Error("Invalid field UX source");
   }
   cachedSource = source;
