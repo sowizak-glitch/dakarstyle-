@@ -22,6 +22,19 @@ const SAMABUSINESS_CSP = [
   'upgrade-insecure-requests',
 ].join('; ');
 
+function isSamabusinessHtmlRoute(url) {
+  const mode = String(url.searchParams.get('mode') || '').toLowerCase();
+  const nonHtmlModes = new Set(['health', 'manifest', 'sw', 'icon', 'logo']);
+  const nonHtmlPaths = new Set([
+    '/health',
+    '/manifest.webmanifest',
+    '/sw.js',
+    '/icon.svg',
+    '/logo.webp',
+  ]);
+  return !nonHtmlModes.has(mode) && !nonHtmlPaths.has(url.pathname);
+}
+
 export default {
   async fetch(request, env, ctx) {
     const response = await application.fetch(request, env, ctx);
@@ -32,12 +45,21 @@ export default {
     headers.delete('content-security-policy');
     headers.delete('content-security-policy-report-only');
 
-    const contentType = headers.get('content-type') || '';
-    if (contentType.includes('text/html')) {
+    const htmlRoute = isSamabusinessHtmlRoute(url);
+    const upstreamContentType = headers.get('content-type') || '';
+    if (htmlRoute) {
+      // Supabase can expose the valid HTML payload as text/plain through its gateway.
+      // Force browser parsing only on application document routes; API/PWA assets retain their own types.
+      headers.set('content-type', 'text/html; charset=utf-8');
+      headers.set('content-security-policy', SAMABUSINESS_CSP);
+      headers.set('x-frame-options', 'DENY');
+      headers.set('x-samabusiness-content-type-repaired', upstreamContentType || 'missing');
+    } else if (upstreamContentType.includes('text/html')) {
       headers.set('content-security-policy', SAMABUSINESS_CSP);
       headers.set('x-frame-options', 'DENY');
     }
 
+    headers.delete('content-length');
     return new Response(request.method === 'HEAD' ? null : response.body, {
       status: response.status,
       statusText: response.statusText,
