@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - 'tests/samabusiness-full-journey.mjs'
+      - 'tests/samabusiness-browser-diagnostic.mjs'
       - '.github/workflows/samabusiness-full-journey.yml'
   workflow_dispatch:
 
@@ -33,6 +34,9 @@ jobs:
         run: |
           npm install --no-save --no-package-lock playwright@1.54.1
           npx playwright install --with-deps chromium
+
+      - name: Capture browser startup diagnostics
+        run: node tests/samabusiness-browser-diagnostic.mjs
 
       - name: Run complete merchant journey
         run: node tests/samabusiness-full-journey.mjs
