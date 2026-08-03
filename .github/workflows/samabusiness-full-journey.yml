@@ -60,12 +60,18 @@ jobs:
             const row = page.locator('#productsList .row-card').filter({ hasText: PRODUCT }).first();'''
           patched = patched.replace(stock_result_before, stock_result_after)
 
+          stock_assert_before = '  assert(/stock\\s+7/i.test(text), `Stock attendu 7, reçu : ${text}`);'
+          stock_assert_after = '  assert(/7\\s*(?:pi[eè]ce|unit[eé]|article)/i.test(text), `Stock attendu 7, reçu : ${text}`);'
+          patched = patched.replace(stock_assert_before, stock_assert_after)
+
           if patched.count('bypassCSP: true') != 2:
               raise SystemExit('Expected to patch two browser contexts')
           if stock_open_after not in patched:
               raise SystemExit('Expected to patch stock opening navigation')
           if stock_result_after not in patched:
               raise SystemExit('Expected to patch stock result navigation')
+          if stock_assert_after not in patched:
+              raise SystemExit('Expected to patch localized stock assertion')
           path.write_text(patched)
           PY
 
