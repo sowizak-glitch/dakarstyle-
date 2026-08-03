@@ -50,6 +50,20 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.54.1
           npx playwright install --with-deps chromium
 
+      - name: Normalize production-aware selectors
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('tests/samabusiness-field-ux-live.mjs')
+          source = path.read_text()
+          before = "page.locator('[data-sbx-open=\"voice\"]').first().click();"
+          after = "page.locator('[data-sbx-open=\"voice\"]:visible').first().click();"
+          if before not in source:
+              raise SystemExit('Voice selector marker missing')
+          path.write_text(source.replace(before, after))
+          PY
+
       - name: Run live field UX journey
         run: node tests/samabusiness-field-ux-live.mjs
 
