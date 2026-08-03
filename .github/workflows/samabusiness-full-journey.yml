@@ -20,7 +20,7 @@ jobs:
     env:
       SAMABUSINESS_URL: https://samabusiness.dakarstyle.com
       E2E_OUTPUT_DIR: test-results/samabusiness
-      E2E_RELEASE: html-f3706e0d
+      E2E_RELEASE: addon-v5-product-selector
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -84,6 +84,16 @@ jobs:
               raise SystemExit('Expected to patch order action click')
           path.write_text(patched)
           PY
+
+      - name: Validate production finishing addon
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error \
+            'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-addon?v=10.0.0' \
+            -o test-results-addon.js
+          grep -q 'productSelectorFix:true' test-results-addon.js
+          grep -q '__SAMABUSINESS_PRODUCT_SELECTORS_PATCHED__' test-results-addon.js
 
       - name: Capture browser startup diagnostics
         run: node tests/samabusiness-browser-diagnostic.mjs
