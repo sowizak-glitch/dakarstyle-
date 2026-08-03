@@ -43,17 +43,29 @@ jobs:
           path = Path('tests/samabusiness-full-journey.mjs')
           source = path.read_text()
           patched = source.replace('browser.newContext({', 'browser.newContext({\n    bypassCSP: true,')
-          stock_before = '''async function saveStock(page) {
+
+          stock_open_before = '''async function saveStock(page) {
             await page.locator('[data-open="stockModal"]').first().click();'''
-          stock_after = '''async function saveStock(page) {
+          stock_open_after = '''async function saveStock(page) {
             await page.locator('.nav-btn[data-nav="home"]').click();
             await visible(page.locator('#view-home.active'));
             await page.locator('[data-open="stockModal"]').first().click();'''
-          patched = patched.replace(stock_before, stock_after)
+          patched = patched.replace(stock_open_before, stock_open_after)
+
+          stock_result_before = '''  await waitReady(page);
+            const row = page.locator('#productsList .row-card').filter({ hasText: PRODUCT }).first();'''
+          stock_result_after = '''  await waitReady(page);
+            await page.locator('.nav-btn[data-nav="stock"]').click();
+            await visible(page.locator('#view-stock.active'));
+            const row = page.locator('#productsList .row-card').filter({ hasText: PRODUCT }).first();'''
+          patched = patched.replace(stock_result_before, stock_result_after)
+
           if patched.count('bypassCSP: true') != 2:
               raise SystemExit('Expected to patch two browser contexts')
-          if stock_after not in patched:
-              raise SystemExit('Expected to patch stock navigation')
+          if stock_open_after not in patched:
+              raise SystemExit('Expected to patch stock opening navigation')
+          if stock_result_after not in patched:
+              raise SystemExit('Expected to patch stock result navigation')
           path.write_text(patched)
           PY
 
