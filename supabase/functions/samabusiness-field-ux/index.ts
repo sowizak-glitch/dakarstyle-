@@ -1,12 +1,31 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const VERSION = "10.2.0";
-const source = await Deno.readTextFile(new URL("./field-ux.js", import.meta.url));
+const SOURCE_REF = "0e116d2d49fd2be10c201a35557ad9b943257b02";
+const PARTS = Array.from({ length: 9 }, (_, index) =>
+  `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-${String(index).padStart(2, "0")}.js`
+);
+let cachedSource = "";
 
-function headers(type = "application/javascript; charset=utf-8"): HeadersInit {
+async function loadSource(): Promise<string> {
+  if (cachedSource) return cachedSource;
+  const responses = await Promise.all(PARTS.map((url) => fetch(url, { headers: { accept: "text/plain" } })));
+  if (responses.some((response) => !response.ok)) {
+    throw new Error(`Field UX source unavailable: ${responses.map((response) => response.status).join(",")}`);
+  }
+  const source = (await Promise.all(responses.map((response) => response.text()))).join("");
+  const markers = ["__SAMABUSINESS_FIELD_UX__", "Partager sur WhatsApp", "Commander sur WhatsApp", "Wolof activé"];
+  if (source.length < 50000 || !markers.every((marker) => source.includes(marker))) {
+    throw new Error("Invalid field UX source");
+  }
+  cachedSource = source;
+  return cachedSource;
+}
+
+function headers(type = "application/javascript; charset=utf-8", cache = "public, max-age=120, stale-while-revalidate=300"): HeadersInit {
   return {
     "content-type": type,
-    "cache-control": "public, max-age=120, stale-while-revalidate=300",
+    "cache-control": cache,
     "access-control-allow-origin": "*",
     "access-control-allow-methods": "GET,HEAD,OPTIONS",
     "cross-origin-resource-policy": "cross-origin",
@@ -15,10 +34,16 @@ function headers(type = "application/javascript; charset=utf-8"): HeadersInit {
   };
 }
 
-Deno.serve((req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: headers() });
-  if (req.method === "GET" || req.method === "HEAD") {
-    return new Response(req.method === "HEAD" ? null : source, { headers: headers() });
+  if (req.method !== "GET" && req.method !== "HEAD") {
+    return Response.json({ ok: false, error: "Method not allowed" }, { status: 405, headers: headers("application/json; charset=utf-8", "no-store") });
   }
-  return Response.json({ ok: false, error: "Method not allowed" }, { status: 405, headers: headers("application/json; charset=utf-8") });
+  try {
+    const source = await loadSource();
+    return new Response(req.method === "HEAD" ? null : source, { headers: headers() });
+  } catch (error) {
+    console.error("samabusiness-field-ux", error);
+    return Response.json({ ok: false, error: "Field UX unavailable" }, { status: 503, headers: headers("application/json; charset=utf-8", "no-store") });
+  }
 });
