@@ -48,46 +48,69 @@ jobs:
           test -s assets/samabusiness/samabusiness-192.webp
           file assets/samabusiness/samabusiness-192.webp | tee logo-file-type.txt
           grep -qi 'webp' logo-file-type.txt
+          grep -q '192x192' logo-file-type.txt
 
       - name: Test PWA endpoints
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error "$PWA_URL?mode=health" | tee pwa-health.json
-          grep -q '"ok":true' pwa-health.json
-          grep -q '"version":"10.1.0"' pwa-health.json
-
+          curl --fail --silent --show-error "$PWA_URL?mode=health" -o pwa-health.json
           curl --fail --silent --show-error --dump-header manifest.headers \
             "$PWA_URL?mode=manifest&v=10.1.0" -o manifest.json
-          grep -qi 'application/manifest+json' manifest.headers
-          grep -q 'SAMABUSINESS' manifest.json
-          grep -q 'samabusiness.dakarstyle.com' manifest.json
-          grep -q 'samabusiness-192.webp' manifest.json
-
           curl --fail --silent --show-error --dump-header sw.headers \
             "$PWA_URL?mode=sw&v=10.1.0" -o sw.js
-          grep -qi 'application/javascript' sw.headers
-          grep -q 'samabusiness-shell-10.1.0' sw.js
-
           curl --fail --silent --show-error --dump-header icon.headers \
             "$PWA_URL?mode=icon&size=512&v=10.1.0" -o icon.svg
-          grep -qi 'image/svg+xml' icon.headers
-          grep -q 'samabusiness-192.webp' icon.svg
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          health = json.loads(Path('pwa-health.json').read_text())
+          assert health.get('ok') is True, health
+          assert health.get('version') == '10.1.0', health
+          assert health.get('app_origin') == 'https://samabusiness.dakarstyle.com', health
+
+          manifest = json.loads(Path('manifest.json').read_text())
+          assert manifest.get('name') == 'SAMABUSINESS', manifest
+          assert manifest.get('start_url') == 'https://samabusiness.dakarstyle.com/', manifest
+          assert any('samabusiness-192.webp' in icon.get('src', '') for icon in manifest.get('icons', [])), manifest
+
+          manifest_headers = Path('manifest.headers').read_text().lower()
+          sw_headers = Path('sw.headers').read_text().lower()
+          icon_headers = Path('icon.headers').read_text().lower()
+          assert 'application/manifest+json' in manifest_headers, manifest_headers
+          assert 'application/javascript' in sw_headers, sw_headers
+          assert 'image/svg+xml' in icon_headers, icon_headers
+
+          sw = Path('sw.js').read_text()
+          assert "VERSION='10.1.0'" in sw, sw[:500]
+          assert "samabusiness-shell-" in sw, sw[:500]
+          icon = Path('icon.svg').read_text()
+          assert 'samabusiness-192.webp' in icon, icon[:500]
+          PY
 
       - name: Test business API proxy
         shell: bash
         run: |
           set -euo pipefail
           curl --fail --silent --show-error --header 'Origin: https://samabusiness.dakarstyle.com' \
-            "$API_URL" | tee api-health.json
-          grep -q '"ok":true' api-health.json
-          grep -q 'samabusiness-api-v10' api-health.json
-
+            "$API_URL" -o api-health.json
           curl --fail --silent --show-error --request OPTIONS \
             --header 'Origin: https://samabusiness.dakarstyle.com' \
             --header 'Access-Control-Request-Method: POST' \
             --dump-header api-options.headers --output /dev/null "$API_URL"
-          grep -qi 'access-control-allow-origin: https://samabusiness.dakarstyle.com' api-options.headers
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          health = json.loads(Path('api-health.json').read_text())
+          assert health.get('ok') is True, health
+          assert health.get('service') == 'samabusiness-api-v10', health
+          assert health.get('version') == '10.1.0', health
+          headers = Path('api-options.headers').read_text().lower()
+          assert 'access-control-allow-origin: https://samabusiness.dakarstyle.com' in headers, headers
+          PY
 
       - name: Test runtime finishing addon
         shell: bash
@@ -97,6 +120,7 @@ jobs:
           grep -q '__SAMABUSINESS_FETCH_PATCHED__' addon.js
           grep -q 'samabusiness-api-v10' addon.js
           grep -q 'samabusiness-192.webp' addon.js
+          grep -q 'focus-visible' addon.js
 
       - name: Upload validation evidence
         uses: actions/upload-artifact@v4
