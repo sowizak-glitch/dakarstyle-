@@ -35,7 +35,7 @@ jobs:
           npm install --no-save --no-package-lock playwright@1.54.1
           npx playwright install --with-deps chromium
 
-      - name: Keep Playwright assertions compatible with production CSP
+      - name: Keep Playwright assertions compatible with production behavior
         shell: bash
         run: |
           python3 - <<'PY'
@@ -43,8 +43,17 @@ jobs:
           path = Path('tests/samabusiness-full-journey.mjs')
           source = path.read_text()
           patched = source.replace('browser.newContext({', 'browser.newContext({\n    bypassCSP: true,')
+          stock_before = '''async function saveStock(page) {
+            await page.locator('[data-open="stockModal"]').first().click();'''
+          stock_after = '''async function saveStock(page) {
+            await page.locator('.nav-btn[data-nav="home"]').click();
+            await visible(page.locator('#view-home.active'));
+            await page.locator('[data-open="stockModal"]').first().click();'''
+          patched = patched.replace(stock_before, stock_after)
           if patched.count('bypassCSP: true') != 2:
               raise SystemExit('Expected to patch two browser contexts')
+          if stock_after not in patched:
+              raise SystemExit('Expected to patch stock navigation')
           path.write_text(patched)
           PY
 
