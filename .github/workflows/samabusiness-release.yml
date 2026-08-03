@@ -1,0 +1,161 @@
+name: SAMABUSINESS release
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/index.js'
+      - 'wrangler.jsonc'
+      - 'assets/samabusiness/**'
+      - '.github/workflows/samabusiness-release.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/index.js'
+      - 'wrangler.jsonc'
+      - 'assets/samabusiness/**'
+      - '.github/workflows/samabusiness-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PWA_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-pwa
+  API_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-api-v10
+  ADDON_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-addon
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Worker JavaScript
+        run: node --check src/index.js
+
+      - name: Validate Wrangler configuration
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-out
+
+      - name: Validate official logo asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s assets/samabusiness/samabusiness-192.webp
+          file assets/samabusiness/samabusiness-192.webp | tee logo-file-type.txt
+          grep -qi 'webp' logo-file-type.txt
+
+      - name: Test PWA endpoints
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error "$PWA_URL?mode=health" | tee pwa-health.json
+          grep -q '"ok":true' pwa-health.json
+          grep -q '"version":"10.1.0"' pwa-health.json
+
+          curl --fail --silent --show-error --dump-header manifest.headers \
+            "$PWA_URL?mode=manifest&v=10.1.0" -o manifest.json
+          grep -qi 'application/manifest+json' manifest.headers
+          grep -q 'SAMABUSINESS' manifest.json
+          grep -q 'samabusiness.dakarstyle.com' manifest.json
+          grep -q 'samabusiness-192.webp' manifest.json
+
+          curl --fail --silent --show-error --dump-header sw.headers \
+            "$PWA_URL?mode=sw&v=10.1.0" -o sw.js
+          grep -qi 'application/javascript' sw.headers
+          grep -q 'samabusiness-shell-10.1.0' sw.js
+
+          curl --fail --silent --show-error --dump-header icon.headers \
+            "$PWA_URL?mode=icon&size=512&v=10.1.0" -o icon.svg
+          grep -qi 'image/svg+xml' icon.headers
+          grep -q 'samabusiness-192.webp' icon.svg
+
+      - name: Test business API proxy
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --header 'Origin: https://samabusiness.dakarstyle.com' \
+            "$API_URL" | tee api-health.json
+          grep -q '"ok":true' api-health.json
+          grep -q 'samabusiness-api-v10' api-health.json
+
+          curl --fail --silent --show-error --request OPTIONS \
+            --header 'Origin: https://samabusiness.dakarstyle.com' \
+            --header 'Access-Control-Request-Method: POST' \
+            --dump-header api-options.headers --output /dev/null "$API_URL"
+          grep -qi 'access-control-allow-origin: https://samabusiness.dakarstyle.com' api-options.headers
+
+      - name: Test runtime finishing addon
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error "$ADDON_URL?v=10.1.0" -o addon.js
+          grep -q '__SAMABUSINESS_FETCH_PATCHED__' addon.js
+          grep -q 'samabusiness-api-v10' addon.js
+          grep -q 'samabusiness-192.webp' addon.js
+
+      - name: Upload validation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-release-validation
+          path: |
+            pwa-health.json
+            manifest.headers
+            manifest.json
+            sw.headers
+            sw.js
+            icon.headers
+            icon.svg
+            api-health.json
+            api-options.headers
+            logo-file-type.txt
+          if-no-files-found: error
+          retention-days: 14
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy Worker when Cloudflare credentials are configured
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: npx --yes wrangler@4 deploy
+
+      - name: Record external integration deployment mode
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        run: echo 'Cloudflare Git integration is expected to deploy main; repository secrets are not configured.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify production endpoints
+        shell: bash
+        run: |
+          set +e
+          sleep 25
+          for url in \
+            'https://dakarstyle.com/assets/samabusiness/samabusiness-192.webp' \
+            'https://samacahier.dakarstyle.com/health' \
+            'https://samabusiness.dakarstyle.com/health' \
+            'https://samabusiness.dakarstyle.com/manifest.webmanifest' \
+            'https://samabusiness.dakarstyle.com/sw.js'; do
+            status=$(curl --location --silent --show-error --output /tmp/response --write-out '%{http_code}' --max-time 20 "$url")
+            printf '%s -> %s\n' "$url" "$status" | tee -a production-checks.txt
+          done
+          cat production-checks.txt >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload production check evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-production-checks
+          path: production-checks.txt
+          if-no-files-found: error
+          retention-days: 14
