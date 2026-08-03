@@ -1,0 +1,52 @@
+name: SAMABUSINESS live snapshot
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/samabusiness-live-snapshot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot-live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download current production responses
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p live
+          base='https://samacahier.dakarstyle.com'
+          curl --fail --silent --show-error --location --compressed \
+            -D live/index.headers.txt -o live/index.html "$base/?audit=20260803"
+          for spec in \
+            'manifest|?mode=manifest&v=9.0.0' \
+            'service-worker|?mode=sw&v=9.0.0' \
+            'icon-192|?mode=icon&size=192' \
+            'icon-512|?mode=icon&size=512'; do
+            name="${spec%%|*}"
+            query="${spec#*|}"
+            curl --silent --show-error --location --compressed \
+              -D "live/${name}.headers.txt" -o "live/${name}.response" "$base/$query" || true
+          done
+          file live/* > live/file-types.txt
+          sha256sum live/* > live/checksums.txt
+          sed -n '1,80p' live/index.headers.txt
+          file live/*
+
+      - name: Package live snapshot
+        shell: bash
+        run: tar -czf samabusiness-live-snapshot.tar.gz live
+
+      - name: Upload live snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-live-snapshot
+          path: samabusiness-live-snapshot.tar.gz
+          if-no-files-found: error
+          retention-days: 3

@@ -1,0 +1,41 @@
+name: SAMABUSINESS repository snapshot
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/samabusiness-repository-snapshot.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Create source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git archive --format=tar.gz --output=dakarstyle-source-snapshot.tar.gz HEAD
+          git ls-tree -r --long HEAD > repository-tree.txt
+          sha256sum dakarstyle-source-snapshot.tar.gz > repository-snapshot.sha256
+
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: dakarstyle-source-snapshot
+          path: |
+            dakarstyle-source-snapshot.tar.gz
+            repository-tree.txt
+            repository-snapshot.sha256
+          if-no-files-found: error
+          retention-days: 3

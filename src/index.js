@@ -1,8 +1,17 @@
 const SOWHAT_UPLOAD_KEY_SHA256 = 'ed51c5e5e73785e254d4ee5974193b22cecbb29b667c5651641d838e5bbcde35';
+const SAMABUSINESS_HOSTS = new Set(['samabusiness.dakarstyle.com', 'samacahier.dakarstyle.com']);
+const SAMABUSINESS_ASSETS = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/sama-assets';
+const SAMABUSINESS_PWA = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-pwa';
+const SAMABUSINESS_API = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-api-v10';
+const SAMABUSINESS_CANONICAL = 'https://samabusiness.dakarstyle.com';
 
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+
+    if (SAMABUSINESS_HOSTS.has(url.hostname)) {
+      return handleSamabusiness(request);
+    }
 
     if (url.pathname === '/visuals/api/upload') {
       if (request.method === 'OPTIONS') return corsPreflight();
@@ -28,6 +37,96 @@ export default {
     return env.ASSETS.fetch(request);
   },
 };
+
+async function handleSamabusiness(request) {
+  const url = new URL(request.url);
+  if (!['GET', 'HEAD', 'OPTIONS'].includes(request.method)) {
+    return json({ ok: false, error: 'method_not_allowed' }, 405, samabusinessHeaders(url.hostname, 'application/json; charset=utf-8', 'no-store'));
+  }
+  if (request.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: samabusinessHeaders(url.hostname, 'text/plain; charset=utf-8', 'public, max-age=86400') });
+  }
+
+  const mode = String(url.searchParams.get('mode') || '').toLowerCase();
+  let upstreamUrl = '';
+  let cache = 'no-store, no-cache, must-revalidate';
+
+  if (url.pathname === '/health' || mode === 'health') {
+    const [pwa, api] = await Promise.allSettled([
+      fetch(`${SAMABUSINESS_PWA}?mode=health`, { headers: { accept: 'application/json' } }),
+      fetch(SAMABUSINESS_API, { headers: { accept: 'application/json' } }),
+    ]);
+    const pwaOk = pwa.status === 'fulfilled' && pwa.value.ok;
+    const apiOk = api.status === 'fulfilled' && api.value.ok;
+    return json({
+      ok: pwaOk && apiOk,
+      app: 'SAMABUSINESS',
+      version: '10.1.0',
+      domain: url.hostname,
+      canonical: SAMABUSINESS_CANONICAL,
+      pwa: pwaOk,
+      api: apiOk,
+      checked_at: new Date().toISOString(),
+    }, pwaOk && apiOk ? 200 : 503, samabusinessHeaders(url.hostname, 'application/json; charset=utf-8', 'no-store'));
+  }
+
+  if (url.pathname === '/manifest.webmanifest' || mode === 'manifest') {
+    upstreamUrl = `${SAMABUSINESS_PWA}?mode=manifest&v=10.1.0`;
+    cache = 'public, max-age=300';
+  } else if (url.pathname === '/sw.js' || mode === 'sw') {
+    upstreamUrl = `${SAMABUSINESS_PWA}?mode=sw&v=10.1.0`;
+    cache = 'no-cache';
+  } else if (url.pathname === '/icon.svg' || mode === 'icon') {
+    upstreamUrl = `${SAMABUSINESS_PWA}?mode=icon&size=${encodeURIComponent(url.searchParams.get('size') || '512')}&v=10.1.0`;
+    cache = 'public, max-age=31536000, immutable';
+  } else if (url.pathname === '/logo.webp') {
+    return Response.redirect('https://dakarstyle.com/assets/samabusiness/samabusiness-192.webp?v=20260803', 302);
+  } else {
+    const upstream = new URL(SAMABUSINESS_ASSETS);
+    for (const [key, value] of url.searchParams) upstream.searchParams.append(key, value);
+    upstreamUrl = upstream.toString();
+  }
+
+  try {
+    const response = await fetch(upstreamUrl, {
+      method: request.method,
+      headers: {
+        accept: request.headers.get('accept') || '*/*',
+        'accept-language': request.headers.get('accept-language') || 'fr-SN,fr;q=0.9',
+        'user-agent': request.headers.get('user-agent') || 'SAMABUSINESS-Cloudflare-Gateway/10.1.0',
+      },
+      redirect: 'follow',
+    });
+    const headers = new Headers(response.headers);
+    const contentType = headers.get('content-type') || 'application/octet-stream';
+    const secured = samabusinessHeaders(url.hostname, contentType, cache);
+    for (const [key, value] of Object.entries(secured)) headers.set(key, value);
+    headers.set('link', `<${SAMABUSINESS_CANONICAL}${url.pathname}>; rel="canonical"`);
+    if (url.pathname === '/sw.js' || mode === 'sw') headers.set('service-worker-allowed', '/');
+    headers.delete('content-length');
+    headers.delete('content-encoding');
+    headers.delete('set-cookie');
+    return new Response(request.method === 'HEAD' ? null : response.body, { status: response.status, headers });
+  } catch (error) {
+    return json({ ok: false, error: 'samabusiness_upstream_unavailable', detail: error instanceof Error ? error.message : String(error) }, 503, samabusinessHeaders(url.hostname, 'application/json; charset=utf-8', 'no-store'));
+  }
+}
+
+function samabusinessHeaders(hostname, contentType, cache) {
+  return {
+    'content-type': contentType,
+    'cache-control': cache,
+    'content-language': 'fr-SN',
+    'strict-transport-security': 'max-age=31536000; includeSubDomains',
+    'x-content-type-options': 'nosniff',
+    'referrer-policy': 'strict-origin-when-cross-origin',
+    'permissions-policy': 'camera=(self), geolocation=(self), microphone=(self), payment=(), usb=()',
+    'cross-origin-resource-policy': contentType.includes('text/html') ? 'same-origin' : 'cross-origin',
+    'x-sama-domain': hostname,
+    'x-sama-version': '10.1.0',
+    'x-samabusiness-version': '10.1.0',
+  };
+}
 
 async function handleUpload(request, env) {
   const cors = corsHeaders();
