@@ -7,6 +7,12 @@ on:
     paths:
       - 'sama-business/**'
       - '.github/workflows/samabusiness-bundle-audit.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'sama-business/**'
+      - '.github/workflows/samabusiness-bundle-audit.yml'
   workflow_dispatch:
 
 permissions:
