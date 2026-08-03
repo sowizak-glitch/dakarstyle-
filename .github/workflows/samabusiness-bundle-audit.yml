@@ -1,0 +1,98 @@
+name: SAMABUSINESS bundle audit
+
+on:
+  push:
+    branches:
+      - feat/samabusiness-finition-2026-08
+    paths:
+      - 'sama-business/**'
+      - '.github/workflows/samabusiness-bundle-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reconstruct-and-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Reconstruct compressed application bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p audit/extracted
+          test -f sama-business/app-v9-00.b64
+          test -f sama-business/app-v9-01.b64
+          test -f sama-business/app-v9-02.b64
+          test -f sama-business/app-v9-03.b64
+          cat sama-business/app-v9-00.b64 \
+              sama-business/app-v9-01.b64 \
+              sama-business/app-v9-02.b64 \
+              sama-business/app-v9-03.b64 \
+            | tr -d '\r\n\t ' \
+            | base64 --decode > audit/app-v9.gz
+          gzip -t audit/app-v9.gz
+          gzip -dc audit/app-v9.gz > audit/app-v9.payload
+          file audit/app-v9.gz audit/app-v9.payload | tee audit/file-types.txt
+          sha256sum audit/app-v9.gz audit/app-v9.payload | tee audit/checksums.txt
+
+      - name: Extract or identify payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload='audit/app-v9.payload'
+          if tar -tf "$payload" >/dev/null 2>&1; then
+            tar -xf "$payload" -C audit/extracted
+            echo 'payload_format=tar' | tee audit/payload-format.txt
+          elif unzip -t "$payload" >/dev/null 2>&1; then
+            unzip -q "$payload" -d audit/extracted
+            echo 'payload_format=zip' | tee audit/payload-format.txt
+          elif head -c 256 "$payload" | grep -Eqi '<!doctype html|<html'; then
+            cp "$payload" audit/extracted/index.html
+            echo 'payload_format=html' | tee audit/payload-format.txt
+          else
+            cp "$payload" audit/extracted/app-v9.payload
+            echo 'payload_format=unknown' | tee audit/payload-format.txt
+          fi
+          find audit/extracted -type f -printf '%P\t%s bytes\n' | sort > audit/file-list.txt
+          sed -n '1,200p' audit/file-list.txt
+
+      - name: Run non-destructive static audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo '# SAMABUSINESS static audit'
+            echo
+            echo '## Legacy domain references'
+            grep -RIn --binary-files=without-match -E 'samacahier\.dakarstyle\.com|SAMA[[:space:]]+Cahier|SAMA Cahier' audit/extracted || true
+            echo
+            echo '## New domain references'
+            grep -RIn --binary-files=without-match -E 'samabusiness\.dakarstyle\.com|SAMABUSINESS|SAMA BUSINESS' audit/extracted || true
+            echo
+            echo '## PWA and branding files'
+            find audit/extracted -type f \( -iname '*manifest*' -o -iname '*icon*' -o -iname '*favicon*' -o -iname '*service*worker*' -o -iname 'sw.js' \) -printf '%P\n' | sort || true
+            echo
+            echo '## JavaScript syntax candidates'
+            find audit/extracted -type f \( -name '*.js' -o -name '*.mjs' \) -printf '%P\n' | sort || true
+          } > audit/static-audit.md
+          sed -n '1,240p' audit/static-audit.md
+
+      - name: Package reconstructed application
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -C audit -czf samabusiness-reconstructed-audit.tar.gz \
+            extracted file-types.txt checksums.txt payload-format.txt file-list.txt static-audit.md
+
+      - name: Upload audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-reconstructed-audit
+          path: samabusiness-reconstructed-audit.tar.gz
+          if-no-files-found: error
+          retention-days: 7
