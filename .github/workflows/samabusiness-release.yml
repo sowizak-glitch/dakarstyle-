@@ -9,6 +9,7 @@ on:
       - 'src/worker-entry.js'
       - 'wrangler.jsonc'
       - 'assets/samabusiness/**'
+      - 'supabase/functions/samabusiness-addon/**'
       - '.github/workflows/samabusiness-release.yml'
   push:
     branches:
@@ -18,6 +19,7 @@ on:
       - 'src/worker-entry.js'
       - 'wrangler.jsonc'
       - 'assets/samabusiness/**'
+      - 'supabase/functions/samabusiness-addon/**'
       - '.github/workflows/samabusiness-release.yml'
   workflow_dispatch:
 
@@ -53,6 +55,16 @@ jobs:
           file assets/samabusiness/samabusiness-192.webp | tee logo-file-type.txt
           grep -qi 'webp' logo-file-type.txt
           grep -q '192x192' logo-file-type.txt
+
+      - name: Validate versioned addon source
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s supabase/functions/samabusiness-addon/index.ts
+          grep -q '__SAMABUSINESS_FETCH_PATCHED__' supabase/functions/samabusiness-addon/index.ts
+          grep -q '__SAMABUSINESS_PRODUCT_SELECTORS_PATCHED__' supabase/functions/samabusiness-addon/index.ts
+          grep -q 'productSelectorFix:true' supabase/functions/samabusiness-addon/index.ts
+          grep -q 'samabusiness-api-v10' supabase/functions/samabusiness-addon/index.ts
 
       - name: Test PWA endpoints
         shell: bash
@@ -122,6 +134,8 @@ jobs:
           set -euo pipefail
           curl --fail --silent --show-error "$ADDON_URL?v=10.1.0" -o addon.js
           grep -q '__SAMABUSINESS_FETCH_PATCHED__' addon.js
+          grep -q '__SAMABUSINESS_PRODUCT_SELECTORS_PATCHED__' addon.js
+          grep -q 'productSelectorFix:true' addon.js
           grep -q 'samabusiness-api-v10' addon.js
           grep -q 'samabusiness-192.webp' addon.js
           grep -q 'focus-visible' addon.js
