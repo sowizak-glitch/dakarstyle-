@@ -126,7 +126,7 @@ try {
 
   await page.locator('.nav-btn[data-nav="more"]').click();
   await visible(page.locator('#view-more.active'));
-  await page.locator('[data-sbx-open="voice"]').click();
+  await page.locator('[data-sbx-open="voice"]').first().click();
   await visible(page.locator('#sbx-module-voice'));
   await page.locator('#sbx-voice-text').fill('Achat de pièce 10000');
   await page.locator('#sbx-voice-analyse').click();
