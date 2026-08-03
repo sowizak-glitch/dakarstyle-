@@ -1,0 +1,138 @@
+name: SAMABUSINESS production smoke
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/samabusiness-production-smoke.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  production-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Wait for Cloudflare deployment and DNS
+        shell: bash
+        run: |
+          set -u
+          ready=0
+          for attempt in $(seq 1 30); do
+            echo "Production attempt $attempt/30"
+            if curl --fail --silent --show-error --max-time 20 \
+              'https://samabusiness.dakarstyle.com/health' -o health-new.json; then
+              ready=1
+              break
+            fi
+            sleep 10
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo 'SAMABUSINESS production domain did not become ready.' >&2
+            exit 1
+          fi
+
+      - name: Validate canonical domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --dump-header root.headers \
+            'https://samabusiness.dakarstyle.com/' -o root.html
+          curl --fail --silent --show-error --dump-header health-new.headers \
+            'https://samabusiness.dakarstyle.com/health' -o health-new.json
+          curl --fail --silent --show-error --dump-header manifest.headers \
+            'https://samabusiness.dakarstyle.com/manifest.webmanifest' -o manifest.json
+          curl --fail --silent --show-error --dump-header sw.headers \
+            'https://samabusiness.dakarstyle.com/sw.js' -o sw.js
+          curl --fail --silent --show-error --dump-header icon.headers \
+            'https://samabusiness.dakarstyle.com/icon.svg' -o icon.svg
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          health = json.loads(Path('health-new.json').read_text())
+          assert health.get('ok') is True, health
+          assert health.get('app') == 'SAMABUSINESS', health
+          assert health.get('version') == '10.1.0', health
+          assert health.get('domain') == 'samabusiness.dakarstyle.com', health
+          assert health.get('pwa') is True and health.get('api') is True, health
+
+          root = Path('root.html').read_text(errors='replace')
+          assert 'SAMABUSINESS' in root, root[:1000]
+          assert 'samabusiness-addon' in root, root[:1000]
+
+          manifest = json.loads(Path('manifest.json').read_text())
+          assert manifest.get('name') == 'SAMABUSINESS', manifest
+          assert manifest.get('start_url') == 'https://samabusiness.dakarstyle.com/', manifest
+          assert any('samabusiness-192.webp' in x.get('src','') for x in manifest.get('icons', [])), manifest
+
+          assert "VERSION='10.1.0'" in Path('sw.js').read_text()
+          assert 'samabusiness-192.webp' in Path('icon.svg').read_text()
+
+          headers = '\n'.join([
+              Path('root.headers').read_text(),
+              Path('health-new.headers').read_text(),
+          ]).lower()
+          assert 'x-sama-version: 10.1.0' in headers, headers
+          assert 'strict-transport-security:' in headers, headers
+          assert 'content-language: fr-sn' in headers, headers
+          assert 'application/manifest+json' in Path('manifest.headers').read_text().lower()
+          assert 'application/javascript' in Path('sw.headers').read_text().lower()
+          assert 'image/svg+xml' in Path('icon.headers').read_text().lower()
+          PY
+
+      - name: Validate legacy transition domain
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --dump-header health-old.headers \
+            'https://samacahier.dakarstyle.com/health' -o health-old.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          health = json.loads(Path('health-old.json').read_text())
+          assert health.get('ok') is True, health
+          assert health.get('app') == 'SAMABUSINESS', health
+          assert health.get('version') == '10.1.0', health
+          assert health.get('domain') == 'samacahier.dakarstyle.com', health
+          PY
+
+      - name: Validate deployed official logo
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --dump-header logo.headers \
+            'https://dakarstyle.com/assets/samabusiness/samabusiness-192.webp' -o logo.webp
+          file logo.webp | tee logo-file-type.txt
+          grep -qi 'webp' logo-file-type.txt
+          grep -q '192x192' logo-file-type.txt
+          grep -qi 'image/webp' logo.headers
+
+      - name: Upload smoke-test evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-production-smoke
+          path: |
+            root.headers
+            root.html
+            health-new.headers
+            health-new.json
+            health-old.headers
+            health-old.json
+            manifest.headers
+            manifest.json
+            sw.headers
+            sw.js
+            icon.headers
+            icon.svg
+            logo.headers
+            logo.webp
+            logo-file-type.txt
+          if-no-files-found: error
+          retention-days: 14
