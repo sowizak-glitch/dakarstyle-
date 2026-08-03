@@ -19,6 +19,7 @@ jobs:
     env:
       SAMABUSINESS_URL: https://samabusiness.dakarstyle.com
       E2E_OUTPUT_DIR: test-results/samabusiness
+      E2E_RELEASE: csp-67af20b9
     steps:
       - name: Checkout
         uses: actions/checkout@v4
