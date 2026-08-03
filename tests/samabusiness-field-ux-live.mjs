@@ -17,6 +17,17 @@ const visible = (locator, timeout = 20000) => locator.waitFor({ state: 'visible'
 const waitReady = (page) => page.locator('#loadingCover').waitFor({ state: 'hidden', timeout: 30000 }).catch(() => {});
 const report = { ok: false, account: EMAIL, checks, pageErrors: [], serverErrors: [], failure: '' };
 
+async function pollPage(page, reader, predicate, message, timeout = 30000, interval = 120) {
+  const started = Date.now();
+  let latest;
+  while (Date.now() - started < timeout) {
+    latest = await page.evaluate(reader);
+    if (predicate(latest)) return latest;
+    await page.waitForTimeout(interval);
+  }
+  throw new Error(`${message}. Dernière valeur : ${JSON.stringify(latest)}`);
+}
+
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, bypassCSP: false, serviceWorkers: 'block' });
 await context.addInitScript(() => {
@@ -32,7 +43,12 @@ try {
   assert(response, 'Réponse principale absente');
   assert.equal(response.status(), 200);
   assert.equal(response.headers()['x-samabusiness-field-ux'], '10.2.0');
-  await page.waitForFunction(() => window.__SAMABUSINESS_FIELD_UX__?.version === '10.2.0', null, { timeout: 30000 });
+  await pollPage(
+    page,
+    () => window.__SAMABUSINESS_FIELD_UX__?.version || '',
+    (value) => value === '10.2.0',
+    'Le module UX terrain ne s’est pas initialisé'
+  );
   pass('Chargement production 10.2.0 et injection UX terrain');
 
   await visible(page.locator('#authScreen'));
@@ -54,12 +70,22 @@ try {
   pass('Bouton vocal central et bénéfice réel lisible en F CFA');
 
   await page.locator('#languageBtn').click();
-  await page.waitForFunction(() => document.documentElement.lang === 'wo' && document.body.innerText.includes('Lim yi war a xam'));
+  await pollPage(
+    page,
+    () => ({ lang: document.documentElement.lang, text: document.body.innerText }),
+    (value) => value.lang === 'wo' && value.text.includes('Lim yi war a xam'),
+    'La traduction Wolof n’a pas été appliquée'
+  );
   assert.equal((await page.locator('#languageBtn').innerText()).trim(), 'FR');
   assert.match(await page.locator('body').innerText(), /Njariñ dëgg/);
   pass('Traduction Wolof réellement appliquée à l’interface');
   await page.locator('#languageBtn').click();
-  await page.waitForFunction(() => document.documentElement.lang === 'fr-SN' && document.body.innerText.includes('Les chiffres à comprendre'));
+  await pollPage(
+    page,
+    () => ({ lang: document.documentElement.lang, text: document.body.innerText }),
+    (value) => value.lang === 'fr-SN' && value.text.includes('Les chiffres à comprendre'),
+    'Le retour en français n’a pas été appliqué'
+  );
   pass('Retour français sans rechargement');
 
   await page.locator('[data-open="productModal"]').first().click();
@@ -89,7 +115,13 @@ try {
   await page.locator('#sbfu-supplier-form [name="reorderQuantity"]').fill('5');
   await page.locator('#sbfu-supplier-form button[type="submit"]').click();
   await page.locator('#sbfu-supplier-modal').waitFor({ state: 'hidden', timeout: 30000 });
-  await page.waitForFunction(() => window.__openedUrls.some((url) => url.includes('wa.me/221770000000') && decodeURIComponent(url).includes('Filtre Test')));
+  const openedUrls = await pollPage(
+    page,
+    () => Array.isArray(window.__openedUrls) ? [...window.__openedUrls] : [],
+    (urls) => urls.some((url) => url.includes('wa.me/221770000000') && decodeURIComponent(url).includes('Filtre Test')),
+    'Le message WhatsApp fournisseur n’a pas été préparé'
+  );
+  assert(openedUrls.some((url) => url.includes('wa.me/221770000000')));
   pass('Fournisseur mémorisé et message WhatsApp prérempli');
 
   await page.locator('.nav-btn[data-nav="more"]').click();
