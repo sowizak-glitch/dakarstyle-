@@ -57,11 +57,23 @@ jobs:
           from pathlib import Path
           path = Path('tests/samabusiness-field-ux-live.mjs')
           source = path.read_text()
-          before = "page.locator('[data-sbx-open=\"voice\"]').first().click();"
-          after = "page.locator('[data-sbx-open=\"voice\"]:visible').first().click();"
-          if before not in source:
+
+          voice_before = "page.locator('[data-sbx-open=\"voice\"]').first().click();"
+          voice_after = "page.locator('[data-sbx-open=\"voice\"]:visible').first().click();"
+          if voice_before not in source:
               raise SystemExit('Voice selector marker missing')
-          path.write_text(source.replace(before, after))
+          source = source.replace(voice_before, voice_after)
+
+          sale_before = "  await item.locator('.sale-product').selectOption({ label: PRODUCT });"
+          sale_after = """  const productOption = item.locator('.sale-product option').filter({ hasText: PRODUCT }).first();
+          const productValue = await productOption.getAttribute('value');
+          assert(productValue, `Option produit absente : ${PRODUCT}`);
+          await item.locator('.sale-product').selectOption(productValue);"""
+          if sale_before not in source:
+              raise SystemExit('Sale product selector marker missing')
+          source = source.replace(sale_before, sale_after)
+
+          path.write_text(source)
           PY
 
       - name: Run live field UX journey
