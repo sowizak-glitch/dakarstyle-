@@ -4,6 +4,8 @@ const SAMABUSINESS_HOSTS = new Set([
   'samabusiness.dakarstyle.com',
   'samacahier.dakarstyle.com',
 ]);
+const FIELD_UX_VERSION = '10.2.0';
+const FIELD_UX_URL = `https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-field-ux?v=${FIELD_UX_VERSION}`;
 
 const SAMABUSINESS_CSP = [
   "default-src 'self'",
@@ -35,6 +37,13 @@ function isSamabusinessHtmlRoute(url) {
   return !nonHtmlModes.has(mode) && !nonHtmlPaths.has(url.pathname);
 }
 
+function injectFieldUx(html) {
+  if (html.includes('data-samabusiness-field-ux')) return html;
+  const tag = `<script defer src="${FIELD_UX_URL}" crossorigin="anonymous" data-samabusiness-field-ux="${FIELD_UX_VERSION}"></script>`;
+  if (/<\/body>/i.test(html)) return html.replace(/<\/body>/i, `${tag}</body>`);
+  return `${html}${tag}`;
+}
+
 export default {
   async fetch(request, env, ctx) {
     const response = await application.fetch(request, env, ctx);
@@ -47,6 +56,7 @@ export default {
 
     const htmlRoute = isSamabusinessHtmlRoute(url);
     const upstreamContentType = headers.get('content-type') || '';
+    let body = response.body;
     if (htmlRoute) {
       // Supabase can expose the valid HTML payload as text/plain through its gateway.
       // Force browser parsing only on application document routes; API/PWA assets retain their own types.
@@ -54,13 +64,15 @@ export default {
       headers.set('content-security-policy', SAMABUSINESS_CSP);
       headers.set('x-frame-options', 'DENY');
       headers.set('x-samabusiness-content-type-repaired', upstreamContentType || 'missing');
+      headers.set('x-samabusiness-field-ux', FIELD_UX_VERSION);
+      if (request.method !== 'HEAD') body = injectFieldUx(await response.text());
     } else if (upstreamContentType.includes('text/html')) {
       headers.set('content-security-policy', SAMABUSINESS_CSP);
       headers.set('x-frame-options', 'DENY');
     }
 
     headers.delete('content-length');
-    return new Response(request.method === 'HEAD' ? null : response.body, {
+    return new Response(request.method === 'HEAD' ? null : body, {
       status: response.status,
       statusText: response.statusText,
       headers,
