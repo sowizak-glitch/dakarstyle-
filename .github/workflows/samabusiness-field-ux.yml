@@ -1,0 +1,97 @@
+name: SAMABUSINESS field UX
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'src/worker-entry.js'
+      - 'supabase/functions/samabusiness-field-ux/**'
+      - 'supabase/functions/samabusiness-supplier-api/**'
+      - '.github/workflows/samabusiness-field-ux.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'src/worker-entry.js'
+      - 'supabase/functions/samabusiness-field-ux/**'
+      - 'supabase/functions/samabusiness-supplier-api/**'
+      - '.github/workflows/samabusiness-field-ux.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  FIELD_UX_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-field-ux?v=10.2.0
+  SUPPLIER_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-supplier-api
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Assemble and validate versioned browser source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat supabase/functions/samabusiness-field-ux/parts/part-*.js > field-ux-local.js
+          node --check field-ux-local.js
+          grep -q '__SAMABUSINESS_FIELD_UX__' field-ux-local.js
+          grep -q 'Partager sur WhatsApp' field-ux-local.js
+          grep -q 'Commander sur WhatsApp' field-ux-local.js
+          grep -q 'Wolof activé' field-ux-local.js
+          test "$(wc -c < field-ux-local.js)" -gt 50000
+
+      - name: Validate Worker injection
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check src/worker-entry.js
+          grep -q 'samabusiness-field-ux' src/worker-entry.js
+          grep -q 'data-samabusiness-field-ux' src/worker-entry.js
+
+      - name: Validate live field UX endpoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --dump-header field-ux.headers "$FIELD_UX_URL" -o field-ux-live.js
+          node --check field-ux-live.js
+          grep -qi 'application/javascript' field-ux.headers
+          grep -qi 'x-samabusiness-field-ux: 10.2.0' field-ux.headers
+          cmp field-ux-local.js field-ux-live.js
+
+      - name: Validate supplier endpoint and CORS
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --header 'Origin: https://samabusiness.dakarstyle.com' "$SUPPLIER_URL" -o supplier-health.json
+          curl --fail --silent --show-error --request OPTIONS \
+            --header 'Origin: https://samabusiness.dakarstyle.com' \
+            --header 'Access-Control-Request-Method: POST' \
+            --dump-header supplier-options.headers --output /dev/null "$SUPPLIER_URL"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          health = json.loads(Path('supplier-health.json').read_text())
+          assert health.get('ok') is True, health
+          assert health.get('service') == 'samabusiness-supplier-api', health
+          assert health.get('version') == '10.2.0', health
+          headers = Path('supplier-options.headers').read_text().lower()
+          assert 'access-control-allow-origin: https://samabusiness.dakarstyle.com' in headers, headers
+          PY
+
+      - name: Upload validation evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-field-ux-validation
+          path: |
+            field-ux.headers
+            field-ux-live.js
+            supplier-health.json
+            supplier-options.headers
+          if-no-files-found: error
+          retention-days: 14
