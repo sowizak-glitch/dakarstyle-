@@ -1,0 +1,74 @@
+name: SAMABUSINESS full merchant journey
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'tests/samabusiness-full-journey.mjs'
+      - '.github/workflows/samabusiness-full-journey.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-journey:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SAMABUSINESS_URL: https://samabusiness.dakarstyle.com
+      E2E_OUTPUT_DIR: test-results/samabusiness
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.1
+          npx playwright install --with-deps chromium
+
+      - name: Run complete merchant journey
+        run: node tests/samabusiness-full-journey.mjs
+
+      - name: Publish journey summary
+        if: always()
+        shell: bash
+        run: |
+          if [ -f test-results/samabusiness/journey-report.json ]; then
+            python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          report = json.loads(Path('test-results/samabusiness/journey-report.json').read_text())
+          print('# SAMABUSINESS — parcours marchand complet')
+          print()
+          print(f"- Résultat : **{'SUCCÈS' if report.get('ok') else 'ÉCHEC'}**")
+          print(f"- Compte éphémère : `{report.get('account', '')}`")
+          print(f"- Contrôles exécutés : **{len(report.get('checks', []))}**")
+          print(f"- Erreurs JavaScript : **{len(report.get('pageErrors', []))}**")
+          print(f"- Réponses serveur 5xx : **{len(report.get('serverErrors', []))}**")
+          print()
+          for check in report.get('checks', []):
+              detail = f" — {check.get('detail')}" if check.get('detail') else ''
+              print(f"- ✅ {check.get('name')}{detail}")
+          if report.get('failure'):
+              print('\n## Échec\n')
+              print('```')
+              print(report['failure'][:4000])
+              print('```')
+          PY
+          fi
+
+      - name: Upload screenshots and technical evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-full-journey-${{ github.run_id }}
+          path: test-results/samabusiness
+          if-no-files-found: warn
+          retention-days: 14
