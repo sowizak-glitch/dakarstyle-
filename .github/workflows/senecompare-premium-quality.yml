@@ -1,0 +1,85 @@
+name: SeneCompare premium quality
+
+on:
+  pull_request:
+    paths:
+      - 'senecompare/premium-v51.*'
+      - 'src/senecompare-resilient.js'
+      - '.github/workflows/senecompare-premium-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'senecompare/premium-v51.*'
+      - 'src/senecompare-resilient.js'
+      - '.github/workflows/senecompare-premium-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  premium-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check senecompare/premium-v51.js
+          node --check src/senecompare-resilient.js
+      - name: Validate premium product contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "const VERSION = '5.1.0'" senecompare/premium-v51.js
+          grep -q "'/api/alerts'" senecompare/premium-v51.js
+          grep -q "'/api/feedback'" senecompare/premium-v51.js
+          grep -q "'/api/health'" senecompare/premium-v51.js
+          grep -q "application/ld+json" senecompare/premium-v51.js
+          grep -q "prefers-reduced-motion" senecompare/premium-v51.css
+          grep -q "focus-visible" senecompare/premium-v51.css
+          grep -q "premium-v51.css" src/senecompare-resilient.js
+          grep -q "premium-v51.js" src/senecompare-resilient.js
+          grep -q "wo-SN' : 'fr-SN" src/senecompare-resilient.js
+      - name: Validate Cloudflare bundle
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-premium
+      - name: Start local Cloudflare worker
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes wrangler@4 dev --local --port 8787 > wrangler-premium.log 2>&1 &
+          echo $! > wrangler-premium.pid
+          for attempt in $(seq 1 30); do
+            if curl -fsS -H 'Host: senecompare.dakarstyle.com' http://127.0.0.1:8787/ -o premium-root.html; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat wrangler-premium.log
+          exit 1
+      - name: Verify worker injection and assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '/premium-v51.css?v=5.1.0' premium-root.html
+          grep -q '/premium-v51.js?v=5.1.0' premium-root.html
+          curl -fsS -H 'Host: senecompare.dakarstyle.com' http://127.0.0.1:8787/premium-v51.css -o premium.css
+          curl -fsS -H 'Host: senecompare.dakarstyle.com' http://127.0.0.1:8787/premium-v51.js -o premium.js
+          node --check premium.js
+          test "$(wc -c < premium.css)" -gt 5000
+          test "$(wc -c < premium.js)" -gt 10000
+      - name: Upload local proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: senecompare-premium-v51-proof
+          path: |
+            premium-root.html
+            premium.css
+            premium.js
+            wrangler-premium.log
+          if-no-files-found: warn
+          retention-days: 14
