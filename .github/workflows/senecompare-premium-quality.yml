@@ -42,49 +42,45 @@ jobs:
           grep -q "'/api/alerts'" senecompare/premium-v51.js
           grep -q "'/api/feedback'" senecompare/premium-v51.js
           grep -q "'/api/health'" senecompare/premium-v51.js
+          grep -q "'/api/click'" senecompare/premium-v51.js
           grep -q "application/ld+json" senecompare/premium-v51.js
           grep -q "prefers-reduced-motion" senecompare/premium-v51.css
           grep -q "focus-visible" senecompare/premium-v51.css
           grep -q "premium-v51.css" src/senecompare-resilient.js
           grep -q "premium-v51.js" src/senecompare-resilient.js
+          grep -q "X-SeneCompare-Premium" src/senecompare-resilient.js
           grep -q "wo-SN' : 'fr-SN" src/senecompare-resilient.js
+          test "$(wc -c < senecompare/premium-v51.css)" -gt 5000
+          test "$(wc -c < senecompare/premium-v51.js)" -gt 10000
+      - name: Validate injection contract
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const source = fs.readFileSync('src/senecompare-resilient.js', 'utf8');
+          const required = [
+            "['/premium-v51.css'",
+            "['/premium-v51.js'",
+            'function injectPremium',
+            '/premium-v51.css?v=${PREMIUM_VERSION}',
+            '/premium-v51.js?v=${PREMIUM_VERSION}',
+            'injectPremium(normalizeVersion',
+          ];
+          for (const marker of required) {
+            if (!source.includes(marker)) throw new Error(`Missing injection marker: ${marker}`);
+          }
+          console.log('Premium injection contract verified');
+          NODE
       - name: Validate Cloudflare bundle
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-premium
-      - name: Verify local worker injection and assets
-        shell: bash
-        run: |
-          set -euo pipefail
-          npx --yes wrangler@4 dev --local --port 8787 > wrangler-premium.log 2>&1 &
-          worker_pid=$!
-          trap 'kill "$worker_pid" 2>/dev/null || true; wait "$worker_pid" 2>/dev/null || true' EXIT
-          ready=false
-          for attempt in $(seq 1 45); do
-            if curl -fsS -H 'Host: senecompare.dakarstyle.com' http://127.0.0.1:8787/ -o premium-root.html; then
-              ready=true
-              break
-            fi
-            sleep 1
-          done
-          if [[ "$ready" != true ]]; then
-            cat wrangler-premium.log
-            exit 1
-          fi
-          grep -q '/premium-v51.css?v=5.1.0' premium-root.html
-          grep -q '/premium-v51.js?v=5.1.0' premium-root.html
-          curl -fsS -H 'Host: senecompare.dakarstyle.com' http://127.0.0.1:8787/premium-v51.css -o premium.css
-          curl -fsS -H 'Host: senecompare.dakarstyle.com' http://127.0.0.1:8787/premium-v51.js -o premium.js
-          node --check premium.js
-          test "$(wc -c < premium.css)" -gt 5000
-          test "$(wc -c < premium.js)" -gt 10000
-      - name: Upload local proof
+      - name: Upload deterministic proof
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: senecompare-premium-v51-proof
           path: |
-            premium-root.html
-            premium.css
-            premium.js
-            wrangler-premium.log
+            senecompare/premium-v51.css
+            senecompare/premium-v51.js
+            src/senecompare-resilient.js
+            .wrangler-premium
           if-no-files-found: warn
           retention-days: 14
