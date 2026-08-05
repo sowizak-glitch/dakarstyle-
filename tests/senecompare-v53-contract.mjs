@@ -95,6 +95,15 @@ try {
     assert.ok(upstreams.at(-1).url.endsWith('/functions/v1/senecompare-admin-v53/track'));
   }
   {
+    const upstreamCount = upstreams.length;
+    const response = await router.fetch(new Request('https://senecompare.dakarstyle.com/api/admin/overview?days=7'), env, {});
+    assert.equal(response.status, 401);
+    assert.equal(response.headers.get('x-senecompare-admin'), '5.3.0');
+    assert.equal(upstreams.length, upstreamCount, 'anonymous admin traffic must not reach Supabase');
+    const payload = await response.json();
+    assert.equal(payload.code, 'AUTH_REQUIRED');
+  }
+  {
     const response = await router.fetch(new Request('https://senecompare.dakarstyle.com/api/admin/overview?days=7', {
       headers: { authorization: 'Bearer test-admin-token' },
     }), env, {});
