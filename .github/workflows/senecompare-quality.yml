@@ -10,10 +10,12 @@ on:
       - 'src/senecompare.js'
       - 'src/senecompare-connected.js'
       - 'src/senecompare-domain.js'
+      - 'src/senecompare-resilient.js'
       - 'senecompare/**'
       - 'tests/senecompare-contract.mjs'
       - 'tests/senecompare-connected-contract.mjs'
       - 'tests/senecompare-domain-contract.mjs'
+      - 'tests/senecompare-resilient-contract.mjs'
       - 'supabase/migrations/*senecompare*.sql'
       - 'wrangler.jsonc'
       - '.github/workflows/senecompare-quality.yml'
@@ -28,10 +30,12 @@ on:
       - 'src/senecompare.js'
       - 'src/senecompare-connected.js'
       - 'src/senecompare-domain.js'
+      - 'src/senecompare-resilient.js'
       - 'senecompare/**'
       - 'tests/senecompare-contract.mjs'
       - 'tests/senecompare-connected-contract.mjs'
       - 'tests/senecompare-domain-contract.mjs'
+      - 'tests/senecompare-resilient-contract.mjs'
       - 'supabase/migrations/*senecompare*.sql'
       - 'wrangler.jsonc'
       - '.github/workflows/senecompare-quality.yml'
@@ -61,6 +65,7 @@ jobs:
           node --check src/senecompare.js
           node --check src/senecompare-connected.js
           node --check src/senecompare-domain.js
+          node --check src/senecompare-resilient.js
           node --check senecompare/app.js
           node --check senecompare/sw.js
       - name: Run SeneCompare base contract tests
@@ -69,13 +74,15 @@ jobs:
         run: node --experimental-default-type=module tests/senecompare-connected-contract.mjs
       - name: Run SeneCompare domain contract tests
         run: node --experimental-default-type=module tests/senecompare-domain-contract.mjs
+      - name: Run SeneCompare resilient frontend tests
+        run: node --experimental-default-type=module tests/senecompare-resilient-contract.mjs
       - name: Validate manifest JSON
         run: node -e "JSON.parse(require('fs').readFileSync('senecompare/manifest.webmanifest','utf8')); console.log('Manifest valid')"
       - name: Validate Wrangler configuration
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-out
       - name: Guard against committed server secrets
         run: |
-          if grep -RInE '(service_role|SUPABASE_SERVICE_ROLE_KEY|sk-[A-Za-z0-9_-]{20,}|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' src/senecompare.js src/senecompare-connected.js src/senecompare-domain.js src/router.js senecompare; then
+          if grep -RInE '(service_role|SUPABASE_SERVICE_ROLE_KEY|sk-[A-Za-z0-9_-]{20,}|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' src/senecompare.js src/senecompare-connected.js src/senecompare-domain.js src/senecompare-resilient.js src/router.js senecompare; then
             echo 'Potential server secret found in SeneCompare source files.' >&2
             exit 1
           fi
