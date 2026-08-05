@@ -72,20 +72,41 @@ jobs:
     steps:
       - name: Wait for edge propagation
         run: sleep 15
-      - name: Verify production endpoints
+      - name: Capture production endpoints
         shell: bash
         run: |
           set -euo pipefail
           curl --fail --silent --show-error --dump-header root.headers "$APP_URL/?v=410" -o root.html
           curl --fail --silent --show-error --dump-header health.headers "$APP_URL/api/health" -o health.json
           curl --fail --silent --show-error --dump-header manifest.headers "$APP_URL/manifest.webmanifest?v=4.1.0" -o manifest.json
-          curl --fail --silent --show-error --request POST \
+          curl --fail --silent --show-error --dump-header search.headers --request POST \
             --header 'Content-Type: application/json' \
             --header 'Origin: https://senecompare.dakarstyle.com' \
             --header 'X-Client-Version: senecompare-smoke-4.1.0' \
             --data '{"query":"iPhone 13 128 Go moins de 250000 F à Dakar","language":"fr","session_id":"smoke-test"}' \
             "$APP_URL/api/search" -o search.json
 
+      - name: Upload production evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: senecompare-production-evidence
+          path: |
+            root.headers
+            root.html
+            health.headers
+            health.json
+            manifest.headers
+            manifest.json
+            search.headers
+            search.json
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Validate production evidence
+        shell: bash
+        run: |
+          set -euo pipefail
           python3 - <<'PY'
           import json
           from pathlib import Path
@@ -111,17 +132,3 @@ jobs:
           assert any(price == 0 or price <= 250000 for price in priced), search
           assert all(item.get('source_url') for item in search['results']), search
           PY
-      - name: Upload smoke evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: senecompare-production-smoke
-          path: |
-            root.headers
-            root.html
-            health.headers
-            health.json
-            manifest.headers
-            manifest.json
-            search.json
-          if-no-files-found: error
-          retention-days: 14
