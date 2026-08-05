@@ -5,7 +5,7 @@ on:
     branches:
       - fix/samabusiness-official-profile-icon
     paths:
-      - '.tmp/samabusiness-official-v3/**'
+      - '.tmp/samabusiness-official-v4/**'
       - '.github/workflows/samabusiness-official-brand-bootstrap.yml'
   workflow_dispatch:
 
@@ -33,7 +33,9 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p /tmp/samabusiness-brand assets/samabusiness
-          cat .tmp/samabusiness-official-v3/part-*.txt > /tmp/samabusiness-brand/source.b64
+          test "$(find .tmp/samabusiness-official-v4 -name 'part-*.txt' | wc -l)" -eq 31
+          cat .tmp/samabusiness-official-v4/part-*.txt > /tmp/samabusiness-brand/source.b64
+          test "$(wc -c < /tmp/samabusiness-brand/source.b64)" -eq 61448
           base64 --decode /tmp/samabusiness-brand/source.b64 > /tmp/samabusiness-brand/source.webp
           test "$(wc -c < /tmp/samabusiness-brand/source.webp)" -eq 46086
           echo 'a3ab5c757325759bcea9f860dd509d3519976ec4b154be6c50a5413885ca8f18  /tmp/samabusiness-brand/source.webp' | sha256sum --check
@@ -45,7 +47,7 @@ jobs:
           python -m pip install --quiet 'Pillow==11.3.0'
           python - <<'PY'
           from pathlib import Path
-          from PIL import Image, ImageOps
+          from PIL import Image
 
           source = Image.open('/tmp/samabusiness-brand/source.webp').convert('RGB')
           if source.size != (512, 512):
@@ -63,18 +65,26 @@ jobs:
               'samabusiness-official-favicon-64.png': 64,
           }
           for filename, size in sizes.items():
-              resized = source.resize((size, size), Image.Resampling.LANCZOS)
-              resized.save(output / filename, 'PNG', optimize=True)
+              source.resize((size, size), Image.Resampling.LANCZOS).save(output / filename, 'PNG', optimize=True)
 
           maskable = Image.new('RGB', (512, 512), '#071a32')
           safe = source.resize((410, 410), Image.Resampling.LANCZOS)
           maskable.paste(safe, ((512 - 410) // 2, (512 - 410) // 2))
           maskable.save(output / 'samabusiness-official-maskable-512.png', 'PNG', optimize=True)
 
-          for path in output.glob('samabusiness-official-*'):
+          expected = {
+              'samabusiness-official-512.png': (512, 512),
+              'samabusiness-official-profile-256.png': (256, 256),
+              'samabusiness-official-192.png': (192, 192),
+              'samabusiness-official-apple-180.png': (180, 180),
+              'samabusiness-official-favicon-64.png': (64, 64),
+              'samabusiness-official-maskable-512.png': (512, 512),
+          }
+          for filename, dimensions in expected.items():
+              path = output / filename
               image = Image.open(path)
-              if image.width != image.height:
-                  raise SystemExit(f'Non-square identity asset: {path}')
+              if image.size != dimensions:
+                  raise SystemExit(f'Invalid identity asset {filename}: {image.size}')
               print(path, image.size, path.stat().st_size)
           PY
 
@@ -82,7 +92,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf .tmp/samabusiness-logo .tmp/samabusiness-official .tmp/samabusiness-official-v2 .tmp/samabusiness-official-v3
+          rm -rf .tmp/samabusiness-logo .tmp/samabusiness-official .tmp/samabusiness-official-v2 .tmp/samabusiness-official-v3 .tmp/samabusiness-official-v4
           rm -f .github/workflows/samabusiness-official-brand-bootstrap.yml
 
       - name: Commit official identity assets
