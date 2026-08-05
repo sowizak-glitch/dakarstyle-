@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 
 const APP_URL = process.env.SENECOMPARE_URL || 'https://senecompare.dakarstyle.com';
 const ORIGIN = 'https://senecompare.dakarstyle.com';
+const GATEWAY_VERSION = '5.1.0';
+const ENGINE_VERSION = '5.0.0';
 const queries = [
   ['Téléphones', 'telephone'],
   ['Téléphone Samsung moins de 150000 F à Dakar', 'telephone'],
@@ -54,11 +56,12 @@ const healthResponse = await request('/api/health', {
 assert.equal(healthResponse.status, 200);
 const health = await healthResponse.json();
 assert.equal(health.ok, true);
-assert.equal(health.version, '5.0.0');
-assert.equal(health.engine_version, '5.0.0');
+assert.equal(health.version, GATEWAY_VERSION);
+assert.equal(health.engine_version, ENGINE_VERSION);
 assert.equal(health.data_mode, 'hybrid_local_search');
 assert.equal(health.catalog_connected, true);
 assert.equal(health.gateway_security, true);
+assert.equal(health.intent_priority, true);
 
 const records = [];
 for (const [query, expectedCategory] of queries) {
@@ -76,8 +79,9 @@ for (const [query, expectedCategory] of queries) {
   const payload = await response.json().catch(() => ({}));
   assert.equal(response.status, 200, `${query}: ${JSON.stringify(payload).slice(0, 1000)}`);
   assert.equal(payload.ok, true, query);
-  assert.equal(payload.version, '5.0.0', query);
-  assert.equal(payload.engine_version, '5.0.0', query);
+  assert.equal(payload.version, GATEWAY_VERSION, query);
+  assert.equal(payload.gateway_version, GATEWAY_VERSION, query);
+  assert.equal(payload.engine_version, ENGINE_VERSION, query);
   assert.equal(payload.data_mode, 'hybrid_local_search', query);
   assert.equal(payload.parsed?.category, expectedCategory, `${query}: ${JSON.stringify(payload.parsed)}`);
   assert.ok(Array.isArray(payload.results) && payload.results.length >= 1, `${query}: zero results`);
@@ -93,4 +97,13 @@ const durations = records.map((record) => record.duration).sort((a, b) => a - b)
 const p95 = durations[Math.min(durations.length - 1, Math.floor(durations.length * 0.95))];
 assert.equal(records.filter((record) => record.results === 0).length, 0);
 assert.ok(p95 < 16000, `p95 too high: ${p95}ms`);
-console.log(JSON.stringify({ ok: true, version: '5.0.0', query_count: records.length, zero_result_rate: 0, p95_ms: p95, records }, null, 2));
+console.log(JSON.stringify({
+  ok: true,
+  frontend_version: '5.0.0',
+  gateway_version: GATEWAY_VERSION,
+  engine_version: ENGINE_VERSION,
+  query_count: records.length,
+  zero_result_rate: 0,
+  p95_ms: p95,
+  records,
+}, null, 2));
