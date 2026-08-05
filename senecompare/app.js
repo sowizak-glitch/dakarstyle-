@@ -13,7 +13,7 @@
     fr: {
       history: 'Historique', favorites: 'Favoris', install: 'Installer', eyebrow: 'Le moteur local qui ne vous laisse jamais sans piste',
       heroOne: 'Dites ce que vous cherchez.', heroTwo: 'Nous trouvons où continuer.', heroCopy: 'Prix vérifiés quand ils existent, sources sénégalaises utiles dans tous les autres cas. Écrivez ou parlez naturellement.',
-      proofLocal: 'Sources locales', proofTrust: 'Confiance expliquée', proofVoice: 'Français et wolof', proofCompare: 'Comparaison simple',
+      proofLocal: 'Sources locales', proofTrust: 'Confiance expliquée', proofVoice: 'Français et wolof', proofCompare: 'Comparaison côte à côte',
       installTitle: 'L’application dans votre téléphone', installCopy: 'Légère, rapide et accessible depuis l’écran d’accueil.', installNow: 'Installer maintenant',
       searchKicker: 'Recherche hybride locale', searchTitle: 'Que voulez-vous trouver ?', searchHint: 'Exemple : « Frigo neuf moins de 300 000 F à Dakar »',
       location: 'Ma position', voice: 'Parler', filters: 'Filtres', city: 'Ville', category: 'Catégorie', budget: 'Budget maximum (F CFA)', condition: 'État', sort: 'Trier', searchNow: 'Chercher maintenant', clear: 'Effacer',
@@ -31,7 +31,7 @@
     wo: {
       history: 'Lu ñu seetoon', favorites: 'Yi nga bëgg', install: 'Installer', eyebrow: 'Moteur bu dëgg ci Senegaal, du la bàyyi nga amul fenn',
       heroOne: 'Waxal li nga soxla.', heroTwo: 'Nu won la fan nga jëm.', heroCopy: 'Bu njëg bi amee nu won la ko. Bu amul, nu jox la sources yu dëgg ci Senegaal. Bind walla wax ni nga ko bëgge.',
-      proofLocal: 'Sources yu dëgg', proofTrust: 'Wóolu bu am leeral', proofVoice: 'Faranse ak wolof', proofCompare: 'Méngale bu yomb',
+      proofLocal: 'Sources yu dëgg', proofTrust: 'Wóolu bu am leeral', proofVoice: 'Faranse ak wolof', proofCompare: 'Méngale wet ak wet',
       installTitle: 'Application bi ci sa telefon', installCopy: 'Dafay gaaw, néew te nekk ci écran d’accueil.', installNow: 'Installer léegi',
       searchKicker: 'Seet bu xarañ ci Senegaal', searchTitle: 'Lan nga bëgg gis ?', searchHint: 'Misaal : « Frigo bu bees lu yées 300 000 F ci Dakar »',
       location: 'Sama bérab', voice: 'Wax', filters: 'Tànneef', city: 'Dëkk', category: 'Wàll', budget: 'Xaalis bi gën a bare (F CFA)', condition: 'Anam', sort: 'Teg ci ni', searchNow: 'Seet léegi', clear: 'Far',
