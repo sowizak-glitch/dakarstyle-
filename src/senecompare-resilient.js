@@ -101,6 +101,14 @@ function normalizeVersion(content) {
     "if (!result.sourceUrl) { const sourceLink=article.querySelector('.result-actions a'); sourceLink.removeAttribute('href'); sourceLink.setAttribute('aria-disabled','true'); sourceLink.tabIndex=-1; }",
   );
   normalized = normalized.replace(
+    "    } catch (error) { console.error(error); toast(t('speechUnavailable')); speechFallback(text); }",
+    "    } catch (error) { console.error(error); if (!speechFallback(text)) toast(t('speechUnavailable')); }",
+  );
+  normalized = normalized.replace(
+    "function speechFallback(text) { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); utterance.lang = 'fr-SN'; utterance.rate = .94; speechSynthesis.speak(utterance); }",
+    "function speechFallback(text) { if (!('speechSynthesis' in window) || typeof SpeechSynthesisUtterance !== 'function') return false; speechSynthesis.cancel(); const utterance = new SpeechSynthesisUtterance(text); const target = state.locale === 'wo' ? 'wo-SN' : 'fr-SN'; const voices = speechSynthesis.getVoices?.() || []; utterance.voice = voices.find((voice) => voice.lang.toLowerCase() === target.toLowerCase()) || voices.find((voice) => voice.lang.toLowerCase().startsWith(state.locale === 'wo' ? 'wo' : 'fr')) || null; utterance.lang = target; utterance.rate = .94; speechSynthesis.speak(utterance); return true; }",
+  );
+  normalized = normalized.replace(
     "locale: localStorage.getItem(STORAGE.locale) === 'wo' ? 'wo' : 'fr',",
     "locale: readString(STORAGE.locale) === 'wo' ? 'wo' : 'fr',",
   );
