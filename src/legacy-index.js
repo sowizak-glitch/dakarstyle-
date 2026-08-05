@@ -117,7 +117,7 @@ function samabusinessHeaders(hostname, contentType, cache) {
     'content-type': contentType,
     'cache-control': cache,
     'content-language': 'fr-SN',
-    'strict-transport-security': 'max-age=31536000; includeSubDomains',
+    'strict-transport-security': 'max-age=63072000; includeSubDomains; preload',
     'x-content-type-options': 'nosniff',
     'referrer-policy': 'strict-origin-when-cross-origin',
     'permissions-policy': 'camera=(self), geolocation=(self), microphone=(self), payment=(), usb=()',
