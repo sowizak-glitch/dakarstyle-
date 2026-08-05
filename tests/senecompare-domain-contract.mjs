@@ -5,9 +5,11 @@ const originalFetch = globalThis.fetch;
 const calls = [];
 
 globalThis.fetch = async (input, init = {}) => {
-  const request = input instanceof Request ? input : new Request(input, init);
-  const url = new URL(request.url);
-  calls.push({ method: request.method, url: url.toString(), origin: request.headers.get('origin') });
+  const isRequest = input instanceof Request;
+  const url = new URL(isRequest ? input.url : String(input));
+  const method = isRequest ? input.method : String(init.method || 'GET');
+  const headers = isRequest ? input.headers : new Headers(init.headers || {});
+  calls.push({ method, url: url.toString(), origin: headers.get('origin') });
 
   if (url.pathname.endsWith('/senecompare-app')) {
     return new Response('<!doctype html><html><body><h1>SeneCompare AI</h1><footer>Version 4.1.0</footer></body></html>', {
@@ -37,7 +39,7 @@ globalThis.fetch = async (input, init = {}) => {
     }), { status: 200, headers: { 'content-type': 'application/json', 'x-senecompare-version': '4.1.0' } });
   }
 
-  throw new Error(`Unexpected upstream request: ${request.method} ${request.url}`);
+  throw new Error(`Unexpected upstream request: ${method} ${url}`);
 };
 
 try {
