@@ -69,11 +69,12 @@ async function serveAsset(response, pathname) {
   }
   const extension = path.extname(file);
   const value = await readFile(path.join(root, file));
-  response.writeHead(200, {
+  const headers = {
     'content-type': contentTypes[extension] || 'application/octet-stream',
     'cache-control': 'no-store',
-    'service-worker-allowed': pathname === '/sw.js' ? '/' : undefined,
-  });
+  };
+  if (pathname === '/sw.js') headers['service-worker-allowed'] = '/';
+  response.writeHead(200, headers);
   response.end(value);
 }
 
