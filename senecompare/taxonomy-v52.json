@@ -1,0 +1,71 @@
+{
+  "version": "5.2.0",
+  "locale": "sn",
+  "groups": [
+    {
+      "id": "popular",
+      "title_fr": "Les plus recherchés",
+      "title_wo": "Li ñuy gën a seet",
+      "items": [
+        {"id":"phones","icon":"📱","fr":"Téléphones","wo":"Telefon","query":"téléphones smartphones prix Sénégal"},
+        {"id":"vehicles","icon":"🚗","fr":"Voitures & motos","wo":"Oto ak moto","query":"voitures motos occasion Sénégal"},
+        {"id":"home","icon":"🏠","fr":"Maison & terrain","wo":"Kër ak suuf","query":"maison appartement terrain Sénégal"},
+        {"id":"appliances","icon":"🧊","fr":"Électroménager","wo":"Jumtukaayi kër","query":"électroménager réfrigérateur climatiseur Sénégal"},
+        {"id":"fashion","icon":"👕","fr":"Mode & beauté","wo":"Sol ak taar","query":"mode vêtements beauté Sénégal"},
+        {"id":"jobs","icon":"🧰","fr":"Artisans & services","wo":"Liggéeykat ak ndimbal","query":"artisan service professionnel Sénégal"},
+        {"id":"health","icon":"🩺","fr":"Santé","wo":"Wér-gu-yaram","query":"santé pharmacie matériel médical Sénégal"},
+        {"id":"training","icon":"🎓","fr":"Cours & formation","wo":"Njàng ak tàggat","query":"cours formation Sénégal"},
+        {"id":"pro","icon":"🏪","fr":"Matériel professionnel","wo":"Jumtukaayi liggéey","query":"matériel professionnel commerce Sénégal"},
+        {"id":"travel","icon":"✈️","fr":"Voyage & transport","wo":"Tukki ak dem","query":"voyage transport location Sénégal"}
+      ]
+    },
+    {
+      "id": "services",
+      "title_fr": "Services du quotidien",
+      "title_wo": "Ndimbal yu bis bi",
+      "items": [
+        {"id":"carpool","icon":"🚘","fr":"Covoiturage","wo":"Bokk oto","query":"covoiturage Sénégal"},
+        {"id":"tutoring","icon":"📚","fr":"Cours particuliers","wo":"Njàngum kër","query":"cours particuliers Sénégal"},
+        {"id":"babysitting","icon":"👶","fr":"Babysitting & nounou","wo":"Wottu xale","query":"babysitter nounou Sénégal"},
+        {"id":"cleaning","icon":"🧹","fr":"Ménage & cuisine","wo":"Setal ak togg","query":"ménage cuisine à domicile Sénégal"},
+        {"id":"delivery","icon":"📦","fr":"Courses, livraison & déménagement","wo":"Yóbbu ak toxu","query":"livraison courses déménagement Sénégal"},
+        {"id":"repairs","icon":"🛠️","fr":"Travaux, bricolage & jardinage","wo":"Tabax, defar ak tóokër","query":"travaux bricolage jardinage Sénégal"},
+        {"id":"digital","icon":"💻","fr":"Web, design & photo","wo":"Web, nataal ak design","query":"service web design photographie Sénégal"},
+        {"id":"wellness","icon":"💇🏾","fr":"Mode, beauté & bien-être","wo":"Sol, taar ak noflaay","query":"service mode beauté bien-être Sénégal"},
+        {"id":"other-services","icon":"🤝","fr":"Autres services","wo":"Yeneen ndimbal","query":"services Sénégal"}
+      ]
+    },
+    {
+      "id": "professional",
+      "title_fr": "Matériel professionnel",
+      "title_wo": "Jumtukaayi liggéey",
+      "items": [
+        {"id":"agriculture","icon":"🚜","fr":"Matériel agricole","wo":"Jumtukaayi beykat","query":"matériel agricole tracteur Sénégal"},
+        {"id":"handling","icon":"🏗️","fr":"Transport & manutention","wo":"Yóbbu ak yëngal","query":"transport manutention chariot élévateur Sénégal"},
+        {"id":"construction","icon":"🧱","fr":"Construction, BTP & outillage","wo":"Tabax ak jumtukaay","query":"matériaux construction BTP outillage Sénégal"},
+        {"id":"office","icon":"🪑","fr":"Fournitures de bureau","wo":"Jumtukaayi biro","query":"fournitures mobilier bureau Sénégal"},
+        {"id":"retail","icon":"🧾","fr":"Marchés & commerces","wo":"Jaaykat ak marse","query":"matériel commerce caisse enregistreuse Sénégal"},
+        {"id":"medical","icon":"➕","fr":"Matériel médical","wo":"Jumtukaayi paj","query":"matériel médical Sénégal"},
+        {"id":"energy","icon":"☀️","fr":"Énergie & solaire","wo":"Leeral ak solar","query":"groupe électrogène panneaux solaires Sénégal"},
+        {"id":"security","icon":"📹","fr":"Caméras & surveillance","wo":"Kamera ak kaarange","query":"caméra surveillance sécurité Sénégal"},
+        {"id":"other-pro","icon":"⚙️","fr":"Autre matériel professionnel","wo":"Yeneen jumtukaayi liggéey","query":"matériel professionnel Sénégal"}
+      ]
+    },
+    {
+      "id": "products",
+      "title_fr": "Produits et équipements",
+      "title_wo": "Mëbël ak jumtukaay",
+      "items": [
+        {"id":"computers","icon":"💻","fr":"Ordinateurs","wo":"Ordinateer","query":"ordinateur portable bureau Sénégal"},
+        {"id":"tv-audio","icon":"📺","fr":"TV, son & image","wo":"Tele ak son","query":"télévision audio vidéo Sénégal"},
+        {"id":"furniture","icon":"🛋️","fr":"Meubles","wo":"Mëbël","query":"meubles canapé lit Sénégal"},
+        {"id":"food","icon":"🍚","fr":"Alimentation","wo":"Lekku","query":"alimentation produits prix Sénégal"},
+        {"id":"auto-parts","icon":"🔧","fr":"Pièces automobiles","wo":"Pièces oto","query":"pièces détachées automobile Sénégal"},
+        {"id":"sport","icon":"⚽","fr":"Sport & loisirs","wo":"Sport ak fo","query":"sport loisirs Sénégal"},
+        {"id":"children","icon":"🧸","fr":"Enfants & bébé","wo":"Xale ak liir","query":"produits bébé enfant Sénégal"},
+        {"id":"finance","icon":"💳","fr":"Assurance & financement","wo":"Assurance ak xaalis","query":"assurance financement Sénégal"},
+        {"id":"restaurants","icon":"🍽️","fr":"Restaurants & hôtels","wo":"Lekkuwaay ak hotel","query":"restaurant hôtel Sénégal"}
+      ]
+    }
+  ]
+}
