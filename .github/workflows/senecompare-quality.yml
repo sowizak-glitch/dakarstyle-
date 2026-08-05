@@ -72,9 +72,11 @@ jobs:
           grep -q "Sur l’écran d’accueil" senecompare/app.js
           grep -q "/api/voice/transcribe" senecompare/app.js
           grep -q "/api/voice/speech" senecompare/app.js
+          grep -q "speechSynthesis" senecompare/app.js
           grep -q "const VERSION = '5.0.0'" senecompare/sw.js
           grep -q "senecompare-gateway-v5" src/senecompare-v5-router.js
           grep -q "const VERSION = '5.1.0'" supabase/functions/senecompare-gateway-v5/index.ts
+          grep -q "target = state.locale === 'wo' ? 'wo-SN' : 'fr-SN'" src/senecompare-resilient.js
       - name: Validate Wrangler configuration
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-out
       - name: Guard against committed server secrets
@@ -190,6 +192,8 @@ jobs:
           assert health.get('catalog_connected') is True
           assert health.get('data_mode') == 'hybrid_local_search'
           assert health.get('intent_priority') is True
+          assert isinstance(health.get('human_voice_available'), bool)
+          assert isinstance(health.get('voice_transcription_available'), bool)
           assert manifest.get('short_name') == 'SeneCompare'
           assert manifest.get('display') == 'standalone'
           assert manifest.get('start_url') == '/?source=pwa&v=5'
@@ -204,18 +208,32 @@ jobs:
           assert all(item.get('result_type') in ('offer','source') for item in search['results'])
           PY
 
-      - name: Verify natural voice endpoint
+      - name: Verify voice continuity
         shell: bash
         run: |
           set -euo pipefail
-          STATUS=$(curl -sS -o voice.mp3 -D voice.headers -w '%{http_code}' --max-time 60 -X POST \
+          APPJS=$(curl -sS -H 'Cache-Control: no-cache' -o production-app.js -D app.headers -w '%{http_code}' --max-time 30 "$APP_URL/app.js?v=500")
+          test "$APPJS" = 200
+          grep -q "speechSynthesis" production-app.js
+          grep -q "state.locale === 'wo' ? 'wo-SN' : 'fr-SN'" production-app.js
+
+          STATUS=$(curl -sS -o voice.body -D voice.headers -w '%{http_code}' --max-time 60 -X POST \
             -H 'Content-Type: application/json' \
             -H 'Origin: https://senecompare.dakarstyle.com' \
             --data '{"text":"Bienvenue sur SeneCompare.","language":"fr"}' \
             "$APP_URL/api/voice/speech")
-          test "$STATUS" = 200
-          grep -qi '^content-type: audio/mpeg' voice.headers
-          test "$(wc -c < voice.mp3)" -gt 1000
+          CLOUD_VOICE=$(python3 -c "import json; print(str(json.load(open('health.json')).get('human_voice_available', False)).lower())")
+          if [ "$CLOUD_VOICE" = true ]; then
+            test "$STATUS" = 200
+            grep -qi '^content-type: audio/mpeg' voice.headers
+            test "$(wc -c < voice.body)" -gt 1000
+            echo 'Natural cloud voice verified.'
+          else
+            test "$STATUS" = 503
+            grep -qi '^content-type: application/json' voice.headers
+            grep -q 'VOICE_UNAVAILABLE' voice.body
+            echo 'Device voice fallback verified; cloud voice is not configured.'
+          fi
 
       - name: Upload production evidence
         if: always()
@@ -231,6 +249,9 @@ jobs:
             manifest.json
             search.headers
             search.json
+            app.headers
+            production-app.js
             voice.headers
+            voice.body
           if-no-files-found: warn
           retention-days: 14
