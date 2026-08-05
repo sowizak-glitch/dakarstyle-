@@ -3,9 +3,13 @@ name: SeneCompare quality
 on:
   pull_request:
     paths:
+      - 'src/index.js'
+      - 'src/legacy-index.js'
+      - 'src/worker-entry.js'
       - 'src/router.js'
       - 'src/senecompare.js'
       - 'src/senecompare-connected.js'
+      - 'src/senecompare-domain.js'
       - 'senecompare/**'
       - 'tests/senecompare-contract.mjs'
       - 'tests/senecompare-connected-contract.mjs'
@@ -16,9 +20,13 @@ on:
     branches:
       - main
     paths:
+      - 'src/index.js'
+      - 'src/legacy-index.js'
+      - 'src/worker-entry.js'
       - 'src/router.js'
       - 'src/senecompare.js'
       - 'src/senecompare-connected.js'
+      - 'src/senecompare-domain.js'
       - 'senecompare/**'
       - 'tests/senecompare-contract.mjs'
       - 'tests/senecompare-connected-contract.mjs'
@@ -44,9 +52,13 @@ jobs:
           node-version: '22'
       - name: Validate JavaScript syntax
         run: |
+          node --check src/index.js
+          node --check src/legacy-index.js
+          node --check src/worker-entry.js
           node --check src/router.js
           node --check src/senecompare.js
           node --check src/senecompare-connected.js
+          node --check src/senecompare-domain.js
           node --check senecompare/app.js
           node --check senecompare/sw.js
       - name: Run SeneCompare base contract tests
@@ -59,32 +71,72 @@ jobs:
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-out
       - name: Guard against committed server secrets
         run: |
-          if grep -RInE '(service_role|SUPABASE_SERVICE_ROLE_KEY|sk-[A-Za-z0-9_-]{20,}|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' src/senecompare.js src/senecompare-connected.js src/router.js senecompare; then
+          if grep -RInE '(service_role|SUPABASE_SERVICE_ROLE_KEY|sk-[A-Za-z0-9_-]{20,}|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' src/senecompare.js src/senecompare-connected.js src/senecompare-domain.js src/router.js senecompare; then
             echo 'Potential server secret found in SeneCompare source files.' >&2
             exit 1
           fi
 
   production-smoke:
-    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: contract
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 12
     steps:
-      - name: Wait for edge propagation
-        run: sleep 15
+      - name: Wait for Cloudflare production deployment
+        run: sleep 35
       - name: Capture production endpoints
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --dump-header root.headers "$APP_URL/?v=410" -o root.html
-          curl --fail --silent --show-error --dump-header health.headers "$APP_URL/api/health" -o health.json
-          curl --fail --silent --show-error --dump-header manifest.headers "$APP_URL/manifest.webmanifest?v=4.1.0" -o manifest.json
-          curl --fail --silent --show-error --dump-header search.headers --request POST \
-            --header 'Content-Type: application/json' \
-            --header 'Origin: https://senecompare.dakarstyle.com' \
-            --header 'X-Client-Version: senecompare-smoke-4.1.0' \
-            --data '{"query":"iPhone 13 128 Go moins de 250000 F à Dakar","language":"fr","session_id":"smoke-test"}' \
-            "$APP_URL/api/search" -o search.json
+          READY=false
+          for attempt in $(seq 1 25); do
+            ROOT=$(curl -sS -H 'Cache-Control: no-cache' -o root.html -D root.headers -w '%{http_code}' --max-time 30 "$APP_URL/?v=410" || true)
+            HEALTH=$(curl -sS -H 'Cache-Control: no-cache' -o health.json -D health.headers -w '%{http_code}' --max-time 30 "$APP_URL/api/health" || true)
+            MANIFEST=$(curl -sS -H 'Cache-Control: no-cache' -o manifest.json -D manifest.headers -w '%{http_code}' --max-time 30 "$APP_URL/manifest.webmanifest?v=4.1.0" || true)
+            SEARCH=$(curl -sS -o search.json -D search.headers -w '%{http_code}' --max-time 65 --request POST \
+              --header 'Content-Type: application/json' \
+              --header 'Origin: https://senecompare.dakarstyle.com' \
+              --header 'X-Client-Version: senecompare-smoke-4.1.0' \
+              --data '{"query":"iPhone 13 128 Go moins de 250000 F à Dakar","language":"fr","session_id":"smoke-test"}' \
+              "$APP_URL/api/search" || true)
+            if [ "$ROOT" = 200 ] && [ "$HEALTH" = 200 ] && [ "$MANIFEST" = 200 ] && [ "$SEARCH" = 200 ] \
+              && grep -q 'Version 4.1.0' root.html \
+              && grep -qi '^x-senecompare-version: 4.1.0' root.headers; then
+              READY=true
+              break
+            fi
+            echo "ATTEMPT=$attempt ROOT=$ROOT HEALTH=$HEALTH MANIFEST=$MANIFEST SEARCH=$SEARCH"
+            sleep 8
+          done
+          test "$READY" = true
+
+      - name: Validate production evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('root.html').read_text()
+          health = json.loads(Path('health.json').read_text())
+          manifest = json.loads(Path('manifest.json').read_text())
+          search = json.loads(Path('search.json').read_text())
+          headers = Path('root.headers').read_text().lower()
+          assert 'SeneCompare AI' in root, root[:500]
+          assert 'Version 4.1.0' in root, root[-1000:]
+          assert 'content-security-policy:' in headers, headers
+          assert health.get('ok') is True, health
+          assert health.get('version') == '4.1.0', health
+          assert health.get('catalog_connected') is True, health
+          assert health.get('data_mode') == 'universal_search', health
+          assert manifest.get('short_name') == 'SeneCompare', manifest
+          assert search.get('ok') is True, search
+          assert search.get('data_mode') == 'universal_search', search
+          assert len(search.get('results', [])) >= 1, search
+          priced = [int(item.get('total_fcfa') or item.get('price_fcfa') or 0) for item in search['results']]
+          assert any(price == 0 or price <= 250000 for price in priced), search
+          assert all(item.get('source_url') for item in search['results']), search
+          PY
 
       - name: Upload production evidence
         if: always()
@@ -102,33 +154,3 @@ jobs:
             search.json
           if-no-files-found: warn
           retention-days: 14
-
-      - name: Validate production evidence
-        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          root = Path('root.html').read_text()
-          health = json.loads(Path('health.json').read_text())
-          manifest = json.loads(Path('manifest.json').read_text())
-          search = json.loads(Path('search.json').read_text())
-          headers = Path('root.headers').read_text().lower()
-
-          assert 'SeneCompare AI' in root, root[:500]
-          assert 'Version 4.1.0' in root, root[-1000:]
-          assert 'content-security-policy:' in headers, headers
-          assert health.get('ok') is True, health
-          assert health.get('version') == '4.1.0', health
-          assert health.get('catalog_connected') is True, health
-          assert health.get('data_mode') == 'universal_search', health
-          assert manifest.get('short_name') == 'SeneCompare', manifest
-          assert search.get('ok') is True, search
-          assert search.get('data_mode') == 'universal_search', search
-          assert len(search.get('results', [])) >= 1, search
-          priced = [int(item.get('total_fcfa') or item.get('price_fcfa') or 0) for item in search['results']]
-          assert any(price == 0 or price <= 250000 for price in priced), search
-          assert all(item.get('source_url') for item in search['results']), search
-          PY
