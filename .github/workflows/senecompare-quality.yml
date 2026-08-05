@@ -1,0 +1,42 @@
+name: SeneCompare quality
+
+on:
+  pull_request:
+    paths:
+      - 'src/router.js'
+      - 'src/senecompare.js'
+      - 'senecompare/**'
+      - 'tests/senecompare-contract.mjs'
+      - 'supabase/migrations/*senecompare*.sql'
+      - 'wrangler.jsonc'
+      - '.github/workflows/senecompare-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check src/router.js
+          node --check src/senecompare.js
+          node --check senecompare/app.js
+          node --check senecompare/sw.js
+      - name: Run SeneCompare contract tests
+        run: node --experimental-default-type=module tests/senecompare-contract.mjs
+      - name: Validate manifest JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('senecompare/manifest.webmanifest','utf8')); console.log('Manifest valid')"
+      - name: Guard against committed secrets
+        run: |
+          if grep -RInE '(service_role|SUPABASE_SERVICE_ROLE_KEY|sk-[A-Za-z0-9_-]{20,}|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' src/senecompare.js src/router.js senecompare; then
+            echo 'Potential secret found in SeneCompare source files.' >&2
+            exit 1
+          fi
