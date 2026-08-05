@@ -6,6 +6,10 @@
   "observability": {
     "enabled": true
   },
+  "vars": {
+    "SENECOMPARE_SUPABASE_URL": "https://xmdpmtvieqgoorbxytey.supabase.co",
+    "SENECOMPARE_SUPABASE_ANON_KEY": "sb_publishable_NVbWUoS1b6BgfWaRSJlRVw_iU7fuqwO"
+  },
   "routes": [
     {
       "pattern": "dakarstyle.com",
