@@ -1,25 +1,29 @@
-const VERSION = '4.0.0';
-const SHELL_CACHE = `senecompare-shell-${VERSION}`;
-const RUNTIME_CACHE = `senecompare-runtime-${VERSION}`;
-const SHELL = [
+const VERSION = '5.0.0';
+const SHELL = `senecompare-shell-${VERSION}`;
+const RUNTIME = `senecompare-runtime-${VERSION}`;
+const PRECACHE = [
   '/',
-  '/styles.css?v=4.0.0',
-  '/app.js?v=4.0.0',
-  '/manifest.webmanifest?v=4.0.0',
-  '/icon.svg?v=4.0.0'
+  '/styles.css?v=5.0.0',
+  '/app.js?v=5.0.0',
+  '/manifest.webmanifest?v=5.0.0',
+  '/icon.svg?v=5.0.0'
 ];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
-  event.waitUntil(caches.open(SHELL_CACHE).then((cache) => cache.addAll(SHELL)).catch(() => undefined));
+  event.waitUntil(caches.open(SHELL).then((cache) => cache.addAll(PRECACHE)).catch(() => undefined));
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((key) => key.startsWith('senecompare-') && ![SHELL_CACHE, RUNTIME_CACHE].includes(key)).map((key) => caches.delete(key))))
+      .then((keys) => Promise.all(keys.filter((key) => key.startsWith('senecompare-') && ![SHELL, RUNTIME].includes(key)).map((key) => caches.delete(key))))
       .then(() => self.clients.claim())
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -27,11 +31,8 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
 
-  if (url.pathname.startsWith('/api/')) {
-    event.respondWith(fetch(request, { cache: 'no-store' }).catch(() => new Response(JSON.stringify({ ok: false, error: 'offline' }), {
-      status: 503,
-      headers: { 'content-type': 'application/json; charset=utf-8' }
-    })));
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/__')) {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
     return;
   }
 
@@ -41,7 +42,7 @@ self.addEventListener('fetch', (event) => {
         .then((response) => {
           if (response.ok) {
             const copy = response.clone();
-            event.waitUntil(caches.open(RUNTIME_CACHE).then((cache) => cache.put('/', copy)));
+            event.waitUntil(caches.open(SHELL).then((cache) => cache.put('/', copy)));
           }
           return response;
         })
@@ -51,12 +52,15 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    caches.match(request).then((cached) => cached || fetch(request).then((response) => {
-      if (response.ok && ['style', 'script', 'image', 'manifest'].includes(request.destination)) {
-        const copy = response.clone();
-        event.waitUntil(caches.open(RUNTIME_CACHE).then((cache) => cache.put(request, copy)));
-      }
-      return response;
-    }))
+    caches.match(request).then((cached) => {
+      const network = fetch(request).then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          event.waitUntil(caches.open(RUNTIME).then((cache) => cache.put(request, copy)));
+        }
+        return response;
+      });
+      return cached || network;
+    })
   );
 });
