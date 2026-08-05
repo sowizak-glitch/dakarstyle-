@@ -74,6 +74,7 @@ jobs:
           grep -q "/api/voice/speech" senecompare/app.js
           grep -q "const VERSION = '5.0.0'" senecompare/sw.js
           grep -q "senecompare-gateway-v5" src/senecompare-v5-router.js
+          grep -q "const VERSION = '5.1.0'" supabase/functions/senecompare-gateway-v5/index.ts
       - name: Validate Wrangler configuration
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-out
       - name: Guard against committed server secrets
@@ -184,15 +185,18 @@ jobs:
           assert 'id="installButton"' in root
           assert 'content-security-policy:' in headers
           assert health.get('ok') is True
-          assert health.get('version') == '5.0.0'
+          assert health.get('version') == '5.1.0'
           assert health.get('engine_version') == '5.0.0'
           assert health.get('catalog_connected') is True
           assert health.get('data_mode') == 'hybrid_local_search'
+          assert health.get('intent_priority') is True
           assert manifest.get('short_name') == 'SeneCompare'
           assert manifest.get('display') == 'standalone'
           assert manifest.get('start_url') == '/?source=pwa&v=5'
           assert search.get('ok') is True
-          assert search.get('version') == '5.0.0'
+          assert search.get('version') == '5.1.0'
+          assert search.get('gateway_version') == '5.1.0'
+          assert search.get('engine_version') == '5.0.0'
           assert search.get('data_mode') == 'hybrid_local_search'
           assert len(search.get('results', [])) >= 1
           assert search.get('meta', {}).get('guaranteed_continuity') is True
