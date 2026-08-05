@@ -2,40 +2,26 @@
   "id": "https://senecompare.dakarstyle.com/",
   "name": "SeneCompare AI",
   "short_name": "SeneCompare",
-  "description": "Comparez les prix au Sénégal avec sources, fraîcheur et confiance visibles.",
-  "start_url": "/?source=pwa",
+  "description": "Cherchez et comparez les produits et services au Sénégal, en français ou en wolof, avec sources visibles.",
+  "start_url": "/?source=pwa&v=5",
   "scope": "/",
   "display": "standalone",
   "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#f5f8f9",
+  "launch_handler": { "client_mode": "navigate-existing" },
+  "background_color": "#f3f7f7",
   "theme_color": "#071c2c",
   "lang": "fr-SN",
   "dir": "ltr",
   "orientation": "portrait-primary",
-  "categories": ["shopping", "utilities", "business"],
+  "categories": ["shopping", "utilities", "business", "lifestyle"],
   "icons": [
-    {
-      "src": "/icon.svg?v=4.0.0",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    }
+    { "src": "/icon.svg?v=5.0.0", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon.svg?v=5.0.0", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
   ],
   "shortcuts": [
-    {
-      "name": "Comparer un téléphone",
-      "short_name": "Téléphone",
-      "url": "/?category=phones&source=shortcut"
-    },
-    {
-      "name": "Comparer une voiture",
-      "short_name": "Voiture",
-      "url": "/?category=cars&source=shortcut"
-    },
-    {
-      "name": "Mes favoris",
-      "short_name": "Favoris",
-      "url": "/?view=favorites&source=shortcut"
-    }
+    { "name": "Comparer un téléphone", "short_name": "Téléphone", "url": "/?q=telephone%20smartphone&category=phones&source=shortcut" },
+    { "name": "Chercher une voiture", "short_name": "Voiture", "url": "/?q=voiture%20occasion&category=cars&source=shortcut" },
+    { "name": "Trouver une pharmacie", "short_name": "Pharmacie", "url": "/?q=pharmacie%20Dakar&source=shortcut" },
+    { "name": "Trouver une livraison", "short_name": "Livraison", "url": "/?q=service%20livraison%20colis&source=shortcut" }
   ]
 }
