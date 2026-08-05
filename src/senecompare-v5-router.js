@@ -1,6 +1,7 @@
-import frontend from './senecompare-resilient.js';
+import frontend from './senecompare-final-v52.js';
 
 const VERSION = '5.0.0';
+const RELEASE = '5.2.0';
 const GATEWAY = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/senecompare-gateway-v5';
 const ORIGIN = 'https://senecompare.dakarstyle.com';
 
@@ -15,6 +16,7 @@ function responseHeaders(upstream) {
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
   headers.set('X-SeneCompare-Version', VERSION);
+  headers.set('X-SeneCompare-Release', RELEASE);
   headers.set('X-SeneCompare-Intent-Router', upstream.headers.get('X-SeneCompare-Intent-Router') || '5.0.1');
   headers.delete('content-length');
   headers.delete('content-encoding');
@@ -27,8 +29,8 @@ async function proxyApi(request, url) {
   const headers = new Headers({
     Accept: request.headers.get('Accept') || '*/*',
     Origin: ORIGIN,
-    'X-Client-Version': request.headers.get('X-Client-Version') || `senecompare-cloudflare-${VERSION}`,
-    'User-Agent': request.headers.get('User-Agent') || `SeneCompareCloudflare/${VERSION}`,
+    'X-Client-Version': request.headers.get('X-Client-Version') || `senecompare-cloudflare-${RELEASE}`,
+    'User-Agent': request.headers.get('User-Agent') || `SeneCompareCloudflare/${RELEASE}`,
   });
   const contentType = request.headers.get('Content-Type');
   if (contentType) headers.set('Content-Type', contentType);
@@ -57,6 +59,7 @@ async function proxyApi(request, url) {
         'Cache-Control': 'no-store',
         'Retry-After': '30',
         'X-SeneCompare-Version': VERSION,
+        'X-SeneCompare-Release': RELEASE,
       },
     });
   }

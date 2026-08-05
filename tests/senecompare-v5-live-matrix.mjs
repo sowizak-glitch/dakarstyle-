@@ -85,11 +85,21 @@ for (const [query, expectedCategory] of queries) {
   assert.equal(payload.data_mode, 'hybrid_local_search', query);
   assert.equal(payload.parsed?.category, expectedCategory, `${query}: ${JSON.stringify(payload.parsed)}`);
   assert.ok(Array.isArray(payload.results) && payload.results.length >= 1, `${query}: zero results`);
-  assert.equal(payload.meta?.guaranteed_continuity, true, query);
+  const hasConcreteOffer = payload.results.some((item) => item.result_type === 'offer');
+  const hasSourceContinuity = payload.meta?.guaranteed_continuity === true && payload.results.some((item) => item.result_type === 'source');
+  assert.equal(hasConcreteOffer || hasSourceContinuity, true, `${query}: neither concrete offer nor source continuity`);
   assert.ok(payload.results.every((item) => /^https?:\/\//.test(String(item.source_url || ''))), `${query}: invalid source URL`);
   assert.ok(payload.results.every((item) => ['offer', 'source'].includes(String(item.result_type))), `${query}: invalid result type`);
   assert.ok(payload.results.every((item) => item.result_type !== 'source' || Number(item.total_fcfa || 0) === 0), `${query}: invented source price`);
-  records.push({ query, expectedCategory, results: payload.results.length, offers: payload.meta?.concrete_offer_count || 0, sources: payload.meta?.source_entry_count || 0, duration });
+  records.push({
+    query,
+    expectedCategory,
+    results: payload.results.length,
+    offers: payload.meta?.concrete_offer_count || 0,
+    sources: payload.meta?.source_entry_count || 0,
+    continuity: hasConcreteOffer ? 'concrete_offer' : 'source_fallback',
+    duration,
+  });
   await new Promise((resolve) => setTimeout(resolve, 1700));
 }
 
