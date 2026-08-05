@@ -13,6 +13,7 @@ on:
       - 'senecompare/**'
       - 'tests/senecompare-contract.mjs'
       - 'tests/senecompare-connected-contract.mjs'
+      - 'tests/senecompare-domain-contract.mjs'
       - 'supabase/migrations/*senecompare*.sql'
       - 'wrangler.jsonc'
       - '.github/workflows/senecompare-quality.yml'
@@ -30,6 +31,7 @@ on:
       - 'senecompare/**'
       - 'tests/senecompare-contract.mjs'
       - 'tests/senecompare-connected-contract.mjs'
+      - 'tests/senecompare-domain-contract.mjs'
       - 'supabase/migrations/*senecompare*.sql'
       - 'wrangler.jsonc'
       - '.github/workflows/senecompare-quality.yml'
@@ -65,6 +67,8 @@ jobs:
         run: node --experimental-default-type=module tests/senecompare-contract.mjs
       - name: Run SeneCompare connected contract tests
         run: node --experimental-default-type=module tests/senecompare-connected-contract.mjs
+      - name: Run SeneCompare domain contract tests
+        run: node --experimental-default-type=module tests/senecompare-domain-contract.mjs
       - name: Validate manifest JSON
         run: node -e "JSON.parse(require('fs').readFileSync('senecompare/manifest.webmanifest','utf8')); console.log('Manifest valid')"
       - name: Validate Wrangler configuration
