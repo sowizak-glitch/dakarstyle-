@@ -2,9 +2,20 @@ name: SAMABUSINESS production smoke
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
     paths:
+      - 'src/index.js'
+      - 'src/worker-entry.js'
+      - 'src/samabusiness-final.js'
+      - 'assets/samabusiness/**'
+      - '.github/workflows/samabusiness-production-smoke.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/index.js'
+      - 'src/worker-entry.js'
+      - 'src/samabusiness-final.js'
+      - 'assets/samabusiness/**'
       - '.github/workflows/samabusiness-production-smoke.yml'
   workflow_dispatch:
   schedule:
@@ -13,111 +24,131 @@ on:
 permissions:
   contents: read
 
+env:
+  EXPECTED_VERSION: '10.4.0'
+  SAMABUSINESS_URL: https://samabusiness.dakarstyle.com
+  LEGACY_URL: https://samacahier.dakarstyle.com
+
 jobs:
-  production-smoke:
+  contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 5
     steps:
-      - name: Wait for Cloudflare deployment and DNS
+      - uses: actions/checkout@v4
+      - name: Validate final facade and identity contract
         shell: bash
         run: |
-          set -u
+          set -euo pipefail
+          node --check src/index.js
+          node --check src/worker-entry.js
+          node --check src/samabusiness-final.js
+          grep -q "const VERSION = '${EXPECTED_VERSION}'" src/samabusiness-final.js
+          grep -q "profile-256.png" src/samabusiness-final.js
+          grep -q "apple-touch-icon.png" src/samabusiness-final.js
+          grep -q "favicon-64.png" src/samabusiness-final.js
+          grep -q "samabusiness-official-favicon-64.png" src/samabusiness-final.js
+          grep -q "import application from './samabusiness-final.js'" src/index.js
+          test -s assets/samabusiness/samabusiness-official-favicon-64.png
+
+  production-smoke:
+    if: github.event_name != 'pull_request'
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Wait for coherent production version
+        shell: bash
+        run: |
+          set -euo pipefail
           ready=0
-          for attempt in $(seq 1 30); do
-            echo "Production attempt $attempt/30"
+          for attempt in $(seq 1 45); do
+            echo "Production attempt $attempt/45"
             if curl --fail --silent --show-error --max-time 20 \
-              'https://samabusiness.dakarstyle.com/health' -o health-new.json; then
-              ready=1
-              break
+              "$SAMABUSINESS_URL/health?deploy-check=$GITHUB_RUN_ID" -o health-new.json; then
+              version=$(python3 -c "import json; print(json.load(open('health-new.json')).get('version',''))")
+              if [ "$version" = "$EXPECTED_VERSION" ]; then
+                ready=1
+                break
+              fi
             fi
             sleep 10
           done
           if [ "$ready" -ne 1 ]; then
-            echo 'SAMABUSINESS production domain did not become ready.' >&2
+            echo "SAMABUSINESS $EXPECTED_VERSION did not become ready." >&2
+            cat health-new.json 2>/dev/null || true
             exit 1
           fi
 
-      - name: Validate canonical domain
+      - name: Validate canonical domain, PWA and official profile
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --dump-header root.headers \
-            'https://samabusiness.dakarstyle.com/' -o root.html
-          curl --fail --silent --show-error --dump-header health-new.headers \
-            'https://samabusiness.dakarstyle.com/health' -o health-new.json
-          curl --fail --silent --show-error --dump-header manifest.headers \
-            'https://samabusiness.dakarstyle.com/manifest.webmanifest' -o manifest.json
-          curl --fail --silent --show-error --dump-header sw.headers \
-            'https://samabusiness.dakarstyle.com/sw.js' -o sw.js
-          curl --fail --silent --show-error --dump-header icon.headers \
-            'https://samabusiness.dakarstyle.com/icon.svg' -o icon.svg
+          curl --fail --silent --show-error --dump-header root.headers "$SAMABUSINESS_URL/?smoke=$GITHUB_RUN_ID" -o root.html
+          curl --fail --silent --show-error --dump-header health-new.headers "$SAMABUSINESS_URL/health" -o health-new.json
+          curl --fail --silent --show-error --dump-header manifest.headers "$SAMABUSINESS_URL/manifest.webmanifest" -o manifest.json
+          curl --fail --silent --show-error --dump-header sw.headers "$SAMABUSINESS_URL/sw.js" -o sw.js
+          for asset in icon-192.png icon-512.png maskable-512.png profile-256.png apple-touch-icon.png favicon-64.png; do
+            curl --fail --silent --show-error --dump-header "$asset.headers" "$SAMABUSINESS_URL/$asset?v=$EXPECTED_VERSION" -o "$asset"
+            file "$asset" | tee "$asset.file"
+            grep -Eqi 'PNG image|SVG Scalable Vector Graphics' "$asset.file"
+          done
 
           python3 - <<'PY'
-          import json
+          import json, os
           from pathlib import Path
 
+          expected = os.environ['EXPECTED_VERSION']
+          origin = os.environ['SAMABUSINESS_URL']
           health = json.loads(Path('health-new.json').read_text())
           assert health.get('ok') is True, health
           assert health.get('app') == 'SAMABUSINESS', health
-          assert health.get('version') == '10.1.0', health
+          assert health.get('version') == expected, health
           assert health.get('domain') == 'samabusiness.dakarstyle.com', health
-          assert health.get('pwa') is True and health.get('api') is True, health
 
           root = Path('root.html').read_text(errors='replace')
           assert 'SAMABUSINESS' in root, root[:1000]
-          assert 'samabusiness-addon' in root, root[:1000]
+          assert 'data-samabusiness-brand-bootstrap' in root, root[:2000]
+          assert f'profile-256.png?v={expected}' in root, root[:3000]
 
           manifest = json.loads(Path('manifest.json').read_text())
           assert manifest.get('name') == 'SAMABUSINESS', manifest
-          assert manifest.get('start_url') == 'https://samabusiness.dakarstyle.com/', manifest
-          assert any('samabusiness-192.webp' in x.get('src','') for x in manifest.get('icons', [])), manifest
+          assert manifest.get('start_url') == f'{origin}/?source=pwa', manifest
+          icons = manifest.get('icons', [])
+          assert any(x.get('sizes') == '192x192' and f'v={expected}' in x.get('src','') for x in icons), icons
+          assert any(x.get('sizes') == '512x512' and x.get('purpose') == 'maskable' for x in icons), icons
 
-          assert "VERSION='10.1.0'" in Path('sw.js').read_text()
-          assert 'samabusiness-192.webp' in Path('icon.svg').read_text()
+          sw = Path('sw.js').read_text()
+          assert expected in sw, sw[:500]
+          for asset in ('profile-256.png','apple-touch-icon.png','favicon-64.png'):
+              assert asset in sw, asset
 
-          headers = '\n'.join([
-              Path('root.headers').read_text(),
-              Path('health-new.headers').read_text(),
-          ]).lower()
-          assert 'x-sama-version: 10.1.0' in headers, headers
+          headers = '\n'.join([Path('root.headers').read_text(), Path('health-new.headers').read_text()]).lower()
+          assert f'x-samabusiness-version: {expected}' in headers, headers
           assert 'strict-transport-security:' in headers, headers
           assert 'content-language: fr-sn' in headers, headers
           assert 'application/manifest+json' in Path('manifest.headers').read_text().lower()
           assert 'application/javascript' in Path('sw.headers').read_text().lower()
-          assert 'image/svg+xml' in Path('icon.headers').read_text().lower()
           PY
 
       - name: Validate legacy transition domain
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --dump-header health-old.headers \
-            'https://samacahier.dakarstyle.com/health' -o health-old.json
+          curl --fail --silent --show-error --dump-header health-old.headers "$LEGACY_URL/health" -o health-old.json
           python3 - <<'PY'
-          import json
-          from pathlib import Path
-          health = json.loads(Path('health-old.json').read_text())
+          import json, os
+          health=json.load(open('health-old.json'))
           assert health.get('ok') is True, health
           assert health.get('app') == 'SAMABUSINESS', health
-          assert health.get('version') == '10.1.0', health
+          assert health.get('version') == os.environ['EXPECTED_VERSION'], health
           assert health.get('domain') == 'samacahier.dakarstyle.com', health
           PY
 
-      - name: Validate deployed official logo
-        shell: bash
-        run: |
-          set -euo pipefail
-          curl --fail --silent --show-error --dump-header logo.headers \
-            'https://dakarstyle.com/assets/samabusiness/samabusiness-192.webp' -o logo.webp
-          file logo.webp | tee logo-file-type.txt
-          grep -qi 'webp' logo-file-type.txt
-          grep -q '192x192' logo-file-type.txt
-          grep -qi 'image/webp' logo.headers
-
       - name: Upload smoke-test evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: samabusiness-production-smoke
+          name: samabusiness-production-smoke-${{ github.run_id }}
           path: |
             root.headers
             root.html
@@ -129,10 +160,8 @@ jobs:
             manifest.json
             sw.headers
             sw.js
-            icon.headers
-            icon.svg
-            logo.headers
-            logo.webp
-            logo-file-type.txt
-          if-no-files-found: error
+            *.png
+            *.png.headers
+            *.png.file
+          if-no-files-found: warn
           retention-days: 14
