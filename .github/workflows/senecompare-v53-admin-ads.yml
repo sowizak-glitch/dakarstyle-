@@ -69,6 +69,7 @@ jobs:
           grep -q '@media(max-width:760px)' senecompare/monetization-v53.css
           grep -q '@media(max-width:820px)' senecompare/admin-v53.css
           grep -q 'enable row level security' supabase/migrations/20260805234000_senecompare_admin_ads_v53.sql
+          grep -q 'AUTH_REQUIRED' src/senecompare-v5-router.js
       - name: Validate Cloudflare bundle
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-v53
       - name: Guard against committed secrets and raw visitor IPs
@@ -115,15 +116,20 @@ jobs:
           assert all(str(item.get('destination_url','')).startswith('https://') for item in campaigns)
           print('SeneCompare 5.3 edge service is live')
           PY
-      - name: Verify custom authorization boundary
+      - name: Verify public validation boundaries
         shell: bash
         run: |
           set -euo pipefail
-          status=$(curl --silent --show-error -o unauthorized.json -w '%{http_code}' \
-            -H 'Origin: https://senecompare.dakarstyle.com' \
-            "$ADMIN_EDGE_URL/admin/overview?days=7")
-          test "$status" = 401
-          grep -q 'AUTH_REQUIRED' unauthorized.json
+          track_status=$(curl --silent --show-error -o invalid-track.json -w '%{http_code}' \
+            -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' \
+            --data '{"event_type":"invalid-ci-event"}' "$ADMIN_EDGE_URL/track")
+          lead_status=$(curl --silent --show-error -o invalid-lead.json -w '%{http_code}' \
+            -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' \
+            --data '{}' "$ADMIN_EDGE_URL/partners/leads")
+          test "$track_status" = 400
+          test "$lead_status" = 400
+          grep -q 'EVENT_INVALID' invalid-track.json
+          grep -q 'LEAD_FIELDS_REQUIRED' invalid-lead.json
       - name: Upload edge evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -132,7 +138,8 @@ jobs:
           path: |
             edge-health.json
             edge-ads.json
-            unauthorized.json
+            invalid-track.json
+            invalid-lead.json
           if-no-files-found: warn
           retention-days: 14
 
