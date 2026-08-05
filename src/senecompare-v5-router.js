@@ -1,6 +1,6 @@
-import frontend from './senecompare-resilient.js';
+import frontend from './senecompare-v52-frontend.js';
 
-const VERSION = '5.0.0';
+const VERSION = '5.2.0';
 const GATEWAY = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/senecompare-gateway-v5';
 const ORIGIN = 'https://senecompare.dakarstyle.com';
 
@@ -15,7 +15,7 @@ function responseHeaders(upstream) {
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
   headers.set('X-SeneCompare-Version', VERSION);
-  headers.set('X-SeneCompare-Intent-Router', upstream.headers.get('X-SeneCompare-Intent-Router') || '5.0.1');
+  headers.set('X-SeneCompare-Intent-Router', upstream.headers.get('X-SeneCompare-Intent-Router') || '5.1.0');
   headers.delete('content-length');
   headers.delete('content-encoding');
   return headers;
@@ -49,7 +49,7 @@ async function proxyApi(request, url) {
       headers: responseHeaders(upstream),
     });
   } catch (error) {
-    console.error(JSON.stringify({ event: 'senecompare_v5_gateway_unavailable', detail: String(error) }));
+    console.error(JSON.stringify({ event: 'senecompare_v52_gateway_unavailable', detail: String(error) }));
     return new Response(JSON.stringify({ ok: false, code: 'GATEWAY_UNAVAILABLE', message: 'Le moteur est momentanément indisponible.' }), {
       status: 503,
       headers: {
