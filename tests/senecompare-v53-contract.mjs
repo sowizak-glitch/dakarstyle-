@@ -68,9 +68,10 @@ for (const [path, pattern] of [
 const originalFetch = globalThis.fetch;
 const upstreams = [];
 globalThis.fetch = async (input, init = {}) => {
-  const request = input instanceof Request ? input : new Request(input, init);
-  const url = new URL(request.url);
-  upstreams.push({ url: url.toString(), headers: Object.fromEntries(request.headers.entries()), method: request.method });
+  const url = new URL(input instanceof Request ? input.url : String(input));
+  const requestHeaders = input instanceof Request ? input.headers : new Headers(init.headers || {});
+  const method = input instanceof Request ? input.method : String(init.method || 'GET').toUpperCase();
+  upstreams.push({ url: url.toString(), headers: Object.fromEntries(requestHeaders.entries()), method });
   return new Response(JSON.stringify({ ok: true, route: url.pathname }), {
     status: 200,
     headers: { 'content-type': 'application/json', 'x-senecompare-version': '5.1.0' },
