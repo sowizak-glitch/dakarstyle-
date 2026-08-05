@@ -1,4 +1,4 @@
-import frontend from './senecompare-v53.js';
+import frontend from './senecompare-v531.js';
 
 const VERSION = '5.0.0';
 const RELEASE = '5.3.0';
