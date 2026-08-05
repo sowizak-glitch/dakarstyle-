@@ -1,0 +1,86 @@
+name: SeneCompare premium quality
+
+on:
+  pull_request:
+    paths:
+      - 'senecompare/premium-v51.*'
+      - 'src/senecompare-resilient.js'
+      - '.github/workflows/senecompare-premium-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'senecompare/premium-v51.*'
+      - 'src/senecompare-resilient.js'
+      - '.github/workflows/senecompare-premium-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: senecompare-premium-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  premium-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          node --check senecompare/premium-v51.js
+          node --check src/senecompare-resilient.js
+      - name: Validate premium product contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "const VERSION = '5.1.0'" senecompare/premium-v51.js
+          grep -q "'/api/alerts'" senecompare/premium-v51.js
+          grep -q "'/api/feedback'" senecompare/premium-v51.js
+          grep -q "'/api/health'" senecompare/premium-v51.js
+          grep -q "'/api/click'" senecompare/premium-v51.js
+          grep -q "application/ld+json" senecompare/premium-v51.js
+          grep -q "prefers-reduced-motion" senecompare/premium-v51.css
+          grep -q "focus-visible" senecompare/premium-v51.css
+          grep -q "premium-v51.css" src/senecompare-resilient.js
+          grep -q "premium-v51.js" src/senecompare-resilient.js
+          grep -q "X-SeneCompare-Premium" src/senecompare-resilient.js
+          grep -q "wo-SN' : 'fr-SN" src/senecompare-resilient.js
+          test "$(wc -c < senecompare/premium-v51.css)" -gt 5000
+          test "$(wc -c < senecompare/premium-v51.js)" -gt 10000
+      - name: Validate injection contract
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const source = fs.readFileSync('src/senecompare-resilient.js', 'utf8');
+          const required = [
+            "['/premium-v51.css'",
+            "['/premium-v51.js'",
+            'function injectPremium',
+            '/premium-v51.css?v=${PREMIUM_VERSION}',
+            '/premium-v51.js?v=${PREMIUM_VERSION}',
+            'injectPremium(normalizeVersion',
+          ];
+          for (const marker of required) {
+            if (!source.includes(marker)) throw new Error(`Missing injection marker: ${marker}`);
+          }
+          console.log('Premium injection contract verified');
+          NODE
+      - name: Validate Cloudflare bundle
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-premium
+      - name: Upload deterministic proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: senecompare-premium-v51-proof
+          path: |
+            senecompare/premium-v51.css
+            senecompare/premium-v51.js
+            src/senecompare-resilient.js
+            .wrangler-premium
+          if-no-files-found: warn
+          retention-days: 14
