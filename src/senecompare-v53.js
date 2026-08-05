@@ -3,6 +3,7 @@ import frontend from './senecompare-final-v52.js';
 const RELEASE = '5.3.0';
 const FILES = new Map([
   ['/monetization-v53.css', { source: '/senecompare/monetization-v53.css', type: 'text/css; charset=utf-8', cache: 'public, max-age=3600, stale-while-revalidate=86400' }],
+  ['/monetization-v53.patch.css', { source: '/senecompare/monetization-v53.patch.css', type: 'text/css; charset=utf-8', cache: 'public, max-age=3600, stale-while-revalidate=86400' }],
   ['/monetization-v53.js', { source: '/senecompare/monetization-v53.js', type: 'application/javascript; charset=utf-8', cache: 'no-cache, must-revalidate' }],
   ['/admin-v53.css', { source: '/senecompare/admin-v53.css', type: 'text/css; charset=utf-8', cache: 'public, max-age=3600, stale-while-revalidate=86400' }],
   ['/admin-v53.js', { source: '/senecompare/admin-v53.js', type: 'application/javascript; charset=utf-8', cache: 'no-cache, must-revalidate' }],
@@ -86,6 +87,7 @@ async function serveAdmin(request, env) {
 function injectMonetization(html) {
   let output = html;
   if (!output.includes('/monetization-v53.css')) output = output.replace('</head>', '<link rel="stylesheet" href="/monetization-v53.css?v=530"></head>');
+  if (!output.includes('/monetization-v53.patch.css')) output = output.replace('</head>', '<link rel="stylesheet" href="/monetization-v53.patch.css?v=5301"></head>');
   if (!output.includes('/monetization-v53.js')) output = output.replace('</body>', '<script src="/monetization-v53.js?v=530" defer></script></body>');
   const marker = `<span hidden data-senecompare-release="${RELEASE}" data-admin-enabled="true" data-advertising-enabled="true">Release ${RELEASE}</span>`;
   if (!output.includes(`data-senecompare-release="${RELEASE}"`)) output = output.replace('</body>', `${marker}</body>`);
@@ -106,7 +108,7 @@ function releaseHeaders(source, contentType = '') {
 async function finalizeServiceWorker(request, response) {
   let source = await response.text();
   const needle = "'/final-v52.js?v=520'";
-  const extra = "'/final-v52.js?v=520','/monetization-v53.css?v=530','/monetization-v53.js?v=530','/admin-v53.css?v=530','/admin-v53.js?v=530'";
+  const extra = "'/final-v52.js?v=520','/monetization-v53.css?v=530','/monetization-v53.patch.css?v=5301','/monetization-v53.js?v=530','/admin-v53.css?v=530','/admin-v53.js?v=530'";
   if (source.includes(needle) && !source.includes('/monetization-v53.js')) source = source.replace(needle, extra);
   source += `\nself.__SENECOMPARE_RELEASE__=${JSON.stringify(RELEASE)};`;
   const value = releaseHeaders(response.headers, 'application/javascript; charset=utf-8');
