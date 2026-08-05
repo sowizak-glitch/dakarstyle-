@@ -35,6 +35,34 @@ function isAdminApi(pathname) {
   return ADMIN_API_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(prefix));
 }
 
+function isProtectedAdminApi(pathname) {
+  return pathname.startsWith('/api/admin/') && pathname !== '/api/admin/auth/request';
+}
+
+function unauthorizedAdminResponse() {
+  return new Response(JSON.stringify({
+    ok: false,
+    code: 'AUTH_REQUIRED',
+    message: 'Une session administrateur valide est requise.',
+  }), {
+    status: 401,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'CDN-Cache-Control': 'no-store',
+      'Cloudflare-CDN-Cache-Control': 'no-store',
+      'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'no-referrer',
+      'Cross-Origin-Resource-Policy': 'same-origin',
+      'X-SeneCompare-Version': VERSION,
+      'X-SeneCompare-Release': RELEASE,
+      'X-SeneCompare-Admin': '5.3.0',
+    },
+  });
+}
+
 function adminSuffix(pathname) {
   if (pathname === '/api/ads') return '/ads';
   if (pathname.startsWith('/api/analytics/')) return `/${pathname.slice('/api/analytics/'.length)}`;
@@ -96,6 +124,9 @@ async function proxyApi(request, url) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (isProtectedAdminApi(url.pathname) && !request.headers.get('Authorization')) {
+      return unauthorizedAdminResponse();
+    }
     if (url.pathname.startsWith('/api/')) return proxyApi(request, url);
     return frontend.fetch(request, env, ctx);
   },
