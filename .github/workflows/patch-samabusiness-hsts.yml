@@ -1,0 +1,53 @@
+name: Harden SAMABUSINESS HSTS
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/patch-samabusiness-hsts.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ github.token }}
+
+      - name: Enforce two-year HSTS with preload
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path=Path('src/legacy-index.js')
+          text=path.read_text()
+          old="'strict-transport-security': 'max-age=31536000; includeSubDomains',"
+          new="'strict-transport-security': 'max-age=63072000; includeSubDomains; preload',"
+          if old in text:
+              text=text.replace(old,new,1)
+              path.write_text(text)
+          elif new not in text:
+              raise SystemExit('SAMABUSINESS HSTS marker not found')
+          PY
+          node --check src/legacy-index.js
+          grep -q "max-age=63072000; includeSubDomains; preload" src/legacy-index.js
+
+      - name: Commit hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/legacy-index.js
+          if git diff --cached --quiet; then
+            echo 'HSTS already hardened.'
+            exit 0
+          fi
+          git commit -m 'security: harden SAMABUSINESS HSTS to two years'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
