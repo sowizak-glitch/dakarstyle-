@@ -31,7 +31,7 @@ permissions:
 
 env:
   APP_URL: https://senecompare.dakarstyle.com
-  SENECOMPARE_URL: https://senecompare.dakarstyle.com
+  SENECOMPARE_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/senecompare-gateway-v5
 
 jobs:
   contract:
@@ -50,6 +50,7 @@ jobs:
           node --check src/senecompare-connected.js
           node --check src/senecompare-domain.js
           node --check src/senecompare-resilient.js
+          node --check src/senecompare-v5-router.js
           node --check senecompare/app.js
           node --check senecompare/sw.js
           node --check tests/senecompare-v5-live-matrix.mjs
@@ -71,6 +72,7 @@ jobs:
           grep -q "/api/voice/transcribe" senecompare/app.js
           grep -q "/api/voice/speech" senecompare/app.js
           grep -q "const VERSION = '5.0.0'" senecompare/sw.js
+          grep -q "senecompare-gateway-v5" src/senecompare-v5-router.js
       - name: Validate Wrangler configuration
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-out
       - name: Guard against committed server secrets
@@ -90,7 +92,10 @@ jobs:
         with:
           node-version: '22'
       - name: Run 28 Senegal field searches
-        run: node tests/senecompare-v5-live-matrix.mjs | tee senecompare-v5-matrix.json
+        shell: bash
+        run: |
+          set -euo pipefail
+          node tests/senecompare-v5-live-matrix.mjs | tee senecompare-v5-matrix.json
       - name: Upload field-search evidence
         if: always()
         uses: actions/upload-artifact@v4
