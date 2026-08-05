@@ -10,12 +10,21 @@ await fs.mkdir(OUTPUT, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const results = [];
 
+function isExpectedCloudflareSecurityNoise(item) {
+  const text = String(item.text || item);
+  if (!/Content Security Policy directive/i.test(text)) return false;
+  return /static\.cloudflareinsights\.com|\/cdn-cgi\/challenge-platform|Refused to execute inline script/i.test(text);
+}
+
 async function check(name, contextOptions) {
   const context = await browser.newContext(contextOptions);
   const page = await context.newPage();
   const consoleErrors = [];
-  page.on('console', (message) => { if (message.type() === 'error') consoleErrors.push(message.text()); });
-  page.on('pageerror', (error) => consoleErrors.push(String(error)));
+  const pageErrors = [];
+  page.on('console', (message) => {
+    if (message.type() === 'error') consoleErrors.push({ text: message.text(), location: message.location() });
+  });
+  page.on('pageerror', (error) => pageErrors.push(String(error)));
 
   const response = await page.goto(`${APP_URL}/?v=530&certification=1`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   assert.equal(response?.status(), 200, `${name}: root status`);
@@ -25,6 +34,7 @@ async function check(name, contextOptions) {
   assert.match(await page.locator('.sc-sponsored-label').innerText(), /Sponsorisé/i, `${name}: transparent label`);
   assert.ok((await page.locator('.sc-sponsored-content h3').innerText()).trim().length > 8, `${name}: campaign title`);
   assert.ok((await page.locator('.sc-sponsored-action a').getAttribute('href') || '').startsWith('https://'), `${name}: safe destination`);
+  assert.equal(await page.locator('script[src="/monetization-v53.js?v=530"]').count(), 1, `${name}: monetization script loaded`);
 
   await page.locator('.sc-sponsored-dot').last().click();
   await page.waitForTimeout(200);
@@ -43,11 +53,21 @@ async function check(name, contextOptions) {
   assert.equal(await page.locator('#adminEmail').inputValue(), 'idrissaminata@gmail.com', `${name}: owner email`);
   assert.equal(await page.locator('#adminEmail').isEditable(), false, `${name}: locked owner address`);
   assert.match(await page.locator('meta[name="robots"]').getAttribute('content') || '', /noindex/i, `${name}: admin noindex`);
+  assert.equal(await page.locator('script[src="/admin-v53.js?v=530"]').count(), 1, `${name}: admin script loaded`);
   await page.screenshot({ path: path.join(OUTPUT, `${name}-admin.png`), fullPage: true });
 
-  const relevantErrors = consoleErrors.filter((item) => !/favicon|manifest|ResizeObserver/i.test(item));
-  assert.deepEqual(relevantErrors, [], `${name}: browser console errors`);
-  results.push({ name, ads: await page.locator('.sc-sponsored-dot').count().catch(() => 0), consoleErrors: relevantErrors });
+  const relevantConsoleErrors = consoleErrors.filter((item) => {
+    if (/favicon|manifest|ResizeObserver/i.test(item.text)) return false;
+    return !isExpectedCloudflareSecurityNoise(item);
+  });
+  assert.deepEqual(pageErrors, [], `${name}: uncaught page errors`);
+  assert.deepEqual(relevantConsoleErrors, [], `${name}: application console errors`);
+  results.push({
+    name,
+    cloudflareCspBlocks: consoleErrors.filter(isExpectedCloudflareSecurityNoise).length,
+    applicationConsoleErrors: relevantConsoleErrors,
+    pageErrors,
+  });
   await context.close();
 }
 
