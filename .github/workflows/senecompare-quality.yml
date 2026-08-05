@@ -65,7 +65,7 @@ jobs:
           fi
 
   production-smoke:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'pull_request' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
     needs: contract
     runs-on: ubuntu-latest
     timeout-minutes: 8
