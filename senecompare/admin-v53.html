@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#061d28">
+  <title>Administration — SeneCompare Sénégal</title>
+  <link rel="icon" href="/favicon.webp?v=520" type="image/webp">
+  <link rel="stylesheet" href="/admin-v53.css?v=530">
+</head>
+<body>
+  <a class="sc-admin-skip" href="#adminContent">Aller au contenu</a>
+
+  <section class="sc-admin-login" id="adminLogin">
+    <div class="sc-admin-brand">
+      <div class="sc-admin-brandmark"><img src="/profile.webp?v=520" alt=""><div><strong>SeneCompare Sénégal</strong><span>Console propriétaire 5.3</span></div></div>
+      <div>
+        <h1>Vos visiteurs, vos flux et vos campagnes dans un seul espace.</h1>
+        <p>Suivez l’audience quotidienne, les recherches, les installations, les performances publicitaires et les demandes des professionnels sans conserver d’adresse IP brute.</p>
+        <div class="sc-admin-trust">
+          <div><b>Accès privé</b><small>Compte propriétaire autorisé uniquement.</small></div>
+          <div><b>Données utiles</b><small>Audience, recherche, campagnes et prospects.</small></div>
+          <div><b>Vie privée</b><small>Identifiants anonymisés et statistiques agrégées.</small></div>
+        </div>
+      </div>
+      <small>© 2026 SeneCompare · Dakar / Sénégal</small>
+    </div>
+    <div class="sc-login-panel">
+      <form class="sc-login-card" id="adminLoginForm">
+        <small>Administration sécurisée</small>
+        <h2>Recevoir mon lien d’accès</h2>
+        <p>Aucun mot de passe n’est transmis. Un lien temporaire sera envoyé à l’adresse propriétaire.</p>
+        <div class="sc-login-field"><label for="adminEmail">Adresse autorisée</label><input id="adminEmail" name="email" type="email" value="idrissaminata@gmail.com" readonly autocomplete="email"></div>
+        <button class="sc-login-submit" type="submit">Envoyer le lien sécurisé</button>
+        <p class="sc-login-status" id="adminLoginStatus" role="status" aria-live="polite"></p>
+        <div class="sc-login-security"><span>🔒</span><span>Le tableau de bord refuse toute autre adresse. La session reste dans ce navigateur et peut être fermée à tout moment.</span></div>
+      </form>
+    </div>
+  </section>
+
+  <div class="sc-admin-app" id="adminApp" hidden>
+    <aside class="sc-admin-sidebar" id="adminSidebar">
+      <div class="sc-admin-brandmark"><img src="/profile.webp?v=520" alt=""><div><strong>SeneCompare</strong><span>Administration</span></div></div>
+      <nav class="sc-admin-nav" aria-label="Navigation administration">
+        <a href="#overview" aria-current="page"><span>⌁</span>Vue d’ensemble</a>
+        <a href="#campaigns"><span>▰</span>Campagnes</a>
+        <a href="#leads"><span>◎</span>Professionnels</a>
+        <a href="#searches"><span>⌕</span>Recherches</a>
+      </nav>
+      <div class="sc-sidebar-bottom"><a href="/" target="_blank" rel="noopener"><span>↗</span>Voir SeneCompare</a><button type="button" id="adminLogout"><span>⇥</span>Se déconnecter</button></div>
+    </aside>
+
+    <main class="sc-admin-main" id="adminContent">
+      <header class="sc-admin-topbar">
+        <div style="display:flex;align-items:center;gap:12px"><button class="sc-mobile-menu" id="adminMenu" type="button" aria-label="Ouvrir le menu">☰</button><div><h1>Tableau de bord propriétaire</h1><p id="adminIdentity">idrissaminata@gmail.com · propriétaire</p></div></div>
+        <div class="sc-admin-actions">
+          <select id="adminRange" aria-label="Période"><option value="7">7 jours</option><option value="30" selected>30 jours</option><option value="90">90 jours</option><option value="365">1 an</option></select>
+          <button type="button" id="adminRefresh" class="hide-mobile">↻ Actualiser</button>
+          <button type="button" id="adminExport" class="primary">↓ Exporter</button>
+        </div>
+      </header>
+
+      <div class="sc-admin-content">
+        <section class="sc-admin-banner"><div><strong>SeneCompare 5.3 — audience et régie actives</strong><p id="adminUpdated">Chargement des dernières données…</p></div><span class="sc-admin-live">Production active</span></section>
+
+        <section class="sc-metric-grid" id="overview" aria-label="Indicateurs principaux">
+          <article class="sc-metric"><div class="sc-metric-head"><span>Visiteurs</span><i class="sc-metric-icon">◎</i></div><strong data-metric="visitors">—</strong><small>uniques sur la période</small></article>
+          <article class="sc-metric"><div class="sc-metric-head"><span>Pages vues</span><i class="sc-metric-icon">▤</i></div><strong data-metric="page_views">—</strong><small>consultations enregistrées</small></article>
+          <article class="sc-metric"><div class="sc-metric-head"><span>Recherches</span><i class="sc-metric-icon">⌕</i></div><strong data-metric="searches">—</strong><small>besoins comparés</small></article>
+          <article class="sc-metric"><div class="sc-metric-head"><span>Clics annonces</span><i class="sc-metric-icon">↗</i></div><strong data-metric="ad_clicks">—</strong><small><span data-metric="ctr">—</span>% de taux de clic</small></article>
+          <article class="sc-metric"><div class="sc-metric-head"><span>Prospects</span><i class="sc-metric-icon">✦</i></div><strong data-metric="leads">—</strong><small>demandes professionnelles</small></article>
+        </section>
+
+        <div class="sc-admin-grid">
+          <section class="sc-admin-card"><div class="sc-card-head"><div><h2>Audience quotidienne</h2><p>Visiteurs uniques par jour, heure du Sénégal.</p></div><b id="todayVisitors">Aujourd’hui : —</b></div><div class="sc-chart" id="dailyChart" aria-label="Graphique des visiteurs"></div></section>
+          <section class="sc-admin-card"><div class="sc-card-head"><div><h2>Appareils</h2><p>Répartition des consultations.</p></div></div><div class="sc-device-bars" id="deviceBars"></div></section>
+          <section class="sc-admin-card"><div class="sc-card-head"><div><h2>Pages les plus vues</h2><p>Parcours qui attirent le plus de trafic.</p></div></div><div class="sc-list" id="topPages"></div></section>
+          <section class="sc-admin-card"><div class="sc-card-head"><div><h2>Origine des visiteurs</h2><p>Sites référents ou accès direct.</p></div></div><div class="sc-list" id="topReferrers"></div></section>
+
+          <section class="sc-admin-card wide" id="campaigns"><div class="sc-card-head"><div><h2>Campagnes publicitaires</h2><p>Activer, arrêter ou prioriser les bannières sans redéployer le site.</p></div></div><div class="sc-table-wrap"><table class="sc-admin-table"><thead><tr><th>Marque</th><th>Statut</th><th>Impressions</th><th>Clics</th><th>CTR</th><th>Priorité</th><th>Destination</th></tr></thead><tbody id="campaignRows"></tbody></table></div></section>
+
+          <section class="sc-admin-card" id="searches"><div class="sc-card-head"><div><h2>Recherches fréquentes</h2><p>Ce que les visiteurs demandent réellement.</p></div></div><div class="sc-list" id="topQueries"></div></section>
+          <section class="sc-admin-card"><div class="sc-card-head"><div><h2>Catégories demandées</h2><p>Univers les plus sollicités.</p></div></div><div class="sc-list" id="topCategories"></div></section>
+
+          <section class="sc-admin-card wide" id="leads"><div class="sc-card-head"><div><h2>Professionnels intéressés</h2><p>Coordonnées des entreprises qui demandent une mise en avant.</p></div><button type="button" id="adminExportLeads">Exporter CSV</button></div><div class="sc-table-wrap"><table class="sc-admin-table"><thead><tr><th>Date</th><th>Entreprise</th><th>Contact</th><th>Placement</th><th>Message</th><th>Statut</th></tr></thead><tbody id="leadRows"></tbody></table></div></section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="sc-admin-toast" id="adminToast" role="status" aria-live="polite"></div>
+  <script src="/admin-v53.js?v=530" defer></script>
+</body>
+</html>
