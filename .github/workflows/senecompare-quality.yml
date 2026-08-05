@@ -54,6 +54,7 @@ jobs:
           node --check senecompare/app.js
           node --check senecompare/sw.js
           node --check tests/senecompare-v5-live-matrix.mjs
+          node --check tests/senecompare-v5-browser-live.mjs
       - name: Run SeneCompare base contract tests
         run: node --experimental-default-type=module tests/senecompare-contract.mjs
       - name: Run SeneCompare connected contract tests
@@ -105,9 +106,35 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
+  browser-journey:
+    needs: [contract, field-search-matrix]
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    env:
+      E2E_OUTPUT_DIR: test-results/senecompare-v5-browser
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.1
+          npx playwright install --with-deps chromium
+      - name: Run Samsung and desktop journeys
+        run: node tests/senecompare-v5-browser-live.mjs
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: senecompare-v5-browser-evidence
+          path: test-results/senecompare-v5-browser
+          if-no-files-found: warn
+          retention-days: 14
+
   production-smoke:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [contract, field-search-matrix]
+    needs: [contract, field-search-matrix, browser-journey]
     runs-on: ubuntu-latest
     timeout-minutes: 12
     steps:
