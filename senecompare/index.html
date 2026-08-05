@@ -4,38 +4,34 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#071c2c">
-  <meta name="description" content="SeneCompare AI compare les prix au Sénégal avec sources, fraîcheur et niveau de confiance visibles.">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="SeneCompare AI cherche et compare les produits et services au Sénégal, en français ou en wolof, avec sources visibles.">
   <meta name="application-name" content="SeneCompare AI">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SeneCompare">
   <link rel="canonical" href="https://senecompare.dakarstyle.com/">
-  <link rel="manifest" href="/manifest.webmanifest?v=4.0.0">
-  <link rel="icon" href="/icon.svg?v=4.0.0" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css?v=4.0.0">
-  <title>SeneCompare AI — Comparez les prix au Sénégal</title>
+  <link rel="manifest" href="/manifest.webmanifest?v=5.0.0">
+  <link rel="icon" href="/icon.svg?v=5.0.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/icon.svg?v=5.0.0">
+  <link rel="stylesheet" href="/styles.css?v=5.0.0">
+  <title>SeneCompare AI — Cherchez, comparez, choisissez au Sénégal</title>
 </head>
 <body>
   <a class="skip-link" href="#main">Aller au contenu</a>
+  <div class="network-banner" id="networkBanner" hidden>Mode hors connexion : vos favoris et recherches récentes restent disponibles.</div>
 
   <header class="site-header">
     <div class="shell header-inner">
       <a class="brand" href="/" aria-label="Accueil SeneCompare AI">
         <span class="brand-mark" aria-hidden="true">SC</span>
-        <span>
-          <strong>SeneCompare <em>AI</em></strong>
-          <small data-i18n="brandTagline">Waxal · Méngale · Tànn</small>
-        </span>
+        <span class="brand-copy"><strong>SeneCompare <em>AI</em></strong><small>Waxal · Méngale · Tànn</small></span>
       </a>
-
       <nav class="header-actions" aria-label="Actions principales">
-        <button class="ghost-button compact" id="historyButton" type="button" aria-label="Ouvrir l'historique">
-          <span aria-hidden="true">↺</span><span class="hide-mobile" data-i18n="history">Historique</span>
-        </button>
-        <button class="ghost-button compact" id="favoritesButton" type="button" aria-label="Ouvrir les favoris">
-          <span aria-hidden="true">♡</span><span class="hide-mobile" data-i18n="favorites">Favoris</span>
-          <span class="counter" id="favoritesCount" hidden>0</span>
-        </button>
+        <button class="header-button" id="historyButton" type="button" aria-label="Historique"><span aria-hidden="true">↺</span><span class="desktop-label" data-i18n="history">Historique</span></button>
+        <button class="header-button" id="favoritesButton" type="button" aria-label="Favoris"><span aria-hidden="true">♡</span><span class="desktop-label" data-i18n="favorites">Favoris</span><b id="favoritesCount" hidden>0</b></button>
+        <button class="install-button" id="installButton" type="button"><span aria-hidden="true">↓</span><span data-i18n="install">Installer</span></button>
         <button class="language-switch" id="languageSwitch" type="button" aria-label="Passer en wolof">WO</button>
       </nav>
     </div>
@@ -43,258 +39,107 @@
 
   <main id="main">
     <section class="hero">
-      <div class="hero-glow hero-glow-one"></div>
-      <div class="hero-glow hero-glow-two"></div>
-      <div class="shell hero-content">
-        <div class="eyebrow"><span class="pulse-dot"></span><span data-i18n="eyebrow">Comparateur local intelligent</span></div>
-        <h1><span data-i18n="heroTitleOne">Dites ce que vous cherchez.</span><br><span class="gradient-text" data-i18n="heroTitleTwo">Nous comparons pour vous.</span></h1>
-        <p class="hero-copy" data-i18n="heroCopy">Produit, budget, état ou ville : écrivez comme vous parlez. Les sources, la fraîcheur et la confiance restent visibles.</p>
-        <div class="proof-row" aria-label="Avantages">
-          <span>✓ <span data-i18n="proofFree">Gratuit</span></span>
-          <span>◎ <span data-i18n="proofSources">Sources visibles</span></span>
-          <span>🎙 <span data-i18n="proofVoice">Texte ou vocal</span></span>
-          <span>⇄ <span data-i18n="proofCompare">Comparaison côte à côte</span></span>
+      <div class="hero-orb hero-orb-one"></div><div class="hero-orb hero-orb-two"></div>
+      <div class="shell hero-grid">
+        <div class="hero-copy-wrap">
+          <p class="eyebrow"><span></span><span data-i18n="eyebrow">Le moteur local qui ne vous laisse jamais sans piste</span></p>
+          <h1><span data-i18n="heroOne">Dites ce que vous cherchez.</span><br><em data-i18n="heroTwo">Nous trouvons où continuer.</em></h1>
+          <p class="hero-copy" data-i18n="heroCopy">Prix vérifiés quand ils existent, sources sénégalaises utiles dans tous les autres cas. Écrivez ou parlez naturellement.</p>
+          <div class="proof-row">
+            <span>✓ <b data-i18n="proofLocal">Sources locales</b></span>
+            <span>◎ <b data-i18n="proofTrust">Confiance expliquée</b></span>
+            <span>🎙 <b data-i18n="proofVoice">Français et wolof</b></span>
+            <span>⇄ <b data-i18n="proofCompare">Comparaison côte à côte</b></span>
+          </div>
         </div>
+        <aside class="install-card">
+          <span class="install-card-icon">▦</span>
+          <div><strong data-i18n="installTitle">L’application dans votre téléphone</strong><p data-i18n="installCopy">Légère, rapide et accessible depuis l’écran d’accueil.</p></div>
+          <button id="heroInstallButton" type="button" data-i18n="installNow">Installer maintenant</button>
+        </aside>
       </div>
     </section>
 
-    <section class="search-zone shell" aria-labelledby="searchTitle">
-      <div class="search-card">
-        <div class="search-card-head">
-          <div>
-            <p class="section-kicker" data-i18n="searchKicker">Recherche intelligente</p>
-            <h2 id="searchTitle" data-i18n="searchTitle">Que voulez-vous comparer ?</h2>
-            <p data-i18n="searchHint">Exemple : « Samsung moins de 150 000 F à Dakar »</p>
-          </div>
-          <button class="location-button" id="locationButton" type="button">
-            <span aria-hidden="true">⌖</span>
-            <span id="locationLabel" data-i18n="location">Ma position</span>
-          </button>
+    <section class="search-section shell" aria-labelledby="searchTitle">
+      <div class="search-panel">
+        <div class="search-heading">
+          <div><p class="section-kicker" data-i18n="searchKicker">Recherche hybride locale</p><h2 id="searchTitle" data-i18n="searchTitle">Que voulez-vous trouver ?</h2><p data-i18n="searchHint">Exemple : « Frigo neuf moins de 300 000 F à Dakar »</p></div>
+          <button class="location-button" id="locationButton" type="button"><span aria-hidden="true">⌖</span><span id="locationLabel" data-i18n="location">Ma position</span></button>
         </div>
-
         <form id="searchForm" novalidate>
-          <div class="search-input-wrap">
-            <label class="sr-only" for="searchInput" data-i18n="searchLabel">Votre recherche</label>
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input id="searchInput" name="query" type="search" maxlength="180" autocomplete="off" inputmode="search" placeholder="Téléphone Samsung, moto, frigo, ordinateur…">
-            <button class="voice-button" id="voiceButton" type="button" aria-label="Rechercher par la voix" aria-pressed="false">
-              <span aria-hidden="true">🎙</span>
-              <span class="voice-status" id="voiceStatus" data-i18n="voice">Vocal</span>
-            </button>
+          <div class="search-bar">
+            <span class="search-symbol" aria-hidden="true">⌕</span>
+            <label class="sr-only" for="searchInput">Votre recherche</label>
+            <input id="searchInput" type="search" maxlength="320" autocomplete="off" enterkeyhint="search" placeholder="Téléphone, voiture, maison, pharmacie, formation…">
+            <button class="voice-button" id="voiceButton" type="button" aria-label="Rechercher par la voix"><span class="mic-icon" aria-hidden="true">●</span><span id="voiceStatus" data-i18n="voice">Parler</span></button>
           </div>
-
-          <div class="suggestion-row" id="suggestionRow" aria-label="Recherches suggérées">
-            <button type="button" data-query="Téléphone Samsung moins de 150000 F">Samsung &lt; 150k</button>
-            <button type="button" data-query="Moto Jakarta occasion à Dakar">Moto Jakarta</button>
+          <div class="quick-queries" id="quickQueries">
+            <button type="button" data-query="Téléphone Samsung moins de 150000 F à Dakar">Samsung &lt; 150k</button>
             <button type="button" data-query="Frigo neuf moins de 300000 F">Frigo neuf</button>
-            <button type="button" data-query="Ordinateur portable Core i5">PC Core i5</button>
+            <button type="button" data-query="Pharmacie à Dakar">Pharmacie</button>
+            <button type="button" data-query="Formation informatique à Dakar">Formation</button>
           </div>
-
           <details class="filters" id="filtersPanel">
-            <summary><span aria-hidden="true">☷</span> <span data-i18n="filters">Filtres</span><span class="active-filter-count" id="activeFilterCount" hidden>0</span></summary>
+            <summary><span>☷</span><span data-i18n="filters">Filtres</span><b id="filterCount" hidden>0</b></summary>
             <div class="filter-grid">
-              <label>
-                <span data-i18n="city">Ville</span>
-                <select id="cityFilter" name="city">
-                  <option value="Sénégal">Tout le Sénégal</option>
-                  <option value="Dakar">Dakar</option>
-                  <option value="Thiès">Thiès</option>
-                  <option value="Saint-Louis">Saint-Louis</option>
-                  <option value="Mbour">Mbour</option>
-                  <option value="Touba">Touba</option>
-                  <option value="Kaolack">Kaolack</option>
-                  <option value="Ziguinchor">Ziguinchor</option>
-                  <option value="Louga">Louga</option>
-                </select>
-              </label>
-              <label>
-                <span data-i18n="category">Catégorie</span>
-                <select id="categoryFilter" name="category">
-                  <option value="all">Toutes</option>
-                  <option value="phones">Téléphones</option>
-                  <option value="cars">Voitures</option>
-                  <option value="motorcycles">Motos</option>
-                  <option value="appliances">Électroménager</option>
-                  <option value="computing">Informatique</option>
-                  <option value="fashion">Mode</option>
-                  <option value="home">Maison</option>
-                  <option value="professional">Matériel pro</option>
-                </select>
-              </label>
-              <label>
-                <span data-i18n="budget">Budget maximum (F CFA)</span>
-                <input id="maxPriceFilter" name="maxPrice" type="number" min="0" max="1000000000" step="5000" inputmode="numeric" placeholder="Ex. 150000">
-              </label>
-              <label>
-                <span data-i18n="condition">État</span>
-                <select id="conditionFilter" name="condition">
-                  <option value="all">Tous</option>
-                  <option value="new">Neuf</option>
-                  <option value="used">Occasion</option>
-                  <option value="refurbished">Reconditionné</option>
-                </select>
-              </label>
-              <label>
-                <span data-i18n="sellerType">Vendeur</span>
-                <select id="sellerFilter" name="sellerType">
-                  <option value="all">Tous</option>
-                  <option value="merchant">Professionnel</option>
-                  <option value="individual">Particulier</option>
-                </select>
-              </label>
-              <label>
-                <span data-i18n="sort">Trier par</span>
-                <select id="sortFilter" name="sort">
-                  <option value="relevance">Pertinence</option>
-                  <option value="price_asc">Prix croissant</option>
-                  <option value="price_desc">Prix décroissant</option>
-                  <option value="freshness">Plus récent</option>
-                  <option value="confidence">Confiance</option>
-                </select>
-              </label>
+              <label><span data-i18n="city">Ville</span><select id="cityFilter"><option value="Sénégal">Tout le Sénégal</option><option>Dakar</option><option>Thiès</option><option>Saint-Louis</option><option>Mbour</option><option>Touba</option><option>Kaolack</option><option>Ziguinchor</option><option>Louga</option></select></label>
+              <label><span data-i18n="category">Catégorie</span><select id="categoryFilter"><option value="all">Toutes</option><option value="phones">Téléphones</option><option value="cars">Voitures</option><option value="motorcycles">Motos</option><option value="appliances">Électroménager</option><option value="computing">Informatique</option><option value="fashion">Mode</option><option value="home">Maison</option><option value="professional">Matériel pro</option></select></label>
+              <label><span data-i18n="budget">Budget maximum (F CFA)</span><input id="maxPriceFilter" type="number" min="0" max="1000000000" step="5000" inputmode="numeric" placeholder="150000"></label>
+              <label><span data-i18n="condition">État</span><select id="conditionFilter"><option value="all">Tous</option><option value="new">Neuf</option><option value="used">Occasion</option><option value="refurbished">Reconditionné</option></select></label>
+              <label><span data-i18n="sort">Trier</span><select id="sortFilter"><option value="relevance">Pertinence</option><option value="price_asc">Prix croissant</option><option value="price_desc">Prix décroissant</option><option value="confidence">Confiance</option></select></label>
             </div>
           </details>
-
-          <div class="form-actions">
-            <button class="primary-button" id="submitButton" type="submit">
-              <span data-i18n="compareNow">Comparer maintenant</span><span aria-hidden="true">→</span>
-            </button>
-            <button class="secondary-button" id="clearButton" type="button" data-i18n="clear">Effacer</button>
-          </div>
+          <div class="form-actions"><button class="primary-button" id="submitButton" type="submit"><span data-i18n="searchNow">Chercher maintenant</span><span>→</span></button><button class="secondary-button" id="clearButton" type="button" data-i18n="clear">Effacer</button></div>
         </form>
       </div>
     </section>
 
-    <section class="categories shell" aria-labelledby="categoriesTitle">
-      <div class="section-heading">
-        <div>
-          <p class="section-kicker" data-i18n="exploreKicker">Explorer</p>
-          <h2 id="categoriesTitle" data-i18n="categoriesTitle">Le marché sénégalais</h2>
-        </div>
-        <p data-i18n="categoriesCopy">Choisissez une famille pour lancer une recherche rapide.</p>
-      </div>
+    <section class="category-section shell" aria-labelledby="categoryTitle">
+      <div class="section-heading"><div><p class="section-kicker" data-i18n="explore">Explorer</p><h2 id="categoryTitle" data-i18n="marketTitle">Tout le marché sénégalais</h2></div><p data-i18n="marketCopy">Produits, services et besoins du quotidien.</p></div>
       <div class="category-grid" id="categoryGrid">
-        <button type="button" data-category="phones"><span>📱</span><strong data-i18n="phones">Téléphones</strong><small>Samsung · iPhone · Xiaomi</small></button>
-        <button type="button" data-category="cars"><span>🚗</span><strong data-i18n="cars">Voitures</strong><small>Occasion · Import · Local</small></button>
-        <button type="button" data-category="motorcycles"><span>🏍️</span><strong data-i18n="motorcycles">Motos</strong><small>Jakarta · Scooter · Livraison</small></button>
-        <button type="button" data-category="appliances"><span>🧊</span><strong data-i18n="appliances">Électroménager</strong><small>Frigo · TV · Climatiseur</small></button>
-        <button type="button" data-category="computing"><span>💻</span><strong data-i18n="computing">Informatique</strong><small>PC · Imprimante · Accessoires</small></button>
-        <button type="button" data-category="fashion"><span>👕</span><strong data-i18n="fashion">Mode</strong><small>Boubou · Sneakers · Tissu</small></button>
-        <button type="button" data-category="home"><span>🛋️</span><strong data-i18n="home">Maison</strong><small>Meuble · Décoration · Cuisine</small></button>
-        <button type="button" data-category="professional"><span>🧰</span><strong data-i18n="professional">Matériel pro</strong><small>Couture · Bureau · Commerce</small></button>
+        <button data-query="Téléphones" data-category="phones"><span>📱</span><strong>Téléphones</strong><small>Samsung · iPhone · Tecno</small></button>
+        <button data-query="Voitures" data-category="cars"><span>🚗</span><strong>Voitures</strong><small>Occasion · Import · Local</small></button>
+        <button data-query="Motos" data-category="motorcycles"><span>🏍</span><strong>Motos</strong><small>Jakarta · Scooter · Livraison</small></button>
+        <button data-query="Électroménager" data-category="appliances"><span>❄</span><strong>Électroménager</strong><small>Frigo · TV · Climatiseur</small></button>
+        <button data-query="Ordinateurs" data-category="computing"><span>💻</span><strong>Informatique</strong><small>PC · Imprimante · Tablette</small></button>
+        <button data-query="Mode vêtements tissu wax" data-category="fashion"><span>👕</span><strong>Mode & tissus</strong><small>Wax · Boubou · Sneakers</small></button>
+        <button data-query="Maison mobilier" data-category="home"><span>🛋</span><strong>Maison</strong><small>Meuble · Matelas · Cuisine</small></button>
+        <button data-query="Matériel professionnel" data-category="professional"><span>🧰</span><strong>Matériel pro</strong><small>Commerce · Couture · BTP</small></button>
+        <button data-query="Pharmacie clinique dentiste Dakar"><span>✚</span><strong>Santé</strong><small>Pharmacie · Clinique · Labo</small></button>
+        <button data-query="Formation cours certification Sénégal"><span>🎓</span><strong>Formation</strong><small>Cours · Institut · Certification</small></button>
+        <button data-query="Plombier électricien artisan Dakar"><span>🔧</span><strong>Artisans</strong><small>Plombier · Électricien · Menuisier</small></button>
+        <button data-query="Service de livraison colis Dakar"><span>📦</span><strong>Livraison</strong><small>Colis · Courses · Régions</small></button>
       </div>
     </section>
 
-    <section class="results-section shell" id="resultsSection" aria-labelledby="resultsTitle" hidden>
-      <div class="section-heading results-heading">
-        <div>
-          <p class="section-kicker" id="resultsKicker" data-i18n="resultsKicker">Résultats comparés</p>
-          <h2 id="resultsTitle"><span data-i18n="offersFound">Offres trouvées</span> <span class="result-count" id="resultCount">0</span></h2>
-          <p id="resultsSummary"></p>
-        </div>
-        <div class="results-tools">
-          <button class="ghost-button" id="listenResultsButton" type="button"><span aria-hidden="true">🔊</span><span data-i18n="listen">Écouter</span></button>
-          <button class="ghost-button" id="shareSearchButton" type="button"><span aria-hidden="true">↗</span><span data-i18n="share">Partager</span></button>
-        </div>
+    <section class="results-section shell" id="resultsSection" hidden aria-labelledby="resultsTitle">
+      <div class="results-heading">
+        <div><p class="section-kicker" data-i18n="resultsKicker">Résultats utiles</p><h2 id="resultsTitle"><span data-i18n="resultsTitle">Ce que nous avons trouvé</span> <b id="resultCount">0</b></h2><p id="resultsSummary"></p></div>
+        <div class="results-actions"><button id="listenButton" type="button">🔊 <span data-i18n="listen">Écouter</span></button><button id="shareButton" type="button">↗ <span data-i18n="share">Partager</span></button></div>
       </div>
-
-      <div class="data-mode-banner" id="dataModeBanner" hidden>
-        <strong data-i18n="demoTitle">Catalogue de démarrage</strong>
-        <span data-i18n="demoCopy">Ces offres servent à tester le comparateur. Les prix doivent être confirmés. Connectez Supabase ou le moteur de recherche pour les données en direct.</span>
-      </div>
-
-      <div id="resultsStatus" class="results-status" role="status" aria-live="polite"></div>
-      <div id="resultsGrid" class="results-grid"></div>
+      <div class="search-notice" id="searchNotice" hidden></div>
+      <div class="suggestion-strip" id="suggestionStrip" hidden></div>
+      <div class="results-status" id="resultsStatus" role="status" aria-live="polite"></div>
+      <div class="results-grid" id="resultsGrid"></div>
     </section>
 
-    <section class="how-it-works shell" aria-labelledby="howTitle">
-      <div class="section-heading centered">
-        <p class="section-kicker" data-i18n="howKicker">Simple et transparent</p>
-        <h2 id="howTitle" data-i18n="howTitle">Vous gardez le contrôle</h2>
+    <section class="explain-section">
+      <div class="shell explain-grid">
+        <article><span>01</span><h3 data-i18n="stepOne">Vous demandez naturellement</h3><p data-i18n="stepOneCopy">En français, en wolof, au clavier ou par message vocal.</p></article>
+        <article><span>02</span><h3 data-i18n="stepTwo">Le moteur cherche largement</h3><p data-i18n="stepTwoCopy">Catalogue, marketplaces et sources locales sont classés ensemble.</p></article>
+        <article><span>03</span><h3 data-i18n="stepThree">Vous gardez la preuve</h3><p data-i18n="stepThreeCopy">Chaque résultat indique sa source, sa fraîcheur et son niveau de confiance.</p></article>
+        <article><span>04</span><h3 data-i18n="stepFour">Jamais de page vide</h3><p data-i18n="stepFourCopy">Sans offre exacte, l’application vous conduit vers les meilleures sources pertinentes.</p></article>
       </div>
-      <div class="steps-grid">
-        <article><span>01</span><h3 data-i18n="stepOneTitle">Vous demandez</h3><p data-i18n="stepOneCopy">En français, en wolof, par écrit ou par voix.</p></article>
-        <article><span>02</span><h3 data-i18n="stepTwoTitle">L’agent compare</h3><p data-i18n="stepTwoCopy">Prix, ville, état, sources et date de vérification.</p></article>
-        <article><span>03</span><h3 data-i18n="stepThreeTitle">Vous vérifiez</h3><p data-i18n="stepThreeCopy">La confiance est expliquée, pas inventée.</p></article>
-        <article><span>04</span><h3 data-i18n="stepFourTitle">Vous décidez</h3><p data-i18n="stepFourCopy">Comparez jusqu’à trois offres et partagez sur WhatsApp.</p></article>
-      </div>
-    </section>
-
-    <section class="trust-section">
-      <div class="shell trust-grid">
-        <div>
-          <p class="section-kicker" data-i18n="trustKicker">Méthode de confiance</p>
-          <h2 data-i18n="trustTitle">Chaque score doit pouvoir être expliqué.</h2>
-          <p data-i18n="trustCopy">Nous combinons la fraîcheur, le nombre de recoupements, l’identité du vendeur et la cohérence du prix. Une offre faible reste visible, mais clairement signalée.</p>
-          <a class="text-link" href="/methodology" data-route="methodology"><span data-i18n="methodologyLink">Voir la méthodologie complète</span> →</a>
-        </div>
-        <div class="trust-meter-card">
-          <div class="meter-head"><strong data-i18n="exampleTrust">Exemple de confiance</strong><span>78/100</span></div>
-          <div class="meter"><span class="meter-value"></span></div>
-          <dl>
-            <div><dt data-i18n="freshness">Fraîcheur</dt><dd>36/40</dd></div>
-            <div><dt data-i18n="crossChecks">Recoupements</dt><dd>16/25</dd></div>
-            <div><dt data-i18n="sellerIdentity">Identité vendeur</dt><dd>15/20</dd></div>
-            <div><dt data-i18n="consistency">Cohérence du prix</dt><dd>11/15</dd></div>
-          </dl>
-        </div>
-      </div>
-    </section>
-
-    <section class="merchant-cta shell">
-      <div>
-        <span class="merchant-icon" aria-hidden="true">🏪</span>
-        <div><p class="section-kicker" data-i18n="merchantKicker">Espace marchand</p><h2 data-i18n="merchantTitle">Votre entreprise apparaît dans les résultats ?</h2><p data-i18n="merchantCopy">Revendiquez votre fiche, corrigez vos informations et faites vérifier vos offres.</p></div>
-      </div>
-      <button class="primary-button" id="merchantClaimButton" type="button"><span data-i18n="claimListing">Revendiquer une fiche</span><span aria-hidden="true">→</span></button>
     </section>
   </main>
 
-  <div class="compare-bar" id="compareBar" hidden>
-    <div class="shell compare-bar-inner">
-      <div><strong><span id="compareCount">0</span>/3 <span data-i18n="selected">sélectionnées</span></strong><span id="compareNames"></span></div>
-      <div><button class="ghost-button inverted" id="clearCompareButton" type="button" data-i18n="clear">Effacer</button><button class="primary-button light" id="openCompareButton" type="button" disabled><span data-i18n="compareSelection">Comparer la sélection</span><span aria-hidden="true">⇄</span></button></div>
-    </div>
-  </div>
+  <div class="compare-bar" id="compareBar" hidden><div><b><span id="compareCount">0</span> <span data-i18n="selected">sélectionnés</span></b><span id="compareNames"></span></div><button id="compareButton" type="button" data-i18n="compare">Comparer</button><button id="clearCompareButton" type="button" aria-label="Vider">×</button></div>
 
-  <footer class="site-footer">
-    <div class="shell footer-grid">
-      <div class="brand footer-brand"><span class="brand-mark">SC</span><span><strong>SeneCompare <em>AI</em></strong><small data-i18n="footerTagline">Comparez mieux. Décidez librement.</small></span></div>
-      <nav aria-label="Liens légaux">
-        <a href="/methodology" data-route="methodology" data-i18n="methodology">Méthodologie</a>
-        <a href="/privacy" data-route="privacy" data-i18n="privacy">Confidentialité</a>
-        <button type="button" id="footerMerchantButton" data-i18n="merchantArea">Espace marchand</button>
-      </nav>
-      <p class="footer-disclaimer" data-i18n="disclaimer">SeneCompare n’est pas le vendeur. Confirmez toujours le prix, l’état, la garantie, le stock et l’identité du vendeur avant tout paiement.</p>
-    </div>
-    <div class="shell footer-bottom"><span>© 2026 SeneCompare AI · DakarStyle</span><span>Version 4.0.0</span></div>
-  </footer>
+  <dialog class="app-modal" id="appModal"><div class="modal-card"><button class="modal-close" id="modalClose" type="button" aria-label="Fermer">×</button><p class="section-kicker" id="modalKicker"></p><h2 id="modalTitle"></h2><div id="modalBody"></div></div></dialog>
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
 
-  <dialog class="modal" id="appModal" aria-labelledby="modalTitle">
-    <div class="modal-shell">
-      <header><div><p class="section-kicker" id="modalKicker"></p><h2 id="modalTitle"></h2></div><button class="modal-close" id="modalClose" type="button" aria-label="Fermer">×</button></header>
-      <div class="modal-body" id="modalBody"></div>
-    </div>
-  </dialog>
+  <footer><div class="shell footer-inner"><div class="brand footer-brand"><span class="brand-mark">SC</span><span><strong>SeneCompare AI</strong><small>Comparez mieux. Décidez librement.</small></span></div><p data-i18n="disclaimer">SeneCompare n’est pas le vendeur. Confirmez toujours le prix, l’état, le stock et l’identité du vendeur avant tout paiement.</p><nav><button data-info="methodology">Méthodologie</button><button data-info="privacy">Confidentialité</button><button data-info="merchant">Espace marchand</button></nav></div><div class="version-line">Version 5.0.0 · Moteur hybride local · Sénégal</div></footer>
 
-  <div class="toast-region" id="toastRegion" aria-live="polite" aria-atomic="true"></div>
-
-  <template id="offerCardTemplate">
-    <article class="offer-card">
-      <div class="offer-topline"><span class="offer-category"></span><button class="favorite-toggle" type="button" aria-label="Ajouter aux favoris">♡</button></div>
-      <div class="offer-visual" aria-hidden="true"><span></span></div>
-      <div class="offer-body">
-        <div class="offer-title-row"><div><h3 class="offer-title"></h3><p class="offer-seller"></p></div><label class="compare-check"><input type="checkbox"><span data-i18n="compare">Comparer</span></label></div>
-        <div class="offer-price-row"><strong class="offer-price"></strong><span class="offer-budget"></span></div>
-        <div class="offer-meta"><span class="offer-city"></span><span class="offer-condition"></span><span class="offer-freshness"></span></div>
-        <p class="offer-description"></p>
-        <div class="trust-summary"><button class="trust-badge" type="button"></button><span class="offer-status"></span></div>
-        <div class="source-row"><div><small data-i18n="source">Source</small><strong class="offer-source"></strong></div><a class="source-link" target="_blank" rel="noopener noreferrer nofollow" hidden><span data-i18n="viewSource">Voir la source</span> ↗</a></div>
-        <div class="offer-actions"><button class="secondary-button report-button" type="button"><span aria-hidden="true">⚑</span><span data-i18n="reportPrice">Prix incorrect ?</span></button><button class="secondary-button alert-button" type="button"><span aria-hidden="true">◷</span><span data-i18n="priceAlert">Suivre le prix</span></button><button class="secondary-button share-button" type="button"><span aria-hidden="true">↗</span><span data-i18n="share">Partager</span></button></div>
-      </div>
-    </article>
-  </template>
-
-  <script src="/app.js?v=4.0.0" defer></script>
+  <script src="/app.js?v=5.0.0" defer></script>
 </body>
 </html>

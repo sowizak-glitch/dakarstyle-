@@ -1,8 +1,6 @@
-const VERSION = '4.1.0';
+const VERSION = '5.0.0';
 const PROJECT_ORIGIN = 'https://xmdpmtvieqgoorbxytey.supabase.co';
-const FUNCTIONS = `${PROJECT_ORIGIN}/functions/v1`;
-const APP_UPSTREAM = `${FUNCTIONS}/senecompare-app`;
-const GATEWAY_UPSTREAM = `${FUNCTIONS}/senecompare-gateway`;
+const GATEWAY = `${PROJECT_ORIGIN}/functions/v1/senecompare-gateway`;
 const CANONICAL_ORIGIN = 'https://senecompare.dakarstyle.com';
 const METHODS = new Set(['GET', 'HEAD', 'POST', 'OPTIONS']);
 
@@ -10,35 +8,41 @@ const MANIFEST = {
   id: `${CANONICAL_ORIGIN}/`,
   name: 'SeneCompare AI',
   short_name: 'SeneCompare',
-  description: 'Comparez les produits et services au Sénégal avec sources et confiance visibles.',
-  start_url: '/?source=pwa',
+  description: 'Cherchez et comparez les produits et services au Sénégal, en français ou en wolof, avec sources visibles.',
+  start_url: '/?source=pwa&v=5',
   scope: '/',
   display: 'standalone',
   display_override: ['standalone', 'minimal-ui'],
-  background_color: '#f4f7f8',
+  launch_handler: { client_mode: 'navigate-existing' },
+  background_color: '#f3f7f7',
   theme_color: '#071c2c',
   lang: 'fr-SN',
   dir: 'ltr',
   orientation: 'portrait-primary',
-  categories: ['shopping', 'utilities', 'business'],
-  icons: [{ src: `/icon.svg?v=${VERSION}`, sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }],
+  categories: ['shopping', 'utilities', 'business', 'lifestyle'],
+  icons: [
+    { src: `/icon.svg?v=${VERSION}`, sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
+    { src: `/icon.svg?v=${VERSION}`, sizes: 'any', type: 'image/svg+xml', purpose: 'maskable' },
+  ],
   shortcuts: [
-    { name: 'Comparer un téléphone', short_name: 'Téléphone', url: '/?q=telephone%20smartphone&source=shortcut' },
-    { name: 'Comparer une voiture', short_name: 'Voiture', url: '/?q=voiture%20occasion&source=shortcut' },
-    { name: 'Comparer une livraison', short_name: 'Livraison', url: '/?q=service%20livraison%20colis&source=shortcut' },
+    { name: 'Comparer un téléphone', short_name: 'Téléphone', url: '/?q=telephone%20smartphone&category=phones&source=shortcut' },
+    { name: 'Chercher une voiture', short_name: 'Voiture', url: '/?q=voiture%20occasion&category=cars&source=shortcut' },
+    { name: 'Trouver une pharmacie', short_name: 'Pharmacie', url: '/?q=pharmacie%20Dakar&source=shortcut' },
+    { name: 'Trouver une livraison', short_name: 'Livraison', url: '/?q=service%20livraison%20colis&source=shortcut' },
   ],
 };
 
-const ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SeneCompare AI"><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#04131f"/><stop offset="1" stop-color="#0b3d4a"/></linearGradient><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7db8d"/><stop offset="1" stop-color="#e8b84c"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#b)"/><circle cx="256" cy="256" r="174" fill="none" stroke="#10a982" stroke-opacity=".25" stroke-width="18"/><path d="M126 183h194l-32-32 27-27 78 78-78 78-27-27 32-32H126z" fill="#10a982"/><path d="M386 329H192l32 32-27 27-78-78 78-78 27 27-32 32h194z" fill="url(#g)"/><rect x="181" y="181" width="150" height="150" rx="42" fill="#fff" fill-opacity=".96"/><text x="256" y="279" text-anchor="middle" font-family="Arial,sans-serif" font-size="78" font-weight="900" letter-spacing="-8" fill="#071c2c">SC</text></svg>`;
+const ICON = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="SeneCompare AI"><defs><linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#04131f"/><stop offset="1" stop-color="#0b3d4a"/></linearGradient><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#71e1c2"/><stop offset="1" stop-color="#0a9b78"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#b)"/><circle cx="256" cy="256" r="174" fill="none" stroke="#e5b94f" stroke-opacity=".2" stroke-width="18"/><path d="M126 183h194l-32-32 27-27 78 78-78 78-27-27 32-32H126z" fill="url(#g)"/><path d="M386 329H192l32 32-27 27-78-78 78-78 27 27-32 32h194z" fill="#e5b94f"/><rect x="181" y="181" width="150" height="150" rx="42" fill="#fff" fill-opacity=".97"/><text x="256" y="279" text-anchor="middle" font-family="Arial,sans-serif" font-size="78" font-weight="900" letter-spacing="-8" fill="#071c2c">SC</text></svg>`;
 
 function serviceWorker() {
   return `const VERSION=${JSON.stringify(VERSION)};
-const CACHE='senecompare-shell-'+VERSION;
-const ASSETS=['/','/manifest.webmanifest?v='+VERSION,'/icon.svg?v='+VERSION];
-self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(ASSETS)).catch(()=>{}));});
-self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('senecompare-shell-')&&key!==CACHE).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
+const SHELL='senecompare-shell-'+VERSION;
+const RUNTIME='senecompare-runtime-'+VERSION;
+const PRECACHE=['/','/styles.css?v='+VERSION,'/app.js?v='+VERSION,'/manifest.webmanifest?v='+VERSION,'/icon.svg?v='+VERSION];
+self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(SHELL).then(cache=>cache.addAll(PRECACHE)).catch(()=>{}));});
+self.addEventListener('activate',event=>{event.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(key=>key.startsWith('senecompare-')&&![SHELL,RUNTIME].includes(key)).map(key=>caches.delete(key)))).then(()=>self.clients.claim()));});
 self.addEventListener('message',event=>{if(event.data==='SKIP_WAITING')self.skipWaiting();});
-self.addEventListener('fetch',event=>{const request=event.request,url=new URL(request.url);if(request.method!=='GET'||url.origin!==self.location.origin)return;if(url.pathname.startsWith('/api/')||url.pathname.startsWith('/__')){event.respondWith(fetch(request,{cache:'no-store'}));return;}if(request.mode==='navigate'){event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(CACHE).then(cache=>cache.put('/',copy)));}return response;}).catch(()=>caches.match('/')));return;}event.respondWith(caches.match(request).then(cached=>cached||fetch(request)));});`;
+self.addEventListener('fetch',event=>{const request=event.request,url=new URL(request.url);if(request.method!=='GET'||url.origin!==self.location.origin)return;if(url.pathname.startsWith('/api/')||url.pathname.startsWith('/__')){event.respondWith(fetch(request,{cache:'no-store'}));return;}if(request.mode==='navigate'){event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(SHELL).then(cache=>cache.put('/',copy)));}return response;}).catch(()=>caches.match('/')));return;}event.respondWith(caches.match(request).then(cached=>{const network=fetch(request).then(response=>{if(response.ok){const copy=response.clone();event.waitUntil(caches.open(RUNTIME).then(cache=>cache.put(request,copy)));}return response;});return cached||network;}));});`;
 }
 
 function baseHeaders(contentType, cacheControl = 'no-store') {
@@ -53,14 +57,15 @@ function baseHeaders(contentType, cacheControl = 'no-store') {
     'X-Frame-Options': 'DENY',
     'Permissions-Policy': 'camera=(), geolocation=(self), microphone=(self), payment=(), usb=(), serial=(), bluetooth=()',
     'Cross-Origin-Opener-Policy': 'same-origin',
+    'Origin-Agent-Cluster': '?1',
     'X-SeneCompare-Version': VERSION,
-    'X-SeneCompare-Frontend': 'cloudflare-zero-trust-facade',
+    'X-SeneCompare-Frontend': 'cloudflare-zero-trust-v5',
   });
   if (contentType.startsWith('text/html')) {
     headers.set('Cross-Origin-Resource-Policy', 'same-origin');
     headers.set('Content-Security-Policy', [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' https://static.cloudflareinsights.com",
+      "script-src 'self' https://static.cloudflareinsights.com",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob: https:",
       "connect-src 'self'",
@@ -74,9 +79,7 @@ function baseHeaders(contentType, cacheControl = 'no-store') {
       "frame-ancestors 'none'",
       'upgrade-insecure-requests',
     ].join('; '));
-  } else {
-    headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
-  }
+  } else headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
   return headers;
 }
 
@@ -96,66 +99,42 @@ function apiSuffix(pathname) {
 }
 
 async function proxyApi(request, url) {
-  const target = new URL(`${GATEWAY_UPSTREAM}${apiSuffix(url.pathname)}${url.search}`);
+  const target = new URL(`${GATEWAY}${apiSuffix(url.pathname)}${url.search}`);
   const headers = new Headers({
-    Accept: request.headers.get('Accept') || 'application/json',
-    'Content-Type': request.headers.get('Content-Type') || 'application/json',
+    Accept: request.headers.get('Accept') || '*/*',
     Origin: CANONICAL_ORIGIN,
     'X-Client-Version': request.headers.get('X-Client-Version') || `senecompare-domain-${VERSION}`,
     'User-Agent': request.headers.get('User-Agent') || `SeneCompareDomain/${VERSION}`,
   });
+  const contentType = request.headers.get('Content-Type');
+  if (contentType) headers.set('Content-Type', contentType);
   const ip = request.headers.get('CF-Connecting-IP');
   if (ip) headers.set('X-Forwarded-For', ip);
 
   let upstream;
   try {
+    const timeout = url.pathname.includes('/voice/') ? 65_000 : url.pathname.endsWith('/search') ? 58_000 : 20_000;
     upstream = await fetch(target, {
       method: request.method,
       headers,
       body: ['GET', 'HEAD'].includes(request.method) ? undefined : request.body,
       redirect: 'manual',
-      signal: AbortSignal.timeout(url.pathname.endsWith('/search') ? 58_000 : 20_000),
+      signal: AbortSignal.timeout(timeout),
     });
   } catch (error) {
     console.error(JSON.stringify({ event: 'senecompare_gateway_unavailable', detail: String(error) }));
     return json({ ok: false, code: 'GATEWAY_UNAVAILABLE', message: 'Le moteur est momentanément indisponible.' }, 503, { 'Retry-After': '30' });
   }
 
-  const responseHeaders = baseHeaders(upstream.headers.get('Content-Type') || 'application/json; charset=utf-8', 'no-store');
-  const serverTiming = upstream.headers.get('Server-Timing');
-  const retryAfter = upstream.headers.get('Retry-After');
-  if (serverTiming) responseHeaders.set('Server-Timing', serverTiming);
-  if (retryAfter) responseHeaders.set('Retry-After', retryAfter);
+  const responseHeaders = baseHeaders(upstream.headers.get('Content-Type') || 'application/octet-stream', 'no-store');
+  for (const name of ['Server-Timing', 'Retry-After', 'Content-Disposition', 'X-SeneCompare-Voice', 'X-SeneCompare-Version', 'X-SeneCompare-Engine-Version']) {
+    const value = upstream.headers.get(name);
+    if (value) responseHeaders.set(name, value);
+  }
   responseHeaders.set('X-SeneCompare-Gateway-Version', upstream.headers.get('X-SeneCompare-Version') || VERSION);
   responseHeaders.delete('Content-Length');
   responseHeaders.delete('Content-Encoding');
-  return new Response(request.method === 'HEAD' ? null : upstream.body, {
-    status: upstream.status,
-    statusText: upstream.statusText,
-    headers: responseHeaders,
-  });
-}
-
-async function serveApp(request) {
-  try {
-    const upstream = await fetch(`${APP_UPSTREAM}?v=${VERSION}`, {
-      method: request.method === 'HEAD' ? 'HEAD' : 'GET',
-      headers: {
-        Accept: 'text/html,application/xhtml+xml',
-        'User-Agent': request.headers.get('User-Agent') || `SeneCompareDomain/${VERSION}`,
-      },
-      redirect: 'follow',
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!upstream.ok) throw new Error(`app_${upstream.status}`);
-    const headers = baseHeaders('text/html; charset=utf-8', 'no-cache, no-store, must-revalidate');
-    headers.set('Link', `<${CANONICAL_ORIGIN}/>; rel="canonical"`);
-    headers.set('Content-Language', 'fr-SN');
-    return new Response(request.method === 'HEAD' ? null : upstream.body, { status: 200, headers });
-  } catch (error) {
-    console.error(JSON.stringify({ event: 'senecompare_app_unavailable', detail: String(error) }));
-    return text('SeneCompare est momentanément indisponible.', 'text/plain; charset=utf-8', 'no-store', 503);
-  }
+  return new Response(request.method === 'HEAD' ? null : upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: responseHeaders });
 }
 
 async function health(request) {
@@ -163,21 +142,17 @@ async function health(request) {
   const response = await proxyApi(probe, new URL(probe.url));
   if (!response.ok) return response;
   const value = await response.json().catch(() => ({}));
-  return json({
-    ...value,
-    ok: value.ok === true,
-    frontend_version: VERSION,
-    frontend: 'Cloudflare Zero Trust Facade',
-    same_origin_api: true,
-    checked_at: new Date().toISOString(),
-  }, value.ok === true ? 200 : 503);
+  return json({ ...value, ok: value.ok === true, frontend_version: VERSION, frontend: 'Cloudflare Local Assets v5', same_origin_api: true, checked_at: new Date().toISOString() }, value.ok === true ? 200 : 503);
+}
+
+function fallbackPage() {
+  return `<!doctype html><html lang="fr-SN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#071c2c"><title>SeneCompare AI</title><style>body{font-family:system-ui;margin:0;background:#f3f7f7;color:#071c2c;display:grid;place-items:center;min-height:100vh}.card{max-width:520px;margin:20px;padding:30px;border-radius:24px;background:white;box-shadow:0 20px 60px #071c2c22;text-align:center}a{display:inline-block;padding:13px 18px;border-radius:12px;background:#0a9b78;color:white;text-decoration:none;font-weight:800}</style><div class="card"><h1>SeneCompare AI</h1><p>Le moteur fonctionne, mais l’interface principale se recharge. Réessayez immédiatement.</p><a href="/?v=${VERSION}">Recharger l’application</a><small hidden>Version ${VERSION}</small></div></html>`;
 }
 
 export default {
   async fetch(request) {
     const url = new URL(request.url);
     if (!METHODS.has(request.method)) return json({ ok: false, code: 'METHOD_NOT_ALLOWED' }, 405, { Allow: 'GET, HEAD, POST, OPTIONS' });
-
     if (request.method === 'OPTIONS') {
       const headers = baseHeaders('text/plain; charset=utf-8', 'public, max-age=86400');
       headers.set('Access-Control-Allow-Origin', CANONICAL_ORIGIN);
@@ -186,7 +161,6 @@ export default {
       headers.set('Access-Control-Max-Age', '86400');
       return new Response(null, { status: 204, headers });
     }
-
     if (url.pathname.startsWith('/api/')) return proxyApi(request, url);
     if (url.pathname === '/__health') return health(request);
     if (url.pathname === '/manifest.webmanifest') return text(JSON.stringify(MANIFEST), 'application/manifest+json; charset=utf-8', 'no-cache, must-revalidate');
@@ -204,7 +178,6 @@ export default {
     }
     if (url.pathname === '/robots.txt') return text('User-agent: *\nAllow: /\nSitemap: https://senecompare.dakarstyle.com/sitemap.xml\n', 'text/plain; charset=utf-8', 'public, max-age=3600');
     if (url.pathname === '/sitemap.xml') return text(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${CANONICAL_ORIGIN}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url></urlset>`, 'application/xml; charset=utf-8', 'public, max-age=3600');
-
-    return serveApp(request);
+    return text(fallbackPage(), 'text/html; charset=utf-8', 'no-cache, no-store, must-revalidate');
   },
 };

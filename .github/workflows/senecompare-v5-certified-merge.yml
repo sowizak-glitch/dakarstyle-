@@ -1,0 +1,92 @@
+name: SeneCompare v5 certified merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  actions: read
+  checks: read
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: senecompare-v5-certified-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  certify-and-merge:
+    if: >-
+      github.event.pull_request.head.ref == 'feat/senecompare-v5-hybrid-search' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Wait for all v5 certification gates
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const required = new Set(['contract', 'field-search-matrix', 'browser-journey']);
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const sha = context.payload.pull_request.head.sha;
+            const deadline = Date.now() + 22 * 60 * 1000;
+
+            while (Date.now() < deadline) {
+              const response = await github.paginate(github.rest.checks.listForRef, {
+                owner,
+                repo,
+                ref: sha,
+                per_page: 100,
+              });
+              const latest = new Map();
+              for (const check of response) {
+                if (!required.has(check.name)) continue;
+                const previous = latest.get(check.name);
+                if (!previous || new Date(check.started_at || check.created_at) > new Date(previous.started_at || previous.created_at)) {
+                  latest.set(check.name, check);
+                }
+              }
+
+              const summary = [...required].map((name) => {
+                const check = latest.get(name);
+                return `${name}:${check?.status || 'missing'}/${check?.conclusion || '-'}`;
+              }).join(' | ');
+              core.info(summary);
+
+              const failed = [...required].find((name) => {
+                const check = latest.get(name);
+                return check?.status === 'completed' && check?.conclusion !== 'success';
+              });
+              if (failed) throw new Error(`Certification gate failed: ${failed}`);
+
+              const passed = [...required].every((name) => {
+                const check = latest.get(name);
+                return check?.status === 'completed' && check?.conclusion === 'success';
+              });
+              if (passed) {
+                core.notice('All SeneCompare v5 certification gates passed.');
+                return;
+              }
+              await new Promise((resolve) => setTimeout(resolve, 15000));
+            }
+            throw new Error('Timed out waiting for SeneCompare v5 certification gates.');
+
+      - name: Squash and merge the certified pull request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pull_number = context.payload.pull_request.number;
+            const sha = context.payload.pull_request.head.sha;
+            const result = await github.rest.pulls.merge({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number,
+              sha,
+              merge_method: 'squash',
+              commit_title: 'feat: deploy SeneCompare AI 5 hybrid local search',
+              commit_message: 'Certified by contracts, a 28-query Senegal field matrix, Samsung/desktop browser journeys, PWA checks, security checks and Wrangler dry-run.',
+            });
+            if (!result.data.merged) throw new Error(result.data.message || 'Certified merge failed.');
+            core.notice(`Merged PR #${pull_number}: ${result.data.sha}`);
