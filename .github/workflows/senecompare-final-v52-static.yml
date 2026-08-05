@@ -1,0 +1,36 @@
+name: SeneCompare final 5.2 static audit
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/senecompare-brand-*.js'
+      - 'src/senecompare-final-v52.js'
+      - 'src/senecompare-v5-router.js'
+      - 'senecompare/final-v52.*'
+      - 'tests/senecompare-final-v52-static-audit.mjs'
+      - '.github/workflows/senecompare-final-v52-static.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/senecompare-brand-*.js'
+      - 'src/senecompare-final-v52.js'
+      - 'src/senecompare-v5-router.js'
+      - 'senecompare/final-v52.*'
+      - 'tests/senecompare-final-v52-static-audit.mjs'
+      - '.github/workflows/senecompare-final-v52-static.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check tests/senecompare-final-v52-static-audit.mjs
+      - run: node tests/senecompare-final-v52-static-audit.mjs
