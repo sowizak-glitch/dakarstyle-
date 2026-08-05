@@ -1,0 +1,133 @@
+name: SeneCompare 5.2 general quality
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/senecompare-v52-router.js'
+      - 'src/index.js'
+      - 'src/router.js'
+      - 'senecompare/universal-v52.js'
+      - 'senecompare/universal-v52.css'
+      - 'senecompare/taxonomy-v52.json'
+      - 'tests/senecompare-v52-contract.mjs'
+      - '.github/workflows/senecompare-v52-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/senecompare-v52-router.js'
+      - 'src/index.js'
+      - 'src/router.js'
+      - 'senecompare/universal-v52.js'
+      - 'senecompare/universal-v52.css'
+      - 'senecompare/taxonomy-v52.json'
+      - 'tests/senecompare-v52-contract.mjs'
+      - '.github/workflows/senecompare-v52-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Validate syntax and taxonomy
+        run: |
+          set -euo pipefail
+          node --check src/senecompare-v52-router.js
+          node --check src/index.js
+          node --check src/router.js
+          node --check senecompare/universal-v52.js
+          node tests/senecompare-v52-contract.mjs
+          python3 -m json.tool senecompare/taxonomy-v52.json >/dev/null
+      - name: Reject secret material
+        run: |
+          set -euo pipefail
+          ! grep -REn '(service_role|sk-[A-Za-z0-9_-]{20,}|BEGIN (RSA|OPENSSH) PRIVATE KEY)' \
+            src/senecompare-v52-router.js senecompare/universal-v52.js senecompare/taxonomy-v52.json
+      - name: Wrangler dry run
+        run: npx --yes wrangler@4 deploy --dry-run --outdir /tmp/senecompare-v52
+
+  production-matrix:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Wait for UI 5.2.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in $(seq 1 45); do
+            headers=$(curl -fsSI "https://senecompare.dakarstyle.com/?deploy=${GITHUB_RUN_ID}" | tr -d '\r' || true)
+            if grep -qi '^x-senecompare-ui-version: 5.2.0$' <<<"$headers"; then exit 0; fi
+            sleep 15
+          done
+          echo 'SeneCompare UI 5.2.0 not detected' >&2
+          exit 1
+      - name: Validate PWA and universal taxonomy
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsS https://senecompare.dakarstyle.com/manifest.webmanifest -o manifest.json
+          curl -fsS https://senecompare.dakarstyle.com/__sc/taxonomy.json -o taxonomy.json
+          curl -fsS https://senecompare.dakarstyle.com/__sc/universal.js -o universal.js
+          python3 - <<'PY'
+          import json
+          manifest=json.load(open('manifest.json'))
+          taxonomy=json.load(open('taxonomy.json'))
+          assert manifest['name']=='SeneCompare'
+          assert manifest['display']=='standalone'
+          assert len(manifest.get('icons',[])) >= 2
+          items=[x for g in taxonomy['groups'] for x in g['items']]
+          assert len(items)>=35
+          assert any(x['id']=='agriculture' for x in items)
+          assert any(x['id']=='babysitting' for x in items)
+          PY
+          grep -q 'Touchez une image' universal.js
+      - name: Run 60-query Senegal matrix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, time, urllib.request
+          queries=[
+            'Mercedes occasion Dakar','iPhone Dakar','Samsung Galaxy','ordinateur portable','télévision','réfrigérateur','climatiseur','canapé','terrain Dakar','appartement Dakar',
+            'moto scooter','camion','pièces auto','vêtements','pharmacie','matériel médical','cours particuliers','formation informatique','nounou','ménage à domicile',
+            'livraison Dakar','déménagement','plombier','électricien','menuisier','maçon','jardinier','photographe','création site web','coiffeuse',
+            'covoiturage','location voiture','billet avion','restaurant','hôtel','assurance auto','matériel agricole','tracteur','chariot élévateur','fournitures bureau',
+            'caisse enregistreuse','groupe électrogène','panneaux solaires','caméra surveillance','outillage professionnel','machine couture','équipement restaurant','service nettoyage','jumtukaay beykat','jënde oto',
+            'transport manutention','matériaux construction','babysitting','service design','bien-être','autres services','énergie solaire','commerce marché','matériel pro','cours livraison'
+          ]
+          records=[]
+          for q in queries:
+            req=urllib.request.Request('https://senecompare.dakarstyle.com/api/search',data=json.dumps({'query':q,'q':q,'limit':12}).encode(),headers={'Content-Type':'application/json','Origin':'https://senecompare.dakarstyle.com'})
+            try:
+              with urllib.request.urlopen(req,timeout=25) as r: body=json.load(r)
+              results=body.get('results') or body.get('items') or body.get('offers') or []
+              records.append({'q':q,'count':len(results)})
+            except Exception as exc: records.append({'q':q,'count':0,'error':str(exc)})
+            time.sleep(.12)
+          json.dump(records,open('matrix.json','w'),ensure_ascii=False,indent=2)
+          zeros=[r for r in records if r['count']==0]
+          assert len(zeros)==0, zeros
+          print('60/60 searches returned a useful continuation')
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: senecompare-v52-production-${{ github.run_id }}
+          path: |
+            manifest.json
+            taxonomy.json
+            universal.js
+            matrix.json
+          if-no-files-found: warn
+          retention-days: 14
