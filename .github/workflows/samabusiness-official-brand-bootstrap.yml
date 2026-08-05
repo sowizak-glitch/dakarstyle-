@@ -1,0 +1,96 @@
+name: Build official SAMABUSINESS identity
+
+on:
+  push:
+    branches:
+      - fix/samabusiness-official-profile-icon
+    paths:
+      - '.tmp/samabusiness-official-v3/**'
+      - '.github/workflows/samabusiness-official-brand-bootstrap.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: samabusiness-official-brand-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  build-assets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout working branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/samabusiness-official-profile-icon
+          fetch-depth: 0
+          token: ${{ github.token }}
+
+      - name: Reconstruct and verify official artwork
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/samabusiness-brand assets/samabusiness
+          cat .tmp/samabusiness-official-v3/part-*.txt > /tmp/samabusiness-brand/source.b64
+          base64 --decode /tmp/samabusiness-brand/source.b64 > /tmp/samabusiness-brand/source.webp
+          test "$(wc -c < /tmp/samabusiness-brand/source.webp)" -eq 46086
+          echo 'a3ab5c757325759bcea9f860dd509d3519976ec4b154be6c50a5413885ca8f18  /tmp/samabusiness-brand/source.webp' | sha256sum --check
+
+      - name: Generate Android, Apple and profile assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --quiet 'Pillow==11.3.0'
+          python - <<'PY'
+          from pathlib import Path
+          from PIL import Image, ImageOps
+
+          source = Image.open('/tmp/samabusiness-brand/source.webp').convert('RGB')
+          if source.size != (512, 512):
+              raise SystemExit(f'Unexpected source dimensions: {source.size}')
+
+          output = Path('assets/samabusiness')
+          output.mkdir(parents=True, exist_ok=True)
+          source.save(output / 'samabusiness-official-512.webp', 'WEBP', quality=90, method=6)
+
+          sizes = {
+              'samabusiness-official-512.png': 512,
+              'samabusiness-official-profile-256.png': 256,
+              'samabusiness-official-192.png': 192,
+              'samabusiness-official-apple-180.png': 180,
+              'samabusiness-official-favicon-64.png': 64,
+          }
+          for filename, size in sizes.items():
+              resized = source.resize((size, size), Image.Resampling.LANCZOS)
+              resized.save(output / filename, 'PNG', optimize=True)
+
+          maskable = Image.new('RGB', (512, 512), '#071a32')
+          safe = source.resize((410, 410), Image.Resampling.LANCZOS)
+          maskable.paste(safe, ((512 - 410) // 2, (512 - 410) // 2))
+          maskable.save(output / 'samabusiness-official-maskable-512.png', 'PNG', optimize=True)
+
+          for path in output.glob('samabusiness-official-*'):
+              image = Image.open(path)
+              if image.width != image.height:
+                  raise SystemExit(f'Non-square identity asset: {path}')
+              print(path, image.size, path.stat().st_size)
+          PY
+
+      - name: Remove temporary transfer files
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .tmp/samabusiness-logo .tmp/samabusiness-official .tmp/samabusiness-official-v2 .tmp/samabusiness-official-v3
+          rm -f .github/workflows/samabusiness-official-brand-bootstrap.yml
+
+      - name: Commit official identity assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A assets/samabusiness .tmp .github/workflows/samabusiness-official-brand-bootstrap.yml
+          git commit -m 'brand: install official SAMABUSINESS app identity assets'
+          git push origin HEAD:fix/samabusiness-official-profile-icon
