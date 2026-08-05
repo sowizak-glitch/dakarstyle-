@@ -1,5 +1,5 @@
 import application from './worker-entry.js';
-import senecompare from './senecompare-domain.js';
+import senecompare from './senecompare-connected.js';
 
 const SENECOMPARE_HOSTS = new Set([
   'senecompare.dakarstyle.com',
