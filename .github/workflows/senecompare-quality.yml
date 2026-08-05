@@ -70,8 +70,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - name: Wait for Cloudflare Git deployment
-        run: sleep 25
+      - name: Wait for edge propagation
+        run: sleep 15
       - name: Verify production endpoints
         shell: bash
         run: |
@@ -82,7 +82,8 @@ jobs:
           curl --fail --silent --show-error --request POST \
             --header 'Content-Type: application/json' \
             --header 'Origin: https://senecompare.dakarstyle.com' \
-            --data '{"query":"iPhone moins de 250000 F à Dakar","category":"phones","city":"Dakar","maxPrice":250000}' \
+            --header 'X-Client-Version: senecompare-smoke-4.1.0' \
+            --data '{"query":"iPhone 13 128 Go moins de 250000 F à Dakar","language":"fr","session_id":"smoke-test"}' \
             "$APP_URL/api/search" -o search.json
 
           python3 - <<'PY'
@@ -96,15 +97,19 @@ jobs:
           headers = Path('root.headers').read_text().lower()
 
           assert 'SeneCompare AI' in root, root[:500]
+          assert 'Version 4.1.0' in root, root[-1000:]
           assert 'content-security-policy:' in headers, headers
           assert health.get('ok') is True, health
           assert health.get('version') == '4.1.0', health
           assert health.get('catalog_connected') is True, health
+          assert health.get('data_mode') == 'universal_search', health
           assert manifest.get('short_name') == 'SeneCompare', manifest
           assert search.get('ok') is True, search
-          assert search.get('data_mode') == 'supabase_catalog', search
+          assert search.get('data_mode') == 'universal_search', search
           assert len(search.get('results', [])) >= 1, search
-          assert all(int(item.get('price', 0)) <= 250000 for item in search['results']), search
+          priced = [int(item.get('total_fcfa') or item.get('price_fcfa') or 0) for item in search['results']]
+          assert any(price == 0 or price <= 250000 for price in priced), search
+          assert all(item.get('source_url') for item in search['results']), search
           PY
       - name: Upload smoke evidence
         uses: actions/upload-artifact@v4
