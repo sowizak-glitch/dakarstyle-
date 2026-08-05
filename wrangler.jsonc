@@ -1,10 +1,14 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dakarstyle",
-  "main": "src/worker-entry.js",
+  "main": "src/router.js",
   "compatibility_date": "2026-05-21",
   "observability": {
     "enabled": true
+  },
+  "vars": {
+    "SENECOMPARE_SUPABASE_URL": "https://xmdpmtvieqgoorbxytey.supabase.co",
+    "SENECOMPARE_SUPABASE_ANON_KEY": "sb_publishable_NVbWUoS1b6BgfWaRSJlRVw_iU7fuqwO"
   },
   "routes": [
     {
@@ -21,6 +25,10 @@
     },
     {
       "pattern": "samabusiness.dakarstyle.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "senecompare.dakarstyle.com",
       "custom_domain": true
     }
   ],

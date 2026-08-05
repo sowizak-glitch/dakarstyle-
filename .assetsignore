@@ -8,3 +8,9 @@ README.md
 Dakarstyle store
 admin.html
 wrangler.jsonc
+src
+src/**
+supabase
+supabase/**
+tests
+tests/**

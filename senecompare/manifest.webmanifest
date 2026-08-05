@@ -1,0 +1,41 @@
+{
+  "id": "https://senecompare.dakarstyle.com/",
+  "name": "SeneCompare AI",
+  "short_name": "SeneCompare",
+  "description": "Comparez les prix au Sénégal avec sources, fraîcheur et confiance visibles.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#f5f8f9",
+  "theme_color": "#071c2c",
+  "lang": "fr-SN",
+  "dir": "ltr",
+  "orientation": "portrait-primary",
+  "categories": ["shopping", "utilities", "business"],
+  "icons": [
+    {
+      "src": "/icon.svg?v=4.0.0",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Comparer un téléphone",
+      "short_name": "Téléphone",
+      "url": "/?category=phones&source=shortcut"
+    },
+    {
+      "name": "Comparer une voiture",
+      "short_name": "Voiture",
+      "url": "/?category=cars&source=shortcut"
+    },
+    {
+      "name": "Mes favoris",
+      "short_name": "Favoris",
+      "url": "/?view=favorites&source=shortcut"
+    }
+  ]
+}

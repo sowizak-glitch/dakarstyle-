@@ -1,4 +1,4 @@
-import application from './index.js';
+import application from './legacy-index.js';
 
 const SAMABUSINESS_HOSTS = new Set([
   'samabusiness.dakarstyle.com',
