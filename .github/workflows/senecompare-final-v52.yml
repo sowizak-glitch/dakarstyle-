@@ -1,0 +1,233 @@
+name: SeneCompare final 5.2 delivery
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/senecompare-brand-*.js'
+      - 'src/senecompare-final-v52.js'
+      - 'src/senecompare-v5-router.js'
+      - 'senecompare/final-v52.*'
+      - 'tests/senecompare-final-v52-contract.mjs'
+      - '.github/workflows/senecompare-final-v52.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/senecompare-brand-*.js'
+      - 'src/senecompare-final-v52.js'
+      - 'src/senecompare-v5-router.js'
+      - 'senecompare/final-v52.*'
+      - 'tests/senecompare-final-v52-contract.mjs'
+      - '.github/workflows/senecompare-final-v52.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  APP_URL: https://senecompare.dakarstyle.com
+
+jobs:
+  final-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate final JavaScript
+        run: |
+          set -euo pipefail
+          node --check src/senecompare-brand-icon192.js
+          node --check src/senecompare-brand-icon512.js
+          node --check src/senecompare-brand-v52.js
+          node --check src/senecompare-final-v52.js
+          node --check src/senecompare-v5-router.js
+          node --check senecompare/final-v52.js
+          node --check tests/senecompare-final-v52-contract.mjs
+      - name: Run final release contract
+        run: node tests/senecompare-final-v52-contract.mjs
+      - name: Verify generalized Senegal universes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for marker in 'Covoiturage' 'Babysitting' 'Matériel agricole' 'Panneaux solaires' 'Finance & assurance' 'Travaux & artisans' 'Immobilier' 'Voyages'; do
+            grep -Fq "$marker" senecompare/final-v52.js
+          done
+          grep -q "SENECOMPARE_RELEASE = '5.2.0'" src/senecompare-brand-v52.js
+          grep -q "official-senegal-logo" src/senecompare-final-v52.js
+          grep -q "import frontend from './senecompare-final-v52.js'" src/senecompare-v5-router.js
+      - name: Validate Cloudflare bundle
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-final-v52
+      - name: Guard against secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE '(SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=|sk-[A-Za-z0-9_-]{20,}|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' \
+            src/senecompare-brand-*.js src/senecompare-final-v52.js senecompare/final-v52.*; then
+            echo 'Potential secret found in final SeneCompare files.' >&2
+            exit 1
+          fi
+
+  production-certification:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: final-contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Wait for final Cloudflare deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=false
+          for attempt in $(seq 1 40); do
+            status=$(curl -sS -H 'Cache-Control: no-cache' -o root.html -D root.headers -w '%{http_code}' --max-time 30 "$APP_URL/?v=520&deploy=$GITHUB_RUN_ID" || true)
+            if [ "$status" = 200 ] \
+              && grep -qi '^x-senecompare-release: 5.2.0' root.headers \
+              && grep -q 'Release 5.2.0' root.html \
+              && grep -q '/profile.webp?v=520' root.html \
+              && grep -q '/final-v52.js?v=520' root.html; then
+              ready=true
+              echo 'SeneCompare final 5.2 is live.'
+              break
+            fi
+            echo "Waiting for deployment ($attempt/40), status=$status"
+            sleep 10
+          done
+          test "$ready" = true
+
+      - name: Capture PWA and final assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --dump-header manifest.headers "$APP_URL/manifest.webmanifest?v=520" -o manifest.json
+          curl --fail --silent --show-error --dump-header sw.headers "$APP_URL/sw.js?v=520" -o sw.js
+          curl --fail --silent --show-error --dump-header icon192.headers "$APP_URL/icon-192.webp?v=520" -o icon-192.webp
+          curl --fail --silent --show-error --dump-header icon512.headers "$APP_URL/icon-512.webp?v=520" -o icon-512.webp
+          curl --fail --silent --show-error --dump-header profile.headers "$APP_URL/profile.webp?v=520" -o profile.webp
+          curl --fail --silent --show-error --dump-header finaljs.headers "$APP_URL/final-v52.js?v=520" -o final-v52.js
+          curl --fail --silent --show-error --dump-header finalcss.headers "$APP_URL/final-v52.css?v=520" -o final-v52.css
+          curl --fail --silent --show-error --dump-header health.headers "$APP_URL/api/health" -o health.json
+
+      - name: Run generalized production searches
+        shell: bash
+        run: |
+          set -euo pipefail
+          queries=(
+            'Mercedes automatique moins de 8000000 F à Dakar'
+            'Nounou babysitting à Dakar'
+            'Panneaux solaires avec batterie à Thiès'
+            'Matériel agricole tracteur à Kaolack'
+            'Plombier électricien à Mbour'
+          )
+          index=0
+          for query in "${queries[@]}"; do
+            index=$((index+1))
+            python3 - "$query" > "request-$index.json" <<'PY'
+          import json, sys
+          print(json.dumps({
+              'query': sys.argv[1],
+              'language': 'fr',
+              'session_id': f'final-v52-{sys.argv[1][:12]}',
+              'city': 'Sénégal',
+              'category': 'all'
+          }, ensure_ascii=False))
+          PY
+            curl --fail --silent --show-error --max-time 65 \
+              --request POST \
+              --header 'Content-Type: application/json' \
+              --header 'Origin: https://senecompare.dakarstyle.com' \
+              --header 'X-Client-Version: senecompare-final-5.2.0' \
+              --data-binary "@request-$index.json" \
+              "$APP_URL/api/search" -o "search-$index.json"
+          done
+
+      - name: Validate turnkey production evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root = Path('root.html').read_text(errors='replace')
+          root_headers = Path('root.headers').read_text().lower()
+          manifest = json.loads(Path('manifest.json').read_text())
+          health = json.loads(Path('health.json').read_text())
+          sw = Path('sw.js').read_text(errors='replace')
+          final_js = Path('final-v52.js').read_text(errors='replace')
+
+          assert 'x-senecompare-release: 5.2.0' in root_headers
+          assert 'x-senecompare-brand: official-senegal-logo' in root_headers
+          assert 'Release 5.2.0' in root
+          assert '/profile.webp?v=520' in root
+          assert '/final-v52.css?v=520' in root
+          assert '/final-v52.js?v=520' in root
+          assert 'id="installButton"' in root
+          assert 'SeneCompare <em>Sénégal</em>' in root
+
+          assert manifest['name'] == 'SeneCompare Sénégal'
+          assert manifest['short_name'] == 'SeneCompare'
+          assert manifest['display'] == 'standalone'
+          assert manifest['start_url'] == '/?source=pwa&v=5'
+          assert any(icon.get('sizes') == '192x192' and icon.get('type') == 'image/webp' for icon in manifest['icons'])
+          assert any(icon.get('sizes') == '512x512' and icon.get('purpose') == 'maskable' for icon in manifest['icons'])
+          assert any(item.get('short_name') == 'Services' for item in manifest['shortcuts'])
+
+          for name in ['icon-192.webp', 'icon-512.webp', 'profile.webp']:
+              data = Path(name).read_bytes()
+              assert len(data) > 4000, (name, len(data))
+              assert data[:4] == b'RIFF', name
+          assert 'image/webp' in Path('icon192.headers').read_text().lower()
+          assert 'image/webp' in Path('icon512.headers').read_text().lower()
+          assert 'image/webp' in Path('profile.headers').read_text().lower()
+
+          assert '__SENECOMPARE_RELEASE__="5.2.0"' in sw
+          for marker in ['Covoiturage', 'Babysitting', 'Matériel agricole', 'Panneaux solaires', '__SENECOMPARE_FINAL__']:
+              assert marker in final_js, marker
+
+          assert health.get('ok') is True
+          assert health.get('version') == '5.1.0'
+          assert health.get('engine_version') == '5.0.0'
+          assert health.get('catalog_connected') is True
+
+          for index in range(1, 6):
+              search = json.loads(Path(f'search-{index}.json').read_text())
+              assert search.get('ok') is True, (index, search)
+              results = search.get('results', [])
+              assert len(results) >= 1, (index, search)
+              assert search.get('meta', {}).get('guaranteed_continuity') is True, (index, search)
+              assert all(str(item.get('source_url', '')).startswith(('http://', 'https://')) for item in results), (index, results)
+              assert all(item.get('result_type') in ('offer', 'source') for item in results), (index, results)
+          print('SeneCompare final 5.2 production certification passed')
+          PY
+
+      - name: Upload final delivery evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: senecompare-final-v52-production-${{ github.run_id }}
+          path: |
+            root.html
+            root.headers
+            manifest.json
+            manifest.headers
+            sw.js
+            sw.headers
+            icon-192.webp
+            icon192.headers
+            icon-512.webp
+            icon512.headers
+            profile.webp
+            profile.headers
+            final-v52.js
+            finaljs.headers
+            final-v52.css
+            finalcss.headers
+            health.json
+            health.headers
+            request-*.json
+            search-*.json
+          if-no-files-found: warn
+          retention-days: 30
