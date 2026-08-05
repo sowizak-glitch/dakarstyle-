@@ -1,4 +1,4 @@
-import application from './worker-entry.js';
+import application from './samabusiness-final.js';
 import senecompare from './senecompare-v5-router.js';
 
 const SENECOMPARE_HOSTS = new Set([
