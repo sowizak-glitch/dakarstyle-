@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
 const APP_URL = process.env.SENECOMPARE_URL || 'https://senecompare.dakarstyle.com';
+const ORIGIN = 'https://senecompare.dakarstyle.com';
 const queries = [
   ['Téléphones', 'telephone'],
   ['Téléphone Samsung moins de 150000 F à Dakar', 'telephone'],
@@ -42,7 +43,14 @@ async function request(path, options = {}, timeout = 70000) {
   }
 }
 
-const healthResponse = await request('/api/health', { headers: { 'cache-control': 'no-cache' } }, 20000);
+const healthResponse = await request('/api/health', {
+  headers: {
+    accept: 'application/json',
+    origin: ORIGIN,
+    'cache-control': 'no-cache',
+    'x-client-version': 'senecompare-v5-field-matrix',
+  },
+}, 20000);
 assert.equal(healthResponse.status, 200);
 const health = await healthResponse.json();
 assert.equal(health.ok, true);
@@ -59,7 +67,7 @@ for (const [query, expectedCategory] of queries) {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      origin: 'https://senecompare.dakarstyle.com',
+      origin: ORIGIN,
       'x-client-version': 'senecompare-v5-field-matrix',
     },
     body: JSON.stringify({ query, language: 'bi', session_id: 'v5-field-matrix' }),
