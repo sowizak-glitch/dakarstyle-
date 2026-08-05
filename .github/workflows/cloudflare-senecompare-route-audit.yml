@@ -1,0 +1,116 @@
+name: Cloudflare SeneCompare route audit
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/cloudflare-senecompare-route-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  TARGET_HOST: senecompare.dakarstyle.com
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Confirm Cloudflare credentials are configured
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo 'Cloudflare repository secrets are not configured for this workflow.' >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
+      - name: Resolve custom-domain owner
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTH="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
+          curl --fail --silent --show-error \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/domains?hostname=${TARGET_HOST}" \
+            -H "$AUTH" -o domains.json
+          curl --fail --silent --show-error \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts" \
+            -H "$AUTH" -o scripts.json
+
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          target = os.environ['TARGET_HOST']
+          domains = json.loads(Path('domains.json').read_text())
+          scripts = json.loads(Path('scripts.json').read_text())
+          assert domains.get('success') is True, domains.get('errors')
+          assert scripts.get('success') is True, scripts.get('errors')
+          matches = [row for row in domains.get('result', []) if row.get('hostname') == target]
+          assert matches, f'No Worker custom domain found for {target}'
+          owner = matches[0].get('service')
+          assert owner, matches[0]
+          known = {row.get('id') for row in scripts.get('result', [])}
+          assert owner in known, f'Custom-domain owner {owner!r} is not present in Workers script list'
+          Path('owner.txt').write_text(owner)
+          print(f'Cloudflare custom domain owner: {owner}')
+          with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:
+              summary.write('## SeneCompare Cloudflare route ownership\n\n')
+              summary.write(f'- Hostname: `{target}`\n')
+              summary.write(f'- Worker service: `{owner}`\n')
+              summary.write(f'- Domain ID: `{matches[0].get("id", "unknown")}`\n')
+              summary.write(f'- Zone: `{matches[0].get("zone_name", "unknown")}`\n')
+          PY
+
+      - name: Inspect active Worker safely
+        shell: bash
+        run: |
+          set -euo pipefail
+          OWNER=$(cat owner.txt)
+          AUTH="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
+          curl --fail --silent --show-error \
+            "https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${OWNER}" \
+            -H "$AUTH" -D worker.headers -o worker.download
+
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          owner = Path('owner.txt').read_text().strip()
+          headers = Path('worker.headers').read_text(errors='replace')
+          raw = Path('worker.download').read_bytes()
+          text = raw.decode('utf-8', errors='replace')
+          markers = {
+              'contains_gateway_url': 'senecompare-gateway' in text,
+              'contains_old_version': '3.0.3' in text,
+              'contains_embedded_html': '<!doctype html' in text.lower() or 'APP_GZIP_B64' in text,
+              'contains_skip_waiting': 'SKIP_WAITING' in text,
+          }
+          content_type = next((line.split(':',1)[1].strip() for line in headers.splitlines() if line.lower().startswith('content-type:')), 'unknown')
+          with Path(os.environ['GITHUB_STEP_SUMMARY']).open('a') as summary:
+              summary.write('\n## Active Worker inspection\n\n')
+              summary.write(f'- Service: `{owner}`\n')
+              summary.write(f'- Response content type: `{content_type}`\n')
+              summary.write(f'- Download size: `{len(raw)}` bytes\n')
+              for key, value in markers.items():
+                  summary.write(f'- {key}: `{str(value).lower()}`\n')
+          print({'service': owner, 'content_type': content_type, 'size': len(raw), **markers})
+          PY
+
+      - name: Upload sanitized audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-senecompare-route-audit
+          path: |
+            owner.txt
+            domains.json
+            scripts.json
+            worker.headers
+          if-no-files-found: error
+          retention-days: 7
