@@ -1,4 +1,4 @@
-const VERSION = '5.0.1';
+const VERSION = '5.0.2';
 const UPSTREAM = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/senecompare-gateway';
 const PROD = 'https://senecompare.dakarstyle.com';
 const ALLOWED_ORIGINS = new Set([PROD, 'https://senecompare-ai.vercel.app', 'http://localhost:5173']);
@@ -66,7 +66,10 @@ async function proxy(request) {
   const url = new URL(request.url);
   const target = new URL(`${UPSTREAM}${upstreamPath(url)}${url.search}`);
   const headers = new Headers();
-  for (const name of ['accept', 'content-type', 'x-client-version', 'user-agent', 'origin', 'x-forwarded-for', 'cf-connecting-ip']) {
+  // This router has already validated the browser Origin. The internal
+  // gateway intentionally accepts server-to-server traffic without Origin,
+  // which prevents a second, incorrect CORS rejection inside Supabase.
+  for (const name of ['accept', 'content-type', 'x-client-version', 'user-agent', 'x-forwarded-for', 'cf-connecting-ip']) {
     const value = request.headers.get(name);
     if (value) headers.set(name, value);
   }
