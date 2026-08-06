@@ -1,9 +1,10 @@
 (() => {
   'use strict';
   const contactEmail = 'hellodakarstyle@gmail.com';
+  const mediaRevision = '541';
   const visuals = {
-    'sowhat-africa-culture': ['/media/sowhat-africa-campaign.jpg', 'Collection Sowhat Africa portée par trois jeunes Sénégalais à Dakar', 'center 34%'],
-    'samabusiness-launch': ['/media/samabusiness-campaign.webp', 'SamaBusiness, application sénégalaise de gestion commerciale', 'center'],
+    'sowhat-africa-culture': [`/media/sowhat-africa-campaign.jpg?v=${mediaRevision}`, 'Collection Sowhat Africa portée par trois jeunes Sénégalais à Dakar', 'center 34%'],
+    'samabusiness-launch': [`/media/samabusiness-campaign.webp?v=${mediaRevision}`, 'SamaBusiness, application sénégalaise de gestion commerciale', 'center'],
   };
 
   function updateCard(card) {
@@ -88,5 +89,5 @@
   new MutationObserver(enhance).observe(document.documentElement, { childList: true, subtree: true });
   document.addEventListener('DOMContentLoaded', enhance, { once: true });
   enhance();
-  window.__SENECOMPARE_PREMIUM_ADS__ = Object.freeze({ contact: contactEmail });
+  window.__SENECOMPARE_PREMIUM_ADS__ = Object.freeze({ contact: contactEmail, mediaRevision });
 })();
