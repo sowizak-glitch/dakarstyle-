@@ -31,58 +31,61 @@ permissions:
 
 env:
   APP_URL: https://senecompare.dakarstyle.com
-  SENECOMPARE_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/senecompare-gateway-v5
 
 jobs:
   contract:
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate JavaScript syntax
+      - name: Validate source and contracts
+        shell: bash
         run: |
+          set -euo pipefail
           node --check src/index.js
           node --check src/router.js
-          node --check src/senecompare.js
-          node --check src/senecompare-connected.js
-          node --check src/senecompare-domain.js
-          node --check src/senecompare-resilient.js
           node --check src/senecompare-v5-router.js
+          node --check src/senecompare-v541.js
           node --check senecompare/app.js
           node --check senecompare/sw.js
+          node --check senecompare/media-path-v541.js
           node --check tests/senecompare-v5-live-matrix.mjs
           node --check tests/senecompare-v5-browser-live.mjs
-      - name: Run SeneCompare base contract tests
-        run: node --experimental-default-type=module tests/senecompare-contract.mjs
-      - name: Run SeneCompare connected contract tests
-        run: node --experimental-default-type=module tests/senecompare-connected-contract.mjs
-      - name: Run SeneCompare v5 domain contract tests
-        run: node --experimental-default-type=module tests/senecompare-domain-contract.mjs
-      - name: Run SeneCompare v5 resilient frontend tests
-        run: node --experimental-default-type=module tests/senecompare-resilient-contract.mjs
-      - name: Validate PWA and install UI
+          node --check tests/senecompare-v541-contract.mjs
+          node --experimental-default-type=module tests/senecompare-contract.mjs
+          node --experimental-default-type=module tests/senecompare-connected-contract.mjs
+          node --experimental-default-type=module tests/senecompare-domain-contract.mjs
+          node --experimental-default-type=module tests/senecompare-resilient-contract.mjs
+          node tests/senecompare-v541-contract.mjs
+      - name: Validate PWA, voice and current release
+        shell: bash
         run: |
-          node -e "const m=JSON.parse(require('fs').readFileSync('senecompare/manifest.webmanifest','utf8'));if(m.display!=='standalone'||m.start_url!=='/?source=pwa&v=5')process.exit(1);console.log('Manifest v5 valid')"
+          set -euo pipefail
+          node -e "const m=JSON.parse(require('fs').readFileSync('senecompare/manifest.webmanifest','utf8'));if(m.display!=='standalone'||m.start_url!=='/?source=pwa&v=5')process.exit(1)"
           grep -q 'id="installButton"' senecompare/index.html
           grep -q 'id="heroInstallButton"' senecompare/index.html
-          grep -q "beforeinstallprompt" senecompare/app.js
-          grep -q "Sur l’écran d’accueil" senecompare/app.js
-          grep -q "/api/voice/transcribe" senecompare/app.js
-          grep -q "/api/voice/speech" senecompare/app.js
-          grep -q "speechSynthesis" senecompare/app.js
+          grep -q 'beforeinstallprompt' senecompare/app.js
+          grep -q 'Sur l’écran d’accueil' senecompare/app.js
+          grep -q '/api/voice/transcribe' senecompare/app.js
+          grep -q '/api/voice/speech' senecompare/app.js
+          grep -q 'speechSynthesis' senecompare/app.js
           grep -q "const VERSION = '5.0.0'" senecompare/sw.js
-          grep -q "senecompare-gateway-v5" src/senecompare-v5-router.js
+          grep -q 'senecompare-gateway-v5' src/senecompare-v5-router.js
           grep -q "const VERSION = '5.1.0'" supabase/functions/senecompare-gateway-v5/index.ts
-          grep -q "target = state.locale === 'wo' ? 'wo-SN' : 'fr-SN'" src/senecompare-resilient.js
-      - name: Validate Wrangler configuration
-        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-out
-      - name: Guard against committed server secrets
+          grep -q "const RELEASE = '5.4.1'" src/senecompare-v541.js
+          grep -q '/media/v541/samabusiness-campaign.webp' senecompare/media-path-v541.js
+          grep -q '/media/v541/sowhat-africa-campaign.webp' senecompare/media-path-v541.js
+      - name: Validate Cloudflare bundle
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-quality
+      - name: Guard against committed secrets
+        shell: bash
         run: |
+          set -euo pipefail
           if grep -RInE '(SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=|sk-[A-Za-z0-9_-]{20,}|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' src/senecompare*.js senecompare supabase/functions/senecompare-* 2>/dev/null; then
-            echo 'Potential server secret found in SeneCompare source files.' >&2
+            echo 'Potential server secret found.' >&2
             exit 1
           fi
 
@@ -100,11 +103,10 @@ jobs:
         run: |
           set -euo pipefail
           node tests/senecompare-v5-live-matrix.mjs | tee senecompare-v5-matrix.json
-      - name: Upload field-search evidence
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: senecompare-v5-field-search-matrix
+          name: senecompare-field-search-${{ github.run_id }}
           path: senecompare-v5-matrix.json
           if-no-files-found: warn
           retention-days: 14
@@ -114,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 18
     env:
-      E2E_OUTPUT_DIR: test-results/senecompare-v5-browser
+      E2E_OUTPUT_DIR: test-results/senecompare-quality
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -126,12 +128,11 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Run Samsung and desktop journeys
         run: node tests/senecompare-v5-browser-live.mjs
-      - name: Upload browser evidence
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: senecompare-v5-browser-evidence
-          path: test-results/senecompare-v5-browser
+          name: senecompare-browser-${{ github.run_id }}
+          path: test-results/senecompare-quality
           if-no-files-found: warn
           retention-days: 14
 
@@ -139,37 +140,37 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [contract, field-search-matrix, browser-journey]
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
-      - name: Wait for Cloudflare production deployment
-        run: sleep 35
-      - name: Capture production endpoints
+      - name: Wait for current Cloudflare release
         shell: bash
         run: |
           set -euo pipefail
-          READY=false
-          for attempt in $(seq 1 25); do
-            ROOT=$(curl -sS -H 'Cache-Control: no-cache' -o root.html -D root.headers -w '%{http_code}' --max-time 30 "$APP_URL/?v=500" || true)
-            HEALTH=$(curl -sS -H 'Cache-Control: no-cache' -o health.json -D health.headers -w '%{http_code}' --max-time 30 "$APP_URL/api/health" || true)
-            MANIFEST=$(curl -sS -H 'Cache-Control: no-cache' -o manifest.json -D manifest.headers -w '%{http_code}' --max-time 30 "$APP_URL/manifest.webmanifest?v=5.0.0" || true)
-            SEARCH=$(curl -sS -o search.json -D search.headers -w '%{http_code}' --max-time 65 --request POST \
-              --header 'Content-Type: application/json' \
-              --header 'Origin: https://senecompare.dakarstyle.com' \
-              --header 'X-Client-Version: senecompare-smoke-5.0.0' \
-              --data '{"query":"iPhone 13 128 Go moins de 250000 F à Dakar","language":"fr","session_id":"smoke-test-v5"}' \
+          ready=false
+          for attempt in $(seq 1 40); do
+            root=$(curl -sS -H 'Cache-Control: no-cache' -o root.html -D root.headers -w '%{http_code}' --max-time 30 "$APP_URL/?v=541&quality=$GITHUB_RUN_ID" || true)
+            health=$(curl -sS -H 'Cache-Control: no-cache' -o health.json -D health.headers -w '%{http_code}' --max-time 30 "$APP_URL/api/health" || true)
+            manifest=$(curl -sS -H 'Cache-Control: no-cache' -o manifest.json -D manifest.headers -w '%{http_code}' --max-time 30 "$APP_URL/manifest.webmanifest?v=5.0.0" || true)
+            script=$(curl -sS -H 'Cache-Control: no-cache' -o media-path-v541.js -D media.headers -w '%{http_code}' --max-time 30 "$APP_URL/media-path-v541.js?v=541" || true)
+            search=$(curl -sS -o search.json -D search.headers -w '%{http_code}' --max-time 65 -X POST \
+              -H 'Content-Type: application/json' \
+              -H 'Origin: https://senecompare.dakarstyle.com' \
+              -H 'X-Client-Version: senecompare-quality-5.4.1' \
+              --data '{"query":"iPhone 13 128 Go moins de 250000 F à Dakar","language":"fr","session_id":"quality-v541"}' \
               "$APP_URL/api/search" || true)
-            if [ "$ROOT" = 200 ] && [ "$HEALTH" = 200 ] && [ "$MANIFEST" = 200 ] && [ "$SEARCH" = 200 ] \
-              && grep -q 'Version 5.0.0' root.html \
+            if [ "$root" = 200 ] && [ "$health" = 200 ] && [ "$manifest" = 200 ] && [ "$script" = 200 ] && [ "$search" = 200 ] \
+              && grep -q 'SeneCompare Sénégal' root.html \
               && grep -q 'id="installButton"' root.html \
-              && grep -qi '^x-senecompare-version: 5.0.0' root.headers; then
-              READY=true
+              && grep -q '/media-path-v541.js?v=541' root.html \
+              && grep -qi '^x-senecompare-release: 5.4.1' root.headers \
+              && grep -q 'physical-versioned-path' media-path-v541.js; then
+              ready=true
               break
             fi
-            echo "ATTEMPT=$attempt ROOT=$ROOT HEALTH=$HEALTH MANIFEST=$MANIFEST SEARCH=$SEARCH"
+            echo "Waiting ($attempt/40): root=$root health=$health manifest=$manifest script=$script search=$search"
             sleep 8
           done
-          test "$READY" = true
-
+          test "$ready" = true
       - name: Validate production evidence
         shell: bash
         run: |
@@ -177,15 +178,19 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
-          root = Path('root.html').read_text()
-          health = json.loads(Path('health.json').read_text())
-          manifest = json.loads(Path('manifest.json').read_text())
-          search = json.loads(Path('search.json').read_text())
-          headers = Path('root.headers').read_text().lower()
-          assert 'SeneCompare AI' in root
+          root=Path('root.html').read_text(errors='replace')
+          headers=Path('root.headers').read_text().lower()
+          health=json.load(open('health.json'))
+          manifest=json.load(open('manifest.json'))
+          search=json.load(open('search.json'))
+          assert 'SeneCompare Sénégal' in root
+          assert 'SeneCompare AI' not in root
           assert 'Version 5.0.0' in root
           assert 'id="installButton"' in root
+          assert '/media-path-v541.js?v=541' in root
           assert 'content-security-policy:' in headers
+          assert 'x-senecompare-release: 5.4.1' in headers
+          assert 'x-senecompare-media-path: physical-v541' in headers
           assert health.get('ok') is True
           assert health.get('version') == '5.1.0'
           assert health.get('engine_version') == '5.0.0'
@@ -207,39 +212,33 @@ jobs:
           assert all(str(item.get('source_url','')).startswith(('http://','https://')) for item in search['results'])
           assert all(item.get('result_type') in ('offer','source') for item in search['results'])
           PY
-
       - name: Verify voice continuity
         shell: bash
         run: |
           set -euo pipefail
-          APPJS=$(curl -sS -H 'Cache-Control: no-cache' -o production-app.js -D app.headers -w '%{http_code}' --max-time 30 "$APP_URL/app.js?v=500")
-          test "$APPJS" = 200
-          grep -q "speechSynthesis" production-app.js
+          app_status=$(curl -sS -H 'Cache-Control: no-cache' -o production-app.js -D app.headers -w '%{http_code}' --max-time 30 "$APP_URL/app.js?v=500")
+          test "$app_status" = 200
+          grep -q 'speechSynthesis' production-app.js
           grep -q "state.locale === 'wo' ? 'wo-SN' : 'fr-SN'" production-app.js
-
-          STATUS=$(curl -sS -o voice.body -D voice.headers -w '%{http_code}' --max-time 60 -X POST \
+          status=$(curl -sS -o voice.body -D voice.headers -w '%{http_code}' --max-time 60 -X POST \
             -H 'Content-Type: application/json' \
             -H 'Origin: https://senecompare.dakarstyle.com' \
-            --data '{"text":"Bienvenue sur SeneCompare.","language":"fr"}' \
+            --data '{"text":"Bienvenue sur SeneCompare Sénégal.","language":"fr"}' \
             "$APP_URL/api/voice/speech")
-          CLOUD_VOICE=$(python3 -c "import json; print(str(json.load(open('health.json')).get('human_voice_available', False)).lower())")
-          if [ "$CLOUD_VOICE" = true ]; then
-            test "$STATUS" = 200
+          cloud_voice=$(python3 -c "import json; print(str(json.load(open('health.json')).get('human_voice_available', False)).lower())")
+          if [ "$cloud_voice" = true ]; then
+            test "$status" = 200
             grep -qi '^content-type: audio/mpeg' voice.headers
             test "$(wc -c < voice.body)" -gt 1000
-            echo 'Natural cloud voice verified.'
           else
-            test "$STATUS" = 503
+            test "$status" = 503
             grep -qi '^content-type: application/json' voice.headers
             grep -q 'VOICE_UNAVAILABLE' voice.body
-            echo 'Device voice fallback verified; cloud voice is not configured.'
           fi
-
-      - name: Upload production evidence
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: senecompare-v5-production-evidence
+          name: senecompare-quality-production-${{ github.run_id }}
           path: |
             root.headers
             root.html
@@ -247,6 +246,8 @@ jobs:
             health.json
             manifest.headers
             manifest.json
+            media.headers
+            media-path-v541.js
             search.headers
             search.json
             app.headers
