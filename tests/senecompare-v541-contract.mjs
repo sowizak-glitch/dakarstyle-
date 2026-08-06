@@ -13,7 +13,8 @@ for (const marker of [
   '/media/v541/samabusiness-campaign.webp',
   '/media/v541/sowhat-africa-campaign.webp',
   'verified-physical-v541',
-  '/media-path-v541.js?v=541',
+  "const SCRIPT_PATH = '/media-path-v541.js'",
+  '?v=541',
 ]) assert.match(wrapper, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 for (const marker of [
   '/media/v541/samabusiness-campaign.webp',
