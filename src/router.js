@@ -2,6 +2,7 @@ import application from './worker-entry-v131.js';
 import senecompare from './senecompare-v541.js';
 import samabusinessSites from './samabusiness-site-proxy-v131.js';
 import samabusinessMedia from './samabusiness-media-review-v133.js';
+import samabusinessOwner from './samabusiness-owner-command-v14.js';
 
 const SENECOMPARE_HOSTS = new Set([
   'senecompare.dakarstyle.com',
@@ -19,6 +20,10 @@ const CORE_HOSTS = new Set([
   'samacahier.dakarstyle.com',
   'senecompare.dakarstyle.com',
 ]);
+
+function isSamabusinessOwnerRoute(url) {
+  return url.pathname === '/api/owner-command-center';
+}
 
 function isSamabusinessCommerceRoute(url) {
   return url.pathname === '/api/site-commerce'
@@ -42,6 +47,9 @@ export default {
     const url = new URL(request.url);
     if (SENECOMPARE_HOSTS.has(url.hostname)) {
       return senecompare.fetch(request, env, ctx);
+    }
+    if (SAMABUSINESS_HOSTS.has(url.hostname) && isSamabusinessOwnerRoute(url)) {
+      return samabusinessOwner.fetch(request, env, ctx);
     }
     if (isSamabusinessCommerceRoute(url)) {
       return samabusinessMedia.fetch(request, env, ctx);
