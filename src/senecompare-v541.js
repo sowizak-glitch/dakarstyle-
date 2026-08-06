@@ -1,4 +1,4 @@
-import application from './senecompare-v54.js';
+import application from './senecompare-v5-router.js';
 
 const RELEASE = '5.4.1';
 const MEDIA_EDGE = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/senecompare-media-v54';
