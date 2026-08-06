@@ -1,7 +1,7 @@
 import application from './worker-entry-v131.js';
 import senecompare from './senecompare-v541.js';
 import samabusinessSites from './samabusiness-site-proxy-v131.js';
-import samabusinessMedia from './samabusiness-media-review.js';
+import samabusinessMedia from './samabusiness-media-review-v133.js';
 
 const SENECOMPARE_HOSTS = new Set([
   'senecompare.dakarstyle.com',
