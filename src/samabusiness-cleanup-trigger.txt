@@ -1,0 +1,1 @@
+Trigger the controlled removal of the obsolete sama-hotfix-v801 Edge Function before deploying the Sama Boutique 13 interface.
