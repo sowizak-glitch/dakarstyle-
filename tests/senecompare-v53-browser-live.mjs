@@ -26,8 +26,9 @@ async function check(name, contextOptions) {
   });
   page.on('pageerror', (error) => pageErrors.push(String(error)));
 
-  const response = await page.goto(`${APP_URL}/?v=530&certification=1`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  const response = await page.goto(`${APP_URL}/?v=531&certification=1`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
   assert.equal(response?.status(), 200, `${name}: root status`);
+  assert.equal(response?.headers()['x-senecompare-dialog-fix'], '5.3.1-dialog', `${name}: structural header`);
   await page.waitForSelector('#scSponsored', { state: 'visible', timeout: 30_000 });
   assert.equal(await page.locator('.sc-sponsored-card').count(), 1, `${name}: one compact ad card`);
   assert.ok(await page.locator('.sc-sponsored-dot').count() >= 3, `${name}: campaign controls`);
@@ -35,15 +36,20 @@ async function check(name, contextOptions) {
   assert.ok((await page.locator('.sc-sponsored-content h3').innerText()).trim().length > 8, `${name}: campaign title`);
   assert.ok((await page.locator('.sc-sponsored-action a').getAttribute('href') || '').startsWith('https://'), `${name}: safe destination`);
   assert.equal(await page.locator('script[src="/monetization-v53.js?v=530"]').count(), 1, `${name}: monetization script loaded`);
+  assert.equal(await page.locator('script[src="/monetization-v53-dialog.js?v=531"]').count(), 1, `${name}: structural dialog script loaded`);
 
   await page.locator('.sc-sponsored-dot').last().click();
   await page.waitForTimeout(200);
   assert.match(await page.locator('.sc-sponsored-content h3').innerText(), /activité|liggéey/i, `${name}: advertiser campaign`);
   await page.locator('.sc-sponsored-action a').click();
   await page.waitForSelector('#scPartnerDialog[open]', { state: 'visible', timeout: 10_000 });
+  await page.waitForFunction(() => document.getElementById('scPartnerDialog')?.dataset.closeControl === 'direct-child', null, { timeout: 10_000 });
   assert.equal(await page.locator('#scBusinessName').count(), 1, `${name}: partner form`);
   assert.equal(await page.locator('#scPartnerEmail').getAttribute('type'), 'email', `${name}: lead email`);
-  await page.locator('.sc-partner-close').click();
+  const directClose = page.locator('#scPartnerDialog > .sc-partner-close');
+  assert.equal(await directClose.count(), 1, `${name}: direct close control`);
+  await directClose.click();
+  await page.waitForFunction(() => !document.getElementById('scPartnerDialog')?.open, null, { timeout: 5_000 });
 
   await page.screenshot({ path: path.join(OUTPUT, `${name}-public.png`), fullPage: true });
 
@@ -54,6 +60,7 @@ async function check(name, contextOptions) {
   assert.equal(await page.locator('#adminEmail').isEditable(), false, `${name}: locked owner address`);
   assert.match(await page.locator('meta[name="robots"]').getAttribute('content') || '', /noindex/i, `${name}: admin noindex`);
   assert.equal(await page.locator('script[src="/admin-v53.js?v=530"]').count(), 1, `${name}: admin script loaded`);
+  assert.equal(await page.locator('script[src="/monetization-v53-dialog.js?v=531"]').count(), 0, `${name}: no public dialog script in admin`);
   await page.screenshot({ path: path.join(OUTPUT, `${name}-admin.png`), fullPage: true });
 
   const relevantConsoleErrors = consoleErrors.filter((item) => {
@@ -64,6 +71,7 @@ async function check(name, contextOptions) {
   assert.deepEqual(relevantConsoleErrors, [], `${name}: application console errors`);
   results.push({
     name,
+    structuralClose: true,
     cloudflareCspBlocks: consoleErrors.filter(isExpectedCloudflareSecurityNoise).length,
     applicationConsoleErrors: relevantConsoleErrors,
     pageErrors,
@@ -78,5 +86,5 @@ try {
   await browser.close();
 }
 
-await fs.writeFile(path.join(OUTPUT, 'report.json'), JSON.stringify({ ok: true, version: '5.3.0', results }, null, 2));
-console.log(JSON.stringify({ ok: true, version: '5.3.0', results }, null, 2));
+await fs.writeFile(path.join(OUTPUT, 'report.json'), JSON.stringify({ ok: true, version: '5.3.0', dialog_fix: '5.3.1-dialog', results }, null, 2));
+console.log(JSON.stringify({ ok: true, version: '5.3.0', dialog_fix: '5.3.1-dialog', results }, null, 2));
