@@ -1,7 +1,7 @@
 const API_BACKEND = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-studio';
 const COMPATIBILITY = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-platform';
 const RENDERER = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-renderer-v12';
-const VERSION = '12.1.0';
+const VERSION = '12.1.1';
 
 function sameOriginSiteUrl(value, origin) {
   if (typeof value !== 'string') return value;
@@ -11,8 +11,10 @@ function sameOriginSiteUrl(value, origin) {
     if (![API_BACKEND, COMPATIBILITY, RENDERER].includes(base)) return value;
     const site = url.searchParams.get('site');
     if (!site) return `${origin}/api/site-platform`;
-    const preview = url.searchParams.get('preview') === '1' ? '?preview=1' : '';
-    return `${origin}/sites/${encodeURIComponent(site)}${preview}`;
+    const target = new URL(`${origin}/sites/${encodeURIComponent(site)}`);
+    const previewToken = url.searchParams.get('preview');
+    if (previewToken) target.searchParams.set('preview', previewToken);
+    return target.toString();
   } catch (_) {
     return value;
   }
@@ -96,26 +98,34 @@ async function sitePage(request, url) {
     return new Response('Site introuvable', { status: 404, headers: { ...commonHeaders(), 'content-type': 'text/plain; charset=utf-8' } });
   }
 
-  const preview = url.searchParams.get('preview') === '1';
-  const endpoint = `${RENDERER}?site=${encodeURIComponent(site)}${preview ? '&preview=1' : ''}`;
-  const upstreamHeaders = new Headers({ 'x-client-info': `cloudflare-site-renderer/${VERSION}` });
+  const previewToken = url.searchParams.get('preview') || '';
+  const isPreview = Boolean(previewToken);
+  const signedPreview = previewToken && previewToken !== '1';
+  const endpoint = signedPreview
+    ? `${API_BACKEND}?site=${encodeURIComponent(site)}&preview=${encodeURIComponent(previewToken)}`
+    : `${RENDERER}?site=${encodeURIComponent(site)}${isPreview ? '&preview=1' : ''}`;
+
+  const upstreamHeaders = new Headers({
+    'x-client-info': `cloudflare-site-renderer/${VERSION}`,
+    'x-samabusiness-render-proxy': '1',
+  });
   const session = request.headers.get('x-sama-session');
   if (session) upstreamHeaders.set('x-sama-session', session);
   const upstream = await fetch(endpoint, {
     method: request.method,
     headers: upstreamHeaders,
-    cache: preview ? 'no-store' : 'no-cache',
+    cache: isPreview ? 'no-store' : 'no-cache',
   });
   const body = request.method === 'HEAD' ? null : await upstream.text();
 
   const responseHeaders = new Headers(commonHeaders());
   responseHeaders.set('content-type', upstream.ok ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8');
   responseHeaders.set('content-disposition', 'inline');
-  responseHeaders.set('cache-control', preview ? 'no-store, no-cache, must-revalidate' : 'public, max-age=60, stale-while-revalidate=300');
+  responseHeaders.set('cache-control', isPreview ? 'private, no-store, no-cache, must-revalidate' : 'public, max-age=60, stale-while-revalidate=300');
   responseHeaders.set('cross-origin-resource-policy', 'same-origin');
   responseHeaders.set('permissions-policy', 'camera=(), microphone=(), geolocation=(), payment=()');
   responseHeaders.set('content-security-policy', "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; base-uri 'none'; form-action 'self' https://wa.me; frame-ancestors 'self' https://samabusiness.dakarstyle.com https://samacahier.dakarstyle.com");
-  responseHeaders.set('x-robots-tag', preview ? 'noindex, nofollow, noarchive' : 'index, follow');
+  responseHeaders.set('x-robots-tag', isPreview ? 'noindex, nofollow, noarchive' : 'index, follow');
   responseHeaders.delete('x-frame-options');
   responseHeaders.delete('content-length');
   responseHeaders.delete('content-encoding');
@@ -131,7 +141,7 @@ export default {
       if (url.pathname === '/api/site-platform') return await apiProxy(request, url);
       if (url.pathname === '/site-preview' || url.pathname.startsWith('/sites/')) return await sitePage(request, url);
       if (url.pathname === '/site-platform-health') {
-        return Response.json({ ok: true, service: 'samabusiness-site-proxy', version: VERSION, renderer: '12.1.0' }, { headers: { ...commonHeaders(), 'cache-control': 'no-store' } });
+        return Response.json({ ok: true, service: 'samabusiness-site-proxy', version: VERSION, renderer: '12.1.0', signedPreviewTokens: true }, { headers: { ...commonHeaders(), 'cache-control': 'no-store' } });
       }
       return new Response('Not Found', { status: 404, headers: commonHeaders() });
     } catch (error) {
