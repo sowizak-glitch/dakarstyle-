@@ -41,7 +41,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate syntax
+      - name: Validate source, contracts and privacy
+        shell: bash
         run: |
           set -euo pipefail
           node --check src/senecompare-v54.js
@@ -50,26 +51,22 @@ jobs:
           node --check senecompare/admin-auth-v54.js
           node --check tests/senecompare-v54-contract.mjs
           node --check tests/senecompare-v54-browser-live.mjs
-      - name: Run verified media and owner-auth contract
-        run: node tests/senecompare-v54-contract.mjs
-      - name: Run compatibility and privacy audits
-        run: |
+          node tests/senecompare-v54-contract.mjs
           node tests/senecompare-final-v52-static-audit.mjs
           node tests/senecompare-v53-static-audit.mjs
-      - name: Validate Cloudflare bundle
-        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-v54
-      - name: Validate privacy, contact and source reproducibility
-        run: |
-          set -euo pipefail
           grep -q 'hellodakarstyle@gmail.com' senecompare/monetization-v54.js
           grep -q 'hellodakarstyle@gmail.com' senecompare/admin-auth-v54.js
           grep -q 'OWNER_INVALID' senecompare/admin-auth-v54.js
           grep -q 'TOKEN_EXPIRED' senecompare/admin-auth-v54.js
+          grep -q "mediaRevision = '541'" senecompare/monetization-v54.js
           grep -q 'senecompare-media-v54' src/senecompare-v54.js
           grep -q 'enable row level security' supabase/migrations/20260806014500_senecompare_verified_campaign_media_v54.sql
           grep -q 'notification_sent_at' supabase/migrations/20260806014500_senecompare_verified_campaign_media_v54.sql
           grep -q 'prefers-reduced-motion' senecompare/monetization-v54.css
+      - name: Validate Cloudflare bundle
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-v54
       - name: Guard against secrets and embedded binaries
+        shell: bash
         run: |
           set -euo pipefail
           if grep -RInE '(sk-[A-Za-z0-9_-]{20,}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' \
@@ -88,11 +85,12 @@ jobs:
     timeout-minutes: 8
     steps:
       - name: Verify exact supplied campaign media
+        shell: bash
         run: |
           set -euo pipefail
           curl --fail --silent --show-error "$MEDIA_EDGE/health" -o media-health.json
-          curl --fail --silent --show-error "$MEDIA_EDGE/samabusiness-campaign.webp" -o samabusiness.webp
-          curl --fail --silent --show-error "$MEDIA_EDGE/sowhat-africa-campaign.webp" -o sowhat-africa.webp
+          curl --fail --silent --show-error "$MEDIA_EDGE/samabusiness-campaign.webp?rev=$GITHUB_RUN_ID" -o samabusiness.webp
+          curl --fail --silent --show-error "$MEDIA_EDGE/sowhat-africa-campaign.webp?rev=$GITHUB_RUN_ID" -o sowhat-africa.webp
           python3 - <<'PY'
           import hashlib, json
           from pathlib import Path
@@ -109,11 +107,10 @@ jobs:
             assert len(data) > 20000, name
           print('Exact supplied campaign media verified')
           PY
-      - name: Upload media evidence
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: senecompare-v54-media-evidence
+          name: senecompare-v54-media-${{ github.run_id }}
           path: |
             media-health.json
             samabusiness.webp
@@ -125,9 +122,10 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: media-live
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 20
     steps:
       - name: Wait for Cloudflare release
+        shell: bash
         run: |
           set -euo pipefail
           ready=false
@@ -146,13 +144,15 @@ jobs:
             sleep 10
           done
           test "$ready" = true
-      - name: Verify production media, contact and auth assets
+      - name: Verify production media, contact, auth and search
+        shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error -D sowhat.headers "$APP_URL/media/sowhat-africa-campaign.jpg?v=540" -o sowhat.webp
-          curl --fail --silent --show-error -D sama.headers "$APP_URL/media/samabusiness-campaign.webp?v=540" -o samabusiness.webp
-          curl --fail --silent --show-error "$APP_URL/monetization-v54.js?v=540" -o monetization-v54.js
-          curl --fail --silent --show-error "$APP_URL/admin-auth-v54.js?v=540" -o admin-auth-v54.js
+          cache_key="541-$GITHUB_RUN_ID"
+          curl --fail --silent --show-error -D sowhat.headers "$APP_URL/media/sowhat-africa-campaign.jpg?v=$cache_key" -o sowhat.webp
+          curl --fail --silent --show-error -D sama.headers "$APP_URL/media/samabusiness-campaign.webp?v=$cache_key" -o samabusiness.webp
+          curl --fail --silent --show-error "$APP_URL/monetization-v54.js?v=540&deploy=$GITHUB_RUN_ID" -o monetization-v54.js
+          curl --fail --silent --show-error "$APP_URL/admin-auth-v54.js?v=540&deploy=$GITHUB_RUN_ID" -o admin-auth-v54.js
           curl --fail --silent --show-error "$APP_URL/api/ads" -o ads.json
           curl --fail --silent --show-error --max-time 65 \
             -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' \
@@ -168,25 +168,26 @@ jobs:
           }
           for name,digest in expected.items():
             data=Path(name).read_bytes()
-            assert data[:4] == b'RIFF' and data[8:12] == b'WEBP'
-            assert hashlib.sha256(data).hexdigest() == digest
+            assert data[:4] == b'RIFF' and data[8:12] == b'WEBP', name
+            assert hashlib.sha256(data).hexdigest() == digest, name
           assert 'content-type: image/webp' in Path('sowhat.headers').read_text().lower()
           assert 'content-type: image/webp' in Path('sama.headers').read_text().lower()
           auth=Path('admin-auth-v54.js').read_text()
           assert 'OWNER_INVALID' in auth and 'TOKEN_EXPIRED' in auth
           assert 'hellodakarstyle@gmail.com' in auth
-          assert 'hellodakarstyle@gmail.com' in Path('monetization-v54.js').read_text()
+          premium=Path('monetization-v54.js').read_text()
+          assert 'hellodakarstyle@gmail.com' in premium and "mediaRevision = '541'" in premium
           ads=json.load(open('ads.json'))
           assert ads.get('ok') is True and len(ads.get('campaigns',[])) >= 3
           search=json.load(open('search.json'))
           assert search.get('ok') is True and len(search.get('results',[])) >= 1
           assert 'senecompare ai' not in Path('root.html').read_text(errors='replace').lower()
-          print('SeneCompare 5.4 production assets and continuity verified')
+          print('SeneCompare production media and continuity verified')
           PY
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install Playwright
+      - name: Install Playwright Chromium
         run: |
           npm install --no-save --no-package-lock playwright@1.54.1
           npx playwright install --with-deps chromium
@@ -194,9 +195,8 @@ jobs:
         env:
           E2E_OUTPUT_DIR: test-results/senecompare-v54
         run: node tests/senecompare-v54-browser-live.mjs
-      - name: Upload evidence
+      - uses: actions/upload-artifact@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: senecompare-v54-production-${{ github.run_id }}
           path: |
