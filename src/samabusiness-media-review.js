@@ -46,7 +46,7 @@ async function commerceJson(request, action, payload = {}) {
   return { response, data };
 }
 
-async function proxyJson(request) {
+async function proxyJson(request, env) {
   const body = await request.text();
   let parsed = {};
   try { parsed = JSON.parse(body || '{}'); } catch (_) {}
@@ -62,7 +62,7 @@ async function proxyJson(request) {
 
   if (response.ok && result?.ok && parsed?.action === 'admin_review_media') {
     const mediaId = String(parsed?.payload?.mediaId || '');
-    if (mediaId) await request.__env.VISUALS_BUCKET.delete(`${R2_PREFIX}${mediaId}`).catch(() => {});
+    if (mediaId) await env.VISUALS_BUCKET.delete(`${R2_PREFIX}${mediaId}`).catch(() => {});
   }
 
   const headers = responseHeaders(request, response.headers.get('content-type') || 'application/json; charset=utf-8');
@@ -153,7 +153,6 @@ async function privatePreview(request, env) {
 
 export default {
   async fetch(request, env) {
-    request.__env = env;
     const url = new URL(request.url);
     try {
       if (request.method === 'OPTIONS') {
@@ -172,7 +171,7 @@ export default {
       if (request.method !== 'POST') return json(request, { ok: false, error: 'Method Not Allowed' }, 405);
       const type = (request.headers.get('content-type') || '').toLowerCase();
       if (type.includes('multipart/form-data')) return proxyMultipart(request, env);
-      return proxyJson(request);
+      return proxyJson(request, env);
     } catch (error) {
       console.error('samabusiness-media-review', error);
       return json(request, { ok: false, error: 'Service momentanément indisponible.' }, 503);
