@@ -21,7 +21,7 @@ async function showCampaign(page, slug) {
   throw new Error(`Campaign ${slug} not found`);
 }
 
-async function verify(name, options) {
+async function verify(browser, name, options) {
   const context = await browser.newContext({ ...options, locale: 'fr-FR' });
   const page = await context.newPage();
   const consoleErrors = [];
@@ -76,8 +76,8 @@ async function verify(name, options) {
 const browser = await chromium.launch({ headless: true });
 try {
   const results = [];
-  results.push(await verify('desktop', { viewport: { width: 1440, height: 1000 } }));
-  results.push(await verify('samsung', { ...devices['Galaxy S9+'] }));
+  results.push(await verify(browser, 'desktop', { viewport: { width: 1440, height: 1000 } }));
+  results.push(await verify(browser, 'samsung', { ...devices['Galaxy S9+'] }));
   await fs.writeFile(path.join(OUTPUT, 'report.json'), JSON.stringify({ ok: true, release: '5.4.0', results }, null, 2));
   console.log(JSON.stringify({ ok: true, release: '5.4.0', results }, null, 2));
 } finally {
