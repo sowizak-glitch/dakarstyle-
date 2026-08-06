@@ -1,7 +1,7 @@
-import frontend from './senecompare-v531.js';
+import frontend from './senecompare-v54.js';
 
 const VERSION = '5.0.0';
-const RELEASE = '5.3.0';
+const RELEASE = '5.4.0';
 const SEARCH_GATEWAY = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/senecompare-gateway-v5';
 const ADMIN_GATEWAY = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/senecompare-admin-v53';
 const ORIGIN = 'https://senecompare.dakarstyle.com';
