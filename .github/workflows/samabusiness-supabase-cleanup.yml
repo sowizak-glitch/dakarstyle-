@@ -7,6 +7,7 @@ on:
     paths:
       - '.github/workflows/samabusiness-supabase-cleanup.yml'
       - 'src/samabusiness-site-proxy.js'
+      - 'src/samabusiness-cleanup-trigger.txt'
   workflow_dispatch:
 
 permissions:
