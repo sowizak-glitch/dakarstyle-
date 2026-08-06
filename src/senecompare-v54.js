@@ -6,7 +6,7 @@ const FILES = new Map([
   ['/monetization-v54.js', { source: '/senecompare/monetization-v54.js', type: 'application/javascript; charset=utf-8', cache: 3600 }],
   ['/admin-auth-v54.css', { source: '/senecompare/admin-auth-v54.css', type: 'text/css; charset=utf-8', cache: 3600 }],
   ['/admin-auth-v54.js', { source: '/senecompare/admin-auth-v54.js', type: 'application/javascript; charset=utf-8', cache: 3600 }],
-  ['/media/sowhat-africa-campaign.jpg', { source: '/assets/hero/ensemble-senegal-boutique-2026.jpg', type: 'image/jpeg', cache: 604800 }],
+  ['/media/sowhat-africa-campaign.jpg', { source: 'https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/main/assets/hero/ensemble-senegal-boutique-2026.jpg', type: 'image/jpeg', cache: 604800, remote: true }],
   ['/media/samabusiness-campaign.webp', { source: '/assets/samabusiness/samabusiness-192.webp', type: 'image/webp', cache: 604800 }],
 ]);
 
@@ -35,10 +35,13 @@ function headers(type, cacheSeconds) {
 }
 
 async function serve(request, env, descriptor) {
-  if (!env?.ASSETS || typeof env.ASSETS.fetch !== 'function') return null;
   try {
-    const asset = await env.ASSETS.fetch(assetRequest(request, descriptor.source));
-    if (!asset.ok) return null;
+    const asset = descriptor.remote
+      ? await fetch(descriptor.source, { headers: { Accept: descriptor.type }, redirect: 'follow', signal: AbortSignal.timeout(15000) })
+      : env?.ASSETS && typeof env.ASSETS.fetch === 'function'
+        ? await env.ASSETS.fetch(assetRequest(request, descriptor.source))
+        : null;
+    if (!asset?.ok) return null;
     return new Response(request.method === 'HEAD' ? null : asset.body, {
       status: 200,
       headers: headers(descriptor.type, descriptor.cache),
