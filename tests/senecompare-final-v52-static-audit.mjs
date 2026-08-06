@@ -6,6 +6,7 @@ const css = readFileSync('senecompare/final-v52.css', 'utf8');
 const wrapper = readFileSync('src/senecompare-final-v52.js', 'utf8');
 const release53 = readFileSync('src/senecompare-v53.js', 'utf8');
 const dialogLayer = readFileSync('src/senecompare-v531.js', 'utf8');
+const premiumLayer = readFileSync('src/senecompare-v54.js', 'utf8');
 const router = readFileSync('src/senecompare-v5-router.js', 'utf8');
 const brand = readFileSync('src/senecompare-brand-v52.js', 'utf8');
 
@@ -25,9 +26,11 @@ assert.match(release53, /const RELEASE = '5\.3\.0'/);
 assert.match(release53, /frontend\.fetch\(request, env, ctx\)/);
 assert.match(dialogLayer, /import frontend from '\.\/senecompare-v53\.js'/);
 assert.match(dialogLayer, /const DIALOG_FIX = '5\.3\.1-dialog'/);
-assert.match(router, /import frontend from '\.\/senecompare-v531\.js'/);
-assert.match(router, /const RELEASE = '5\.3\.0'/);
+assert.match(premiumLayer, /import frontend from '\.\/senecompare-v531\.js'/);
+assert.match(premiumLayer, /const RELEASE = '5\.4\.0'/);
+assert.match(router, /import frontend from '\.\/senecompare-v54\.js'/);
+assert.match(router, /const RELEASE = '5\.4\.0'/);
 assert.match(router, /senecompare-gateway-v5/);
 assert.match(brand, /SENECOMPARE_RELEASE = '5\.2\.0'/);
 
-console.log('SeneCompare final 5.2 compatibility audit under release 5.3 structural layer passed');
+console.log('SeneCompare final 5.2 compatibility audit under premium release 5.4 passed');
