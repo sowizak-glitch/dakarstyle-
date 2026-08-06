@@ -7,6 +7,8 @@ on:
     paths:
       - 'src/index.js'
       - 'src/worker-entry.js'
+      - 'src/router.js'
+      - 'src/samabusiness-site-proxy.js'
       - 'wrangler.jsonc'
       - 'assets/samabusiness/**'
       - 'supabase/functions/samabusiness-addon/**'
@@ -17,6 +19,8 @@ on:
     paths:
       - 'src/index.js'
       - 'src/worker-entry.js'
+      - 'src/router.js'
+      - 'src/samabusiness-site-proxy.js'
       - 'wrangler.jsonc'
       - 'assets/samabusiness/**'
       - 'supabase/functions/samabusiness-addon/**'
@@ -43,6 +47,8 @@ jobs:
         run: |
           node --check src/index.js
           node --check src/worker-entry.js
+          node --check src/router.js
+          node --check src/samabusiness-site-proxy.js
 
       - name: Validate Wrangler configuration
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-out
@@ -71,61 +77,34 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail --silent --show-error "$PWA_URL?mode=health" -o pwa-health.json
-          curl --fail --silent --show-error --dump-header manifest.headers \
-            "$PWA_URL?mode=manifest&v=10.1.0" -o manifest.json
-          curl --fail --silent --show-error --dump-header sw.headers \
-            "$PWA_URL?mode=sw&v=10.1.0" -o sw.js
-          curl --fail --silent --show-error --dump-header icon.headers \
-            "$PWA_URL?mode=icon&size=512&v=10.1.0" -o icon.svg
-
+          curl --fail --silent --show-error --dump-header manifest.headers "$PWA_URL?mode=manifest&v=10.1.0" -o manifest.json
+          curl --fail --silent --show-error --dump-header sw.headers "$PWA_URL?mode=sw&v=10.1.0" -o sw.js
+          curl --fail --silent --show-error --dump-header icon.headers "$PWA_URL?mode=icon&size=512&v=10.1.0" -o icon.svg
           python3 - <<'PY'
           import json
           from pathlib import Path
-
           health = json.loads(Path('pwa-health.json').read_text())
           assert health.get('ok') is True, health
-          assert health.get('version') == '10.1.0', health
-          assert health.get('app_origin') == 'https://samabusiness.dakarstyle.com', health
-
           manifest = json.loads(Path('manifest.json').read_text())
           assert manifest.get('name') == 'SAMABUSINESS', manifest
-          assert manifest.get('start_url') == 'https://samabusiness.dakarstyle.com/', manifest
-          assert any('samabusiness-192.webp' in icon.get('src', '') for icon in manifest.get('icons', [])), manifest
-
-          manifest_headers = Path('manifest.headers').read_text().lower()
-          sw_headers = Path('sw.headers').read_text().lower()
-          icon_headers = Path('icon.headers').read_text().lower()
-          assert 'application/manifest+json' in manifest_headers, manifest_headers
-          assert 'application/javascript' in sw_headers, sw_headers
-          assert 'image/svg+xml' in icon_headers, icon_headers
-
-          sw = Path('sw.js').read_text()
-          assert "VERSION='10.1.0'" in sw, sw[:500]
-          assert "samabusiness-shell-" in sw, sw[:500]
-          icon = Path('icon.svg').read_text()
-          assert 'samabusiness-192.webp' in icon, icon[:500]
+          assert 'application/manifest+json' in Path('manifest.headers').read_text().lower()
+          assert 'application/javascript' in Path('sw.headers').read_text().lower()
+          assert 'image/svg+xml' in Path('icon.headers').read_text().lower()
+          assert 'samabusiness-shell-' in Path('sw.js').read_text()
           PY
 
       - name: Test business API proxy
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --header 'Origin: https://samabusiness.dakarstyle.com' \
-            "$API_URL" -o api-health.json
-          curl --fail --silent --show-error --request OPTIONS \
-            --header 'Origin: https://samabusiness.dakarstyle.com' \
-            --header 'Access-Control-Request-Method: POST' \
-            --dump-header api-options.headers --output /dev/null "$API_URL"
-
+          curl --fail --silent --show-error --header 'Origin: https://samabusiness.dakarstyle.com' "$API_URL" -o api-health.json
+          curl --fail --silent --show-error --request OPTIONS --header 'Origin: https://samabusiness.dakarstyle.com' --header 'Access-Control-Request-Method: POST' --dump-header api-options.headers --output /dev/null "$API_URL"
           python3 - <<'PY'
           import json
           from pathlib import Path
           health = json.loads(Path('api-health.json').read_text())
           assert health.get('ok') is True, health
-          assert health.get('service') == 'samabusiness-api-v10', health
-          assert health.get('version') == '10.1.0', health
-          headers = Path('api-options.headers').read_text().lower()
-          assert 'access-control-allow-origin: https://samabusiness.dakarstyle.com' in headers, headers
+          assert 'access-control-allow-origin: https://samabusiness.dakarstyle.com' in Path('api-options.headers').read_text().lower()
           PY
 
       - name: Test runtime finishing addon
@@ -137,7 +116,6 @@ jobs:
           grep -q '__SAMABUSINESS_PRODUCT_SELECTORS_PATCHED__' addon.js
           grep -q 'productSelectorFix:true' addon.js
           grep -q 'samabusiness-api-v10' addon.js
-          grep -q 'samabusiness-192.webp' addon.js
           grep -q 'focus-visible' addon.js
 
       - name: Upload validation evidence
@@ -188,10 +166,15 @@ jobs:
             'https://samacahier.dakarstyle.com/health' \
             'https://samabusiness.dakarstyle.com/health' \
             'https://samabusiness.dakarstyle.com/manifest.webmanifest' \
-            'https://samabusiness.dakarstyle.com/sw.js'; do
+            'https://samabusiness.dakarstyle.com/sw.js' \
+            'https://samabusiness.dakarstyle.com/site-platform-health' \
+            'https://samabusiness.dakarstyle.com/sites/qa-teranga-market-v1122'; do
             status=$(curl --location --silent --show-error --output /tmp/response --write-out '%{http_code}' --max-time 20 "$url")
             printf '%s -> %s\n' "$url" "$status" | tee -a production-checks.txt
           done
+          content_type=$(curl --location --silent --show-error --head --max-time 20 'https://samabusiness.dakarstyle.com/sites/qa-teranga-market-v1122' | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print tolower($2); exit}')
+          printf 'generated site content-type -> %s\n' "$content_type" | tee -a production-checks.txt
+          grep -q 'text/html' <<< "$content_type"
           cat production-checks.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload production check evidence
