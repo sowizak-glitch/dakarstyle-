@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - '.github/workflows/samabusiness-supabase-cleanup.yml'
+      - 'src/samabusiness-site-proxy.js'
   workflow_dispatch:
 
 permissions:
@@ -37,7 +38,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes supabase@latest functions delete sama-hotfix-v801 --project-ref "$PROJECT_REF"
+          if npx --yes supabase@latest functions list --project-ref "$PROJECT_REF" | grep -q 'sama-hotfix-v801'; then
+            npx --yes supabase@latest functions delete sama-hotfix-v801 --project-ref "$PROJECT_REF"
+          else
+            echo 'sama-hotfix-v801 is already absent.'
+          fi
 
       - name: Confirm active functions
         shell: bash
