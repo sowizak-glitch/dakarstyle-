@@ -1,0 +1,158 @@
+name: SeneCompare premium ads and auth
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/senecompare-v54.js'
+      - 'src/senecompare-v5-router.js'
+      - 'senecompare/monetization-v54.*'
+      - 'senecompare/admin-auth-v54.*'
+      - 'tests/senecompare-v54-contract.mjs'
+      - '.github/workflows/senecompare-v54-premium.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/senecompare-v54.js'
+      - 'src/senecompare-v5-router.js'
+      - 'senecompare/monetization-v54.*'
+      - 'senecompare/admin-auth-v54.*'
+      - 'tests/senecompare-v54-contract.mjs'
+      - '.github/workflows/senecompare-v54-premium.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  APP_URL: https://senecompare.dakarstyle.com
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate syntax
+        run: |
+          set -euo pipefail
+          node --check src/senecompare-v54.js
+          node --check src/senecompare-v5-router.js
+          node --check senecompare/monetization-v54.js
+          node --check senecompare/admin-auth-v54.js
+          node --check tests/senecompare-v54-contract.mjs
+      - name: Run premium contract
+        run: node tests/senecompare-v54-contract.mjs
+      - name: Run compatibility and privacy audits
+        run: |
+          node tests/senecompare-final-v52-static-audit.mjs
+          node tests/senecompare-v53-static-audit.mjs
+      - name: Validate Cloudflare bundle
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-v54
+      - name: Verify official local assets
+        run: |
+          set -euo pipefail
+          test -s assets/hero/ensemble-senegal-boutique-2026.jpg
+          test -s assets/samabusiness/samabusiness-192.webp
+          grep -q 'hellodakarstyle@gmail.com' senecompare/monetization-v54.js
+          grep -q 'access_token' senecompare/admin-auth-v54.js
+          grep -q 'prefers-reduced-motion' senecompare/monetization-v54.css
+      - name: Guard against secrets
+        run: |
+          set -euo pipefail
+          if grep -RInE '(sk-[A-Za-z0-9_-]{20,}|service_role[[:space:]]*=|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' src/senecompare-v54.js senecompare/monetization-v54.* senecompare/admin-auth-v54.*; then
+            echo 'Potential secret detected.' >&2
+            exit 1
+          fi
+
+  production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Wait for Cloudflare release
+        run: |
+          set -euo pipefail
+          ready=false
+          for attempt in $(seq 1 40); do
+            code=$(curl -sS -H 'Cache-Control: no-cache' -D root.headers -o root.html -w '%{http_code}' "$APP_URL/?v=540&deploy=$GITHUB_RUN_ID" || true)
+            admin=$(curl -sS -H 'Cache-Control: no-cache' -D admin.headers -o admin.html -w '%{http_code}' "$APP_URL/admin?deploy=$GITHUB_RUN_ID" || true)
+            if [ "$code" = 200 ] && [ "$admin" = 200 ] \
+              && grep -qi '^x-senecompare-release: 5.4.0' root.headers \
+              && grep -q '/monetization-v54.js?v=540' root.html \
+              && grep -q '/admin-auth-v54.js?v=540' admin.html; then
+              ready=true
+              break
+            fi
+            echo "Waiting ($attempt/40): root=$code admin=$admin"
+            sleep 10
+          done
+          test "$ready" = true
+      - name: Verify visual and contact assets
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error -D sowhat.headers "$APP_URL/media/sowhat-africa-campaign.jpg?v=540" -o sowhat.jpg
+          curl --fail --silent --show-error -D sama.headers "$APP_URL/media/samabusiness-campaign.webp?v=540" -o samabusiness.webp
+          curl --fail --silent --show-error "$APP_URL/monetization-v54.js?v=540" -o monetization-v54.js
+          curl --fail --silent --show-error "$APP_URL/admin-auth-v54.js?v=540" -o admin-auth-v54.js
+          test $(wc -c < sowhat.jpg) -gt 50000
+          test $(wc -c < samabusiness.webp) -gt 5000
+          grep -qi 'content-type: image/jpeg' sowhat.headers
+          grep -qi 'content-type: image/webp' sama.headers
+          grep -q 'hellodakarstyle@gmail.com' monetization-v54.js
+          grep -q 'sessionStorage.setItem' admin-auth-v54.js
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.1
+          npx playwright install --with-deps chromium
+      - name: Verify desktop and Samsung journeys
+        env:
+          APP_URL: https://senecompare.dakarstyle.com
+        run: |
+          node - <<'NODE'
+          const { chromium, devices } = require('playwright');
+          const assert = require('node:assert/strict');
+          const app = process.env.APP_URL;
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            for (const [name, options] of [['desktop',{viewport:{width:1440,height:1000}}],['samsung',{...devices['Galaxy S9+']}]] ) {
+              const context = await browser.newContext({...options, locale:'fr-FR'});
+              const page = await context.newPage();
+              await page.goto(app + '/?v=540', { waitUntil:'domcontentloaded', timeout:60000 });
+              await page.waitForSelector('#scSponsored', { state:'visible', timeout:30000 });
+              await page.locator('.sc-sponsored-dot').first().click();
+              await page.waitForSelector('.sc-sponsored-visual img', { state:'visible', timeout:10000 });
+              assert.ok((await page.locator('.sc-sponsored-visual img').getAttribute('src')).includes('/media/'));
+              await page.goto(app + '/admin?v=540', { waitUntil:'domcontentloaded', timeout:60000 });
+              await page.waitForSelector('#adminLinkRecovery', { state:'visible', timeout:10000 });
+              assert.equal(await page.locator('#adminRecoveryLink').count(), 1);
+              await context.close();
+            }
+            await browser.close();
+          })().catch((error) => { console.error(error); process.exit(1); });
+          NODE
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: senecompare-v54-production-${{ github.run_id }}
+          path: |
+            root.html
+            root.headers
+            admin.html
+            admin.headers
+            sowhat.jpg
+            sowhat.headers
+            samabusiness.webp
+            sama.headers
+            monetization-v54.js
+            admin-auth-v54.js
+          if-no-files-found: warn
+          retention-days: 30
