@@ -34,6 +34,7 @@ env:
   PWA_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-pwa
   API_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-api-v10
   ADDON_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-addon
+  RENDERER_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-renderer-v12
 
 jobs:
   validate:
@@ -107,6 +108,19 @@ jobs:
           assert 'access-control-allow-origin: https://samabusiness.dakarstyle.com' in Path('api-options.headers').read_text().lower()
           PY
 
+      - name: Test secure site renderer
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error "$RENDERER_URL" -o renderer-health.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          health = json.loads(Path('renderer-health.json').read_text())
+          assert health.get('ok') is True, health
+          assert health.get('service') == 'samabusiness-site-renderer-v12', health
+          PY
+
       - name: Test runtime finishing addon
         shell: bash
         run: |
@@ -132,6 +146,7 @@ jobs:
             icon.svg
             api-health.json
             api-options.headers
+            renderer-health.json
             logo-file-type.txt
           if-no-files-found: error
           retention-days: 14
@@ -159,7 +174,7 @@ jobs:
       - name: Verify production endpoints
         shell: bash
         run: |
-          set +e
+          set -euo pipefail
           sleep 25
           for url in \
             'https://dakarstyle.com/assets/samabusiness/samabusiness-192.webp' \
@@ -167,20 +182,28 @@ jobs:
             'https://samabusiness.dakarstyle.com/health' \
             'https://samabusiness.dakarstyle.com/manifest.webmanifest' \
             'https://samabusiness.dakarstyle.com/sw.js' \
-            'https://samabusiness.dakarstyle.com/site-platform-health' \
-            'https://samabusiness.dakarstyle.com/sites/qa-teranga-market-v1122'; do
+            'https://samabusiness.dakarstyle.com/site-platform-health'; do
             status=$(curl --location --silent --show-error --output /tmp/response --write-out '%{http_code}' --max-time 20 "$url")
             printf '%s -> %s\n' "$url" "$status" | tee -a production-checks.txt
+            test "$status" = '200'
           done
-          content_type=$(curl --location --silent --show-error --head --max-time 20 'https://samabusiness.dakarstyle.com/sites/qa-teranga-market-v1122' | tr -d '\r' | awk -F': ' 'tolower($1)=="content-type"{print tolower($2); exit}')
-          printf 'generated site content-type -> %s\n' "$content_type" | tee -a production-checks.txt
-          grep -q 'text/html' <<< "$content_type"
+          curl --fail --silent --show-error 'https://samabusiness.dakarstyle.com/site-platform-health' -o site-platform-health.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          health = json.loads(Path('site-platform-health.json').read_text())
+          assert health.get('ok') is True, health
+          assert health.get('version') == '12.1.0', health
+          assert health.get('renderer') == '12.1.0', health
+          PY
           cat production-checks.txt >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload production check evidence
         uses: actions/upload-artifact@v4
         with:
           name: samabusiness-production-checks
-          path: production-checks.txt
+          path: |
+            production-checks.txt
+            site-platform-health.json
           if-no-files-found: error
           retention-days: 14
