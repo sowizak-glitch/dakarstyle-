@@ -32,6 +32,27 @@
     image.style.objectPosition = descriptor[2];
   }
 
+  function buildMailto(form) {
+    const data = new FormData(form);
+    const business = String(data.get('business_name') || '').trim();
+    const contact = String(data.get('contact_name') || '').trim();
+    const email = String(data.get('email') || '').trim();
+    const phone = String(data.get('phone') || '').trim();
+    const placement = String(data.get('placement') || '').trim();
+    const message = String(data.get('message') || '').trim();
+    const subject = `Partenariat SeneCompare — ${business || 'Nouvelle demande'}`;
+    const body = [
+      `Entreprise : ${business || 'Non renseignée'}`,
+      `Contact : ${contact || 'Non renseigné'}`,
+      `Email : ${email || 'Non renseigné'}`,
+      `Téléphone / WhatsApp : ${phone || 'Non renseigné'}`,
+      `Mise en avant souhaitée : ${placement || 'Bannière'}`,
+      '',
+      message || 'Je souhaite recevoir des informations sur les services SamaBusiness ou les bannières de visibilité SeneCompare.',
+    ].join('\n');
+    return `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  }
+
   function addContact(dialog) {
     const form = dialog && dialog.querySelector('.sc-partner-form');
     if (!form || form.querySelector('.sc-partner-contact')) return;
@@ -44,6 +65,14 @@
     link.textContent = contactEmail;
     box.append(label, link);
     form.prepend(box);
+
+    const emailButton = document.createElement('a');
+    emailButton.className = 'sc-partner-email-action';
+    emailButton.href = 'mailto:' + contactEmail;
+    emailButton.textContent = 'Envoyer aussi par email';
+    emailButton.addEventListener('click', () => { emailButton.href = buildMailto(form); });
+    const submit = form.querySelector('.sc-partner-submit');
+    if (submit) submit.insertAdjacentElement('afterend', emailButton);
   }
 
   function enhance() {
