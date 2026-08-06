@@ -1,4 +1,4 @@
-import application from './worker-entry.js';
+import application from './worker-entry-v131.js';
 import senecompare from './senecompare-v541.js';
 import samabusinessSites from './samabusiness-site-proxy.js';
 import samabusinessMedia from './samabusiness-media-review.js';
