@@ -7,13 +7,22 @@ on:
     paths:
       - '.github/workflows/samabusiness-supabase-cleanup.yml'
       - 'src/samabusiness-cleanup-trigger.txt'
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+    paths:
+      - 'src/samabusiness-cleanup-trigger.txt'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: samabusiness-supabase-cleanup-v18
+  group: samabusiness-supabase-cleanup-v18-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 env:
@@ -22,13 +31,21 @@ env:
 
 jobs:
   cleanup:
+    if: >-
+      github.event_name != 'pull_request' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.head_ref == 'samabusiness-v18-cleanup')
     runs-on: ubuntu-latest
     timeout-minutes: 18
     steps:
-      - name: Verify Supabase credentials
+      - name: Verify trusted internal execution
         shell: bash
         run: |
           set -euo pipefail
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.head_ref }}" != "samabusiness-v18-cleanup" ]; then
+            echo 'Untrusted cleanup branch.' >&2
+            exit 1
+          fi
           if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
             echo 'SUPABASE_ACCESS_TOKEN is not configured.' >&2
             exit 1
