@@ -1,19 +1,21 @@
-const PLATFORM = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-platform';
-const LEGACY = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-studio';
-const VERSION = '12.0.0';
+const API_BACKEND = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-studio';
+const COMPATIBILITY = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-platform';
+const RENDERER = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-renderer-v12';
+const VERSION = '12.1.0';
 
 function sameOriginSiteUrl(value, origin) {
   if (typeof value !== 'string') return value;
   try {
     const url = new URL(value);
-    if (`${url.origin}${url.pathname}` === PLATFORM || `${url.origin}${url.pathname}` === LEGACY) {
-      const site = url.searchParams.get('site');
-      if (!site) return `${origin}/api/site-platform`;
-      const preview = url.searchParams.get('preview') === '1' ? '?preview=1' : '';
-      return `${origin}/sites/${encodeURIComponent(site)}${preview}`;
-    }
-  } catch (_) {}
-  return value;
+    const base = `${url.origin}${url.pathname}`;
+    if (![API_BACKEND, COMPATIBILITY, RENDERER].includes(base)) return value;
+    const site = url.searchParams.get('site');
+    if (!site) return `${origin}/api/site-platform`;
+    const preview = url.searchParams.get('preview') === '1' ? '?preview=1' : '';
+    return `${origin}/sites/${encodeURIComponent(site)}${preview}`;
+  } catch (_) {
+    return value;
+  }
 }
 
 function rewrite(value, origin) {
@@ -60,10 +62,10 @@ async function apiProxy(request, url) {
 
   let upstream;
   try {
-    upstream = await fetch(PLATFORM, { method: 'POST', headers, body, cache: 'no-store' });
+    upstream = await fetch(API_BACKEND, { method: 'POST', headers, body, cache: 'no-store' });
   } catch (_) {
     await new Promise((resolve) => setTimeout(resolve, 250));
-    upstream = await fetch(PLATFORM, { method: 'POST', headers, body, cache: 'no-store' });
+    upstream = await fetch(API_BACKEND, { method: 'POST', headers, body, cache: 'no-store' });
   }
 
   const text = await upstream.text();
@@ -90,26 +92,36 @@ async function sitePage(request, url) {
   if (!['GET', 'HEAD'].includes(request.method)) return new Response('Method Not Allowed', { status: 405, headers: commonHeaders() });
   const pathSite = url.pathname.startsWith('/sites/') ? decodeURIComponent(url.pathname.slice('/sites/'.length)) : '';
   const site = pathSite || url.searchParams.get('site') || '';
-  if (!site || !/^[a-z0-9][a-z0-9-]{1,79}$/i.test(site)) return new Response('Site introuvable', { status: 404, headers: { ...commonHeaders(), 'content-type': 'text/plain; charset=utf-8' } });
+  if (!site || !/^[a-z0-9][a-z0-9-]{1,79}$/i.test(site)) {
+    return new Response('Site introuvable', { status: 404, headers: { ...commonHeaders(), 'content-type': 'text/plain; charset=utf-8' } });
+  }
+
   const preview = url.searchParams.get('preview') === '1';
-  const endpoint = `${PLATFORM}?site=${encodeURIComponent(site)}${preview ? '&preview=1' : ''}`;
-  const upstream = await fetch(endpoint, { method: request.method, cache: preview ? 'no-store' : 'no-cache' });
+  const endpoint = `${RENDERER}?site=${encodeURIComponent(site)}${preview ? '&preview=1' : ''}`;
+  const upstreamHeaders = new Headers({ 'x-client-info': `cloudflare-site-renderer/${VERSION}` });
+  const session = request.headers.get('x-sama-session');
+  if (session) upstreamHeaders.set('x-sama-session', session);
+  const upstream = await fetch(endpoint, {
+    method: request.method,
+    headers: upstreamHeaders,
+    cache: preview ? 'no-store' : 'no-cache',
+  });
   const body = request.method === 'HEAD' ? null : await upstream.text();
 
-  const headers = new Headers(commonHeaders());
-  headers.set('content-type', upstream.ok ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8');
-  headers.set('content-disposition', 'inline');
-  headers.set('cache-control', preview ? 'no-store, no-cache, must-revalidate' : 'public, max-age=60, stale-while-revalidate=300');
-  headers.set('cross-origin-resource-policy', 'same-origin');
-  headers.set('permissions-policy', 'camera=(), microphone=(), geolocation=(), payment=()');
-  headers.set('content-security-policy', "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; base-uri 'none'; form-action 'self' https://wa.me; frame-ancestors 'self' https://samabusiness.dakarstyle.com https://samacahier.dakarstyle.com");
-  headers.set('x-robots-tag', preview ? 'noindex, nofollow, noarchive' : 'index, follow');
-  headers.delete('x-frame-options');
-  headers.delete('content-length');
-  headers.delete('content-encoding');
-  headers.delete('set-cookie');
+  const responseHeaders = new Headers(commonHeaders());
+  responseHeaders.set('content-type', upstream.ok ? 'text/html; charset=utf-8' : 'text/plain; charset=utf-8');
+  responseHeaders.set('content-disposition', 'inline');
+  responseHeaders.set('cache-control', preview ? 'no-store, no-cache, must-revalidate' : 'public, max-age=60, stale-while-revalidate=300');
+  responseHeaders.set('cross-origin-resource-policy', 'same-origin');
+  responseHeaders.set('permissions-policy', 'camera=(), microphone=(), geolocation=(), payment=()');
+  responseHeaders.set('content-security-policy', "default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; base-uri 'none'; form-action 'self' https://wa.me; frame-ancestors 'self' https://samabusiness.dakarstyle.com https://samacahier.dakarstyle.com");
+  responseHeaders.set('x-robots-tag', preview ? 'noindex, nofollow, noarchive' : 'index, follow');
+  responseHeaders.delete('x-frame-options');
+  responseHeaders.delete('content-length');
+  responseHeaders.delete('content-encoding');
+  responseHeaders.delete('set-cookie');
 
-  return new Response(body, { status: upstream.status, statusText: upstream.statusText, headers });
+  return new Response(body, { status: upstream.status, statusText: upstream.statusText, headers: responseHeaders });
 }
 
 export default {
@@ -119,7 +131,7 @@ export default {
       if (url.pathname === '/api/site-platform') return await apiProxy(request, url);
       if (url.pathname === '/site-preview' || url.pathname.startsWith('/sites/')) return await sitePage(request, url);
       if (url.pathname === '/site-platform-health') {
-        return Response.json({ ok: true, service: 'samabusiness-site-proxy', version: VERSION }, { headers: { ...commonHeaders(), 'cache-control': 'no-store' } });
+        return Response.json({ ok: true, service: 'samabusiness-site-proxy', version: VERSION, renderer: '12.1.0' }, { headers: { ...commonHeaders(), 'cache-control': 'no-store' } });
       }
       return new Response('Not Found', { status: 404, headers: commonHeaders() });
     } catch (error) {
