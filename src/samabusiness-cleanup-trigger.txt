@@ -1,8 +1,7 @@
-Trigger the controlled SAMABUSINESS V18 cleanup.
+Internal SAMABUSINESS V18 cleanup execution.
 
-Purpose:
-- remove only obsolete validators, audits, hotfixes, migration runners and smoke-test Edge Functions;
-- preserve every production function for Sama Business, Sama Livraison, Studio Sites, SeneCompare, Security Control and Tijane;
-- free Supabase Edge Function slots before the canonical V18 deployment.
-
-Triggered at: 2026-08-07T00:27:00+01:00
+Trusted branch: samabusiness-v18-cleanup
+Project: xmdpmtvieqgoorbxytey
+Scope: obsolete validators, audits, hotfixes, migration runners and smoke-test Edge Functions only.
+Protected: all production functions for Sama Business, Sama Livraison, Studio Sites, SeneCompare, Security Control and Tijane.
+Execution marker: 2026-08-07T00:34:00+01:00
