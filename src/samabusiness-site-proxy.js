@@ -1,7 +1,7 @@
 const API_BACKEND = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-studio';
 const COMPATIBILITY = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-platform';
 const RENDERER = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-renderer-v12';
-const VERSION = '12.1.1';
+const VERSION = '12.2.0';
 
 function sameOriginSiteUrl(value, origin) {
   if (typeof value !== 'string') return value;
@@ -100,17 +100,14 @@ async function sitePage(request, url) {
 
   const previewToken = url.searchParams.get('preview') || '';
   const isPreview = Boolean(previewToken);
-  const signedPreview = previewToken && previewToken !== '1';
-  const endpoint = signedPreview
-    ? `${API_BACKEND}?site=${encodeURIComponent(site)}&preview=${encodeURIComponent(previewToken)}`
-    : `${RENDERER}?site=${encodeURIComponent(site)}${isPreview ? '&preview=1' : ''}`;
-
+  const endpoint = `${RENDERER}?site=${encodeURIComponent(site)}${isPreview ? `&preview=${encodeURIComponent(previewToken)}` : ''}`;
   const upstreamHeaders = new Headers({
     'x-client-info': `cloudflare-site-renderer/${VERSION}`,
     'x-samabusiness-render-proxy': '1',
   });
   const session = request.headers.get('x-sama-session');
   if (session) upstreamHeaders.set('x-sama-session', session);
+
   const upstream = await fetch(endpoint, {
     method: request.method,
     headers: upstreamHeaders,
@@ -141,7 +138,7 @@ export default {
       if (url.pathname === '/api/site-platform') return await apiProxy(request, url);
       if (url.pathname === '/site-preview' || url.pathname.startsWith('/sites/')) return await sitePage(request, url);
       if (url.pathname === '/site-platform-health') {
-        return Response.json({ ok: true, service: 'samabusiness-site-proxy', version: VERSION, renderer: '12.1.0', signedPreviewTokens: true }, { headers: { ...commonHeaders(), 'cache-control': 'no-store' } });
+        return Response.json({ ok: true, service: 'samabusiness-site-proxy', version: VERSION, renderer: '12.2.0', signedPreviewTokens: true, unifiedPreview: true }, { headers: { ...commonHeaders(), 'cache-control': 'no-store' } });
       }
       return new Response('Not Found', { status: 404, headers: commonHeaders() });
     } catch (error) {
