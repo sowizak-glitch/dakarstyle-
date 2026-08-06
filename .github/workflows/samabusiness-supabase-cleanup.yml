@@ -1,4 +1,4 @@
-name: SAMABUSINESS Supabase cleanup
+name: SAMABUSINESS Supabase cleanup V18
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - '.github/workflows/samabusiness-supabase-cleanup.yml'
-      - 'src/samabusiness-site-proxy.js'
       - 'src/samabusiness-cleanup-trigger.txt'
   workflow_dispatch:
 
@@ -14,8 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: samabusiness-supabase-cleanup
-  cancel-in-progress: false
+  group: samabusiness-supabase-cleanup-v18
+  cancel-in-progress: true
 
 env:
   PROJECT_REF: xmdpmtvieqgoorbxytey
@@ -24,7 +23,7 @@ env:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 18
     steps:
       - name: Verify Supabase credentials
         shell: bash
@@ -35,27 +34,135 @@ jobs:
             exit 1
           fi
 
-      - name: Remove obsolete V8 hotfix function
+      - name: Inventory functions before cleanup
         shell: bash
         run: |
           set -euo pipefail
-          if npx --yes supabase@latest functions list --project-ref "$PROJECT_REF" | grep -q 'sama-hotfix-v801'; then
-            npx --yes supabase@latest functions delete sama-hotfix-v801 --project-ref "$PROJECT_REF"
-          else
-            echo 'sama-hotfix-v801 is already absent.'
-          fi
+          npx --yes supabase@latest functions list --project-ref "$PROJECT_REF" | tee functions-before-cleanup.txt
 
-      - name: Confirm active functions
+      - name: Remove obsolete development functions
+        shell: bash
+        run: |
+          set -euo pipefail
+          obsolete=(
+            sama-asset-migrate
+            sama-source-audit
+            sama-env-check
+            sama-patch-v8
+            sama-maintenance-runner
+            sama-v8-validator
+            sama-v8-e2e
+            sama-hotfix-v801
+            sama-hotfix-v802
+            sama-hotfix-v803
+            sama-config-check
+            sama-upgrade-v81
+            sama-v81-validator
+            sama-v81-e2e
+            sama-hotfix-v811
+            sama-v811-validator
+            sama-support-e2e
+            sama-upgrade-v82
+            sama-v82-fragment-validator
+            sama-v82-validator
+            sama-v83-inspect
+            sama-upgrade-v83
+            sama-v83-validator
+            sama-domain-env-check
+            sama-upgrade-v831
+            sama-v831-validator
+            sama-v84-inspect
+            sama-upgrade-v84
+            sama-v84-validator
+            sama-livraison-smoke
+            sama-livraison-publish
+            sama-livraison-v2-smoke
+            sama-livraison-v2-certify
+            sama-livraison-chunk-debug
+            sama-livraison-v3-e2e
+            sama-business-bundle-check
+            sama-business-v9-e2e
+            sama-business-api-v2-check
+            samabusiness-asset-uploader
+            samabusiness-v10-e2e
+          )
+
+          cp functions-before-cleanup.txt current-functions.txt
+          : > deleted-functions.txt
+          : > absent-functions.txt
+
+          for fn in "${obsolete[@]}"; do
+            if grep -Eq "(^|[[:space:]])${fn}([[:space:]]|$)" current-functions.txt; then
+              echo "Deleting obsolete function: $fn"
+              npx --yes supabase@latest functions delete "$fn" --project-ref "$PROJECT_REF"
+              echo "$fn" >> deleted-functions.txt
+            else
+              echo "$fn" >> absent-functions.txt
+            fi
+          done
+
+      - name: Verify protected production functions
         shell: bash
         run: |
           set -euo pipefail
           npx --yes supabase@latest functions list --project-ref "$PROJECT_REF" | tee functions-after-cleanup.txt
-          ! grep -q 'sama-hotfix-v801' functions-after-cleanup.txt
+
+          protected=(
+            sama-assets
+            sama-business-api
+            samabusiness-api-v10
+            samabusiness-control-api
+            samabusiness-addon
+            samabusiness-field-ux
+            samabusiness-pwa
+            sama-livraison-app
+            sama-livraison-bundle
+            sama-livraison-api-v3
+            samabusiness-livraison-proxy
+            samabusiness-supplier-api
+            samabusiness-audio-api
+            samabusiness-site-studio
+            samabusiness-site-studio-ui
+            samabusiness-site-platform
+            samabusiness-site-network-v12
+            samabusiness-ecosystem-ui
+            samabusiness-site-preview-fix
+            samabusiness-site-renderer-v12
+            samabusiness-studio-language-v12
+            samabusiness-site-experience-v122
+            samabusiness-site-commerce-v13
+            senecompare-production
+            senecompare-gateway
+            security-control-api
+            security-control-app
+            security-control-passkey
+            tijane-updates
+          )
+
+          missing=0
+          for fn in "${protected[@]}"; do
+            if ! grep -Eq "(^|[[:space:]])${fn}([[:space:]]|$)" functions-after-cleanup.txt; then
+              echo "Protected production function missing: $fn" >&2
+              missing=1
+            fi
+          done
+          test "$missing" -eq 0
+
+          before_count=$(grep -c 'ACTIVE' functions-before-cleanup.txt || true)
+          after_count=$(grep -c 'ACTIVE' functions-after-cleanup.txt || true)
+          deleted_count=$(wc -l < deleted-functions.txt | tr -d ' ')
+          printf 'before=%s\nafter=%s\ndeleted=%s\n' "$before_count" "$after_count" "$deleted_count" | tee cleanup-summary.txt
+          test "$after_count" -lt "$before_count"
 
       - name: Record cleanup evidence
         uses: actions/upload-artifact@v4
         with:
-          name: samabusiness-supabase-cleanup
-          path: functions-after-cleanup.txt
+          name: samabusiness-supabase-cleanup-v18
+          path: |
+            functions-before-cleanup.txt
+            functions-after-cleanup.txt
+            deleted-functions.txt
+            absent-functions.txt
+            cleanup-summary.txt
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
