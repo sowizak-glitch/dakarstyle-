@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import application from '../src/senecompare-v53.js';
+import application from '../src/senecompare-v531.js';
 import router from '../src/senecompare-v5-router.js';
 
 const calls = [];
@@ -12,7 +12,10 @@ const env = {
         '/senecompare/index.html': '<!doctype html><html lang="fr"><head><link rel="icon" href="/icon.svg"></head><body><header><span class="brand-mark">SC</span><span class="brand-copy"><strong>SeneCompare <em>AI</em></strong></span></header><button id="installButton">Installer</button><footer><div class="footer-links"></div></footer></body></html>',
         '/senecompare/admin-v53.html': '<!doctype html><html><head><meta name="robots" content="noindex,nofollow"><link rel="stylesheet" href="/admin-v53.css?v=530"></head><body><form id="adminLoginForm"><input value="idrissaminata@gmail.com"></form><script src="/admin-v53.js?v=530" defer></script></body></html>',
         '/senecompare/monetization-v53.css': '.sc-sponsored-shell{display:block}',
+        '/senecompare/monetization-v53.patch.css': '.sc-partner-panel{pointer-events:none}',
         '/senecompare/monetization-v53.js': "window.__SENECOMPARE_MONETIZATION__={version:'5.3.0'};",
+        '/senecompare/monetization-v53-dialog.css': '.sc-partner-dialog>.sc-partner-close{position:absolute}',
+        '/senecompare/monetization-v53-dialog.js': "window.__SENECOMPARE_DIALOG_FIX__={version:'5.3.1-dialog'};",
         '/senecompare/admin-v53.css': '.sc-admin-login{display:grid}',
         '/senecompare/admin-v53.js': "window.__SENECOMPARE_ADMIN__={version:'5.3.0'};",
         '/senecompare/premium-v51.css': '.premium{}',
@@ -28,14 +31,17 @@ const env = {
 };
 
 {
-  const response = await application.fetch(new Request('https://senecompare.dakarstyle.com/?v=530'), env, {});
+  const response = await application.fetch(new Request('https://senecompare.dakarstyle.com/?v=531'), env, {});
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('x-senecompare-release'), '5.3.0');
   assert.equal(response.headers.get('x-senecompare-analytics'), 'first-party-private-v53');
   assert.equal(response.headers.get('x-senecompare-ads'), 'transparent-house-campaigns-v53');
+  assert.equal(response.headers.get('x-senecompare-dialog-fix'), '5.3.1-dialog');
   const html = await response.text();
   assert.match(html, /monetization-v53\.css\?v=530/);
   assert.match(html, /monetization-v53\.js\?v=530/);
+  assert.match(html, /monetization-v53-dialog\.css\?v=531/);
+  assert.match(html, /monetization-v53-dialog\.js\?v=531/);
   assert.match(html, /data-admin-enabled="true"/);
   assert.match(html, /Release 5\.3\.0/);
   assert.match(html, /SeneCompare <em>Sénégal<\/em>/);
@@ -45,6 +51,7 @@ const env = {
   const response = await application.fetch(new Request('https://senecompare.dakarstyle.com/admin'), env, {});
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('x-senecompare-release'), '5.3.0');
+  assert.equal(response.headers.get('x-senecompare-dialog-fix'), '5.3.1-dialog');
   assert.match(response.headers.get('x-robots-tag') || '', /noindex/);
   assert.match(response.headers.get('content-security-policy') || '', /frame-ancestors 'none'/);
   const html = await response.text();
@@ -52,11 +59,14 @@ const env = {
   assert.match(html, /admin-v53\.css\?v=530/);
   assert.match(html, /admin-v53\.js\?v=530/);
   assert.match(html, /data-senecompare-admin-release="5\.3\.0"/);
+  assert.doesNotMatch(html, /monetization-v53-dialog/);
 }
 
 for (const [path, pattern] of [
   ['/monetization-v53.css', /sc-sponsored-shell/],
   ['/monetization-v53.js', /SENECOMPARE_MONETIZATION/],
+  ['/monetization-v53-dialog.css', /sc-partner-dialog>\.sc-partner-close/],
+  ['/monetization-v53-dialog.js', /SENECOMPARE_DIALOG_FIX/],
   ['/admin-v53.css', /sc-admin-login/],
   ['/admin-v53.js', /SENECOMPARE_ADMIN/],
 ]) {
@@ -126,4 +136,6 @@ try {
 
 assert.ok(calls.includes('/senecompare/index.html'));
 assert.ok(calls.includes('/senecompare/admin-v53.html'));
-console.log('SeneCompare 5.3 admin and advertising contract passed');
+assert.ok(calls.includes('/senecompare/monetization-v53-dialog.css'));
+assert.ok(calls.includes('/senecompare/monetization-v53-dialog.js'));
+console.log('SeneCompare 5.3 admin, advertising and structural dialog contract passed');

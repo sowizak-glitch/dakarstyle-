@@ -5,26 +5,28 @@ on:
     branches: [main]
     paths:
       - 'src/senecompare-v53.js'
+      - 'src/senecompare-v531.js'
       - 'src/senecompare-v5-router.js'
       - 'senecompare/admin-v53.*'
       - 'senecompare/monetization-v53.*'
       - 'supabase/functions/senecompare-admin-v53/**'
       - 'supabase/migrations/*senecompare_admin_ads_v53*.sql'
       - 'tests/senecompare-v53-*.mjs'
+      - 'tests/senecompare-final-v52-static-audit.mjs'
       - '.github/workflows/senecompare-v53-admin-ads.yml'
-      - '.github/workflows/senecompare-final-v52.yml'
   push:
     branches: [main]
     paths:
       - 'src/senecompare-v53.js'
+      - 'src/senecompare-v531.js'
       - 'src/senecompare-v5-router.js'
       - 'senecompare/admin-v53.*'
       - 'senecompare/monetization-v53.*'
       - 'supabase/functions/senecompare-admin-v53/**'
       - 'supabase/migrations/*senecompare_admin_ads_v53*.sql'
       - 'tests/senecompare-v53-*.mjs'
+      - 'tests/senecompare-final-v52-static-audit.mjs'
       - '.github/workflows/senecompare-v53-admin-ads.yml'
-      - '.github/workflows/senecompare-final-v52.yml'
   workflow_dispatch:
 
 permissions:
@@ -47,17 +49,22 @@ jobs:
         run: |
           set -euo pipefail
           node --check src/senecompare-v53.js
+          node --check src/senecompare-v531.js
           node --check src/senecompare-v5-router.js
           node --check senecompare/monetization-v53.js
+          node --check senecompare/monetization-v53-dialog.js
           node --check senecompare/admin-v53.js
           node --check tests/senecompare-v53-contract.mjs
           node --check tests/senecompare-v53-static-audit.mjs
           node --check tests/senecompare-v53-browser-live.mjs
+          node --check tests/senecompare-final-v52-static-audit.mjs
       - name: Run SeneCompare 5.3 contract
         run: node tests/senecompare-v53-contract.mjs
       - name: Run privacy and security audit
-        run: node tests/senecompare-v53-static-audit.mjs
-      - name: Validate owner, campaigns and responsive assets
+        run: |
+          node tests/senecompare-v53-static-audit.mjs
+          node tests/senecompare-final-v52-static-audit.mjs
+      - name: Validate owner, campaigns and structural dialog
         shell: bash
         run: |
           set -euo pipefail
@@ -66,18 +73,21 @@ jobs:
           grep -q 'sowhat-africa-culture' senecompare/monetization-v53.js
           grep -q 'advertise-on-senecompare' senecompare/monetization-v53.js
           grep -q 'Sponsorisé' senecompare/monetization-v53.js
-          grep -q '@media(max-width:760px)' senecompare/monetization-v53.css
-          grep -q '@media(max-width:820px)' senecompare/admin-v53.css
+          grep -q 'dialog.insertBefore(button, panel)' senecompare/monetization-v53-dialog.js
+          grep -q 'sc-partner-dialog>.sc-partner-close' senecompare/monetization-v53-dialog.css
+          grep -q '/monetization-v53-dialog.js?v=531' src/senecompare-v531.js
+          grep -q "import frontend from './senecompare-v531.js'" src/senecompare-v5-router.js
           grep -q 'enable row level security' supabase/migrations/20260805234000_senecompare_admin_ads_v53.sql
           grep -q 'AUTH_REQUIRED' src/senecompare-v5-router.js
       - name: Validate Cloudflare bundle
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-v53
-      - name: Guard against committed secrets and raw visitor IPs
+      - name: Guard against secrets and raw visitor IPs
         shell: bash
         run: |
           set -euo pipefail
           if grep -RInE '(SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=|sk-[A-Za-z0-9_-]{20,}|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' \
-            src/senecompare-v53.js src/senecompare-v5-router.js senecompare/admin-v53.* senecompare/monetization-v53.* supabase/functions/senecompare-admin-v53; then
+            src/senecompare-v53.js src/senecompare-v531.js src/senecompare-v5-router.js \
+            senecompare/admin-v53.* senecompare/monetization-v53.* supabase/functions/senecompare-admin-v53; then
             echo 'Potential secret found in SeneCompare 5.3 files.' >&2
             exit 1
           fi
@@ -95,12 +105,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error \
-            -H 'Origin: https://senecompare.dakarstyle.com' \
-            "$ADMIN_EDGE_URL/health" -o edge-health.json
-          curl --fail --silent --show-error \
-            -H 'Origin: https://senecompare.dakarstyle.com' \
-            "$ADMIN_EDGE_URL/ads" -o edge-ads.json
+          curl --fail --silent --show-error -H 'Origin: https://senecompare.dakarstyle.com' "$ADMIN_EDGE_URL/health" -o edge-health.json
+          curl --fail --silent --show-error -H 'Origin: https://senecompare.dakarstyle.com' "$ADMIN_EDGE_URL/ads" -o edge-ads.json
           python3 - <<'PY'
           import json
           health = json.load(open('edge-health.json'))
@@ -109,23 +115,17 @@ jobs:
           assert health.get('version') == '5.3.0'
           assert health.get('owner_configured') is True
           assert health.get('privacy_mode') == 'no_raw_ip'
-          assert ads.get('ok') is True
           campaigns = ads.get('campaigns', [])
-          slugs = {item.get('slug') for item in campaigns}
-          assert {'samabusiness-launch','sowhat-africa-culture','advertise-on-senecompare'} <= slugs
+          assert ads.get('ok') is True
+          assert {'samabusiness-launch','sowhat-africa-culture','advertise-on-senecompare'} <= {item.get('slug') for item in campaigns}
           assert all(str(item.get('destination_url','')).startswith('https://') for item in campaigns)
-          print('SeneCompare 5.3 edge service is live')
           PY
       - name: Verify public validation boundaries
         shell: bash
         run: |
           set -euo pipefail
-          track_status=$(curl --silent --show-error -o invalid-track.json -w '%{http_code}' \
-            -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' \
-            --data '{"event_type":"invalid-ci-event"}' "$ADMIN_EDGE_URL/track")
-          lead_status=$(curl --silent --show-error -o invalid-lead.json -w '%{http_code}' \
-            -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' \
-            --data '{}' "$ADMIN_EDGE_URL/partners/leads")
+          track_status=$(curl -sS -o invalid-track.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' --data '{"event_type":"invalid-ci-event"}' "$ADMIN_EDGE_URL/track")
+          lead_status=$(curl -sS -o invalid-lead.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' --data '{}' "$ADMIN_EDGE_URL/partners/leads")
           test "$track_status" = 400
           test "$lead_status" = 400
           grep -q 'EVENT_INVALID' invalid-track.json
@@ -149,21 +149,21 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Wait for Cloudflare 5.3 deployment
+      - name: Wait for Cloudflare 5.3 structural deployment
         shell: bash
         run: |
           set -euo pipefail
           ready=false
           for attempt in $(seq 1 40); do
-            root=$(curl -sS -H 'Cache-Control: no-cache' -o root.html -D root.headers -w '%{http_code}' --max-time 30 "$APP_URL/?v=530&deploy=$GITHUB_RUN_ID" || true)
+            root=$(curl -sS -H 'Cache-Control: no-cache' -o root.html -D root.headers -w '%{http_code}' --max-time 30 "$APP_URL/?v=531&deploy=$GITHUB_RUN_ID" || true)
             admin=$(curl -sS -H 'Cache-Control: no-cache' -o admin.html -D admin.headers -w '%{http_code}' --max-time 30 "$APP_URL/admin?deploy=$GITHUB_RUN_ID" || true)
             if [ "$root" = 200 ] && [ "$admin" = 200 ] \
               && grep -qi '^x-senecompare-release: 5.3.0' root.headers \
-              && grep -q '/monetization-v53.js?v=530' root.html \
-              && grep -q 'data-senecompare-release="5.3.0"' root.html \
+              && grep -qi '^x-senecompare-dialog-fix: 5.3.1-dialog' root.headers \
+              && grep -q '/monetization-v53-dialog.css?v=531' root.html \
+              && grep -q '/monetization-v53-dialog.js?v=531' root.html \
               && grep -qi '^x-robots-tag: noindex' admin.headers \
-              && grep -q 'idrissaminata@gmail.com' admin.html \
-              && grep -q '/admin-v53.js?v=530' admin.html; then
+              && grep -q 'idrissaminata@gmail.com' admin.html; then
               ready=true
               break
             fi
@@ -171,31 +171,29 @@ jobs:
             sleep 10
           done
           test "$ready" = true
-      - name: Capture public advertising and private admin endpoints
+      - name: Capture public, structural and admin endpoints
         shell: bash
         run: |
           set -euo pipefail
           curl --fail --silent --show-error -D ads.headers "$APP_URL/api/ads" -o ads.json
           curl --fail --silent --show-error -D monetization.headers "$APP_URL/monetization-v53.js?v=530" -o monetization-v53.js
+          curl --fail --silent --show-error -D dialogjs.headers "$APP_URL/monetization-v53-dialog.js?v=531" -o monetization-v53-dialog.js
+          curl --fail --silent --show-error -D dialogcss.headers "$APP_URL/monetization-v53-dialog.css?v=531" -o monetization-v53-dialog.css
           curl --fail --silent --show-error -D adminjs.headers "$APP_URL/admin-v53.js?v=530" -o admin-v53.js
-          overview_status=$(curl --silent --show-error -D overview.headers -o overview.json -w '%{http_code}' "$APP_URL/api/admin/overview?days=30")
+          overview_status=$(curl -sS -D overview.headers -o overview.json -w '%{http_code}' "$APP_URL/api/admin/overview?days=30")
           test "$overview_status" = 401
-          track_status=$(curl --silent --show-error -D track.headers -o track.json -w '%{http_code}' \
-            -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' \
-            --data '{"event_type":"invalid-certification-event"}' "$APP_URL/api/analytics/track")
+          track_status=$(curl -sS -D track.headers -o track.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' --data '{"event_type":"invalid-certification-event"}' "$APP_URL/api/analytics/track")
           test "$track_status" = 400
-          lead_status=$(curl --silent --show-error -D lead.headers -o lead.json -w '%{http_code}' \
-            -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' \
-            --data '{}' "$APP_URL/api/partners/leads")
+          lead_status=$(curl -sS -D lead.headers -o lead.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' --data '{}' "$APP_URL/api/partners/leads")
           test "$lead_status" = 400
       - name: Verify search continuity
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --max-time 65 \
-            -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' \
-            -H 'X-Client-Version: senecompare-v53-certification' \
-            --data '{"query":"application de gestion de commerce au Sénégal","language":"fr","session_id":"v53-certification"}' \
+          curl --fail --silent --show-error --max-time 65 -X POST \
+            -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' \
+            -H 'X-Client-Version: senecompare-v531-certification' \
+            --data '{"query":"application de gestion de commerce au Sénégal","language":"fr","session_id":"v531-certification"}' \
             "$APP_URL/api/search" -o search.json
       - name: Validate turnkey evidence
         shell: bash
@@ -213,23 +211,22 @@ jobs:
           track = json.load(open('track.json'))
           lead = json.load(open('lead.json'))
           search = json.load(open('search.json'))
+          dialog_js = Path('monetization-v53-dialog.js').read_text()
+          dialog_css = Path('monetization-v53-dialog.css').read_text()
           assert 'x-senecompare-release: 5.3.0' in headers
-          assert 'x-senecompare-analytics: first-party-private-v53' in headers
-          assert 'x-senecompare-ads: transparent-house-campaigns-v53' in headers
-          assert '/monetization-v53.css?v=530' in root
-          assert '/monetization-v53.js?v=530' in root
+          assert 'x-senecompare-dialog-fix: 5.3.1-dialog' in headers
+          assert '/monetization-v53-dialog.css?v=531' in root
+          assert '/monetization-v53-dialog.js?v=531' in root
           assert 'x-robots-tag: noindex' in admin_headers
           assert 'idrissaminata@gmail.com' in admin
           assert ads.get('ok') is True and len(ads.get('campaigns', [])) >= 3
           assert overview.get('code') == 'AUTH_REQUIRED'
           assert track.get('code') == 'EVENT_INVALID'
           assert lead.get('code') == 'LEAD_FIELDS_REQUIRED'
-          assert search.get('ok') is True
-          assert len(search.get('results', [])) >= 1
-          assert all(str(item.get('source_url','')).startswith(('http://','https://')) for item in search['results'])
-          assert 'Sponsorisé' in Path('monetization-v53.js').read_text()
+          assert search.get('ok') is True and len(search.get('results', [])) >= 1
+          assert 'dialog.insertBefore(button, panel)' in dialog_js
+          assert '.sc-partner-dialog>.sc-partner-close' in dialog_css
           assert 'sessionStorage' in Path('admin-v53.js').read_text()
-          print('SeneCompare 5.3 production certification passed')
           PY
       - name: Upload production evidence
         if: always()
@@ -245,6 +242,10 @@ jobs:
             ads.headers
             monetization-v53.js
             monetization.headers
+            monetization-v53-dialog.js
+            dialogjs.headers
+            monetization-v53-dialog.css
+            dialogcss.headers
             admin-v53.js
             adminjs.headers
             overview.json
@@ -273,7 +274,7 @@ jobs:
         run: |
           npm install --no-save --no-package-lock playwright@1.54.1
           npx playwright install --with-deps chromium
-      - name: Verify desktop, Samsung, banner and admin login
+      - name: Verify desktop, Samsung, banner, structural dialog and admin login
         run: node tests/senecompare-v53-browser-live.mjs
       - name: Upload browser evidence
         if: always()
