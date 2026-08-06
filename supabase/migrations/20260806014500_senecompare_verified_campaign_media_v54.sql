@@ -37,3 +37,6 @@ where contact_destination is distinct from 'hellodakarstyle@gmail.com';
 
 -- Les octets des visuels sont chargés hors Git par le pipeline privé de livraison.
 -- Cette migration conserve uniquement le schéma, les URL publiques et les contrôles d’accès.
+-- Empreintes attendues après optimisation technique sans modification créative :
+-- SamaBusiness : 70f06b9f5118a97302d9100282b255aec58dbf1320b95078d32bbfbcde36b12c
+-- Sowhat Africa : ba9a293761943beb90712a41886b80d21b0ef7b916ee9b44347086bc8eae1b1d
