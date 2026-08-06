@@ -1,0 +1,231 @@
+name: SeneCompare 5.4 premium campaigns and auth
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/senecompare-v54-router.js'
+      - 'src/router.js'
+      - 'src/index.js'
+      - 'senecompare/premium-ads-v54.*'
+      - 'senecompare/admin-auth-v54.*'
+      - 'supabase/functions/senecompare-media-v54/**'
+      - 'supabase/migrations/*senecompare_premium_media_notifications_v54.sql'
+      - 'tests/senecompare-v54-*.mjs'
+      - '.github/workflows/senecompare-v54-premium.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/senecompare-v54-router.js'
+      - 'src/router.js'
+      - 'src/index.js'
+      - 'senecompare/premium-ads-v54.*'
+      - 'senecompare/admin-auth-v54.*'
+      - 'supabase/functions/senecompare-media-v54/**'
+      - 'supabase/migrations/*senecompare_premium_media_notifications_v54.sql'
+      - 'tests/senecompare-v54-*.mjs'
+      - '.github/workflows/senecompare-v54-premium.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  APP_URL: https://senecompare.dakarstyle.com
+  MEDIA_EDGE: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/senecompare-media-v54
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate JavaScript syntax
+        run: |
+          set -euo pipefail
+          node --check src/senecompare-v54-router.js
+          node --check senecompare/premium-ads-v54.js
+          node --check senecompare/admin-auth-v54.js
+          node --check tests/senecompare-v54-contract.mjs
+          node --check tests/senecompare-v54-static-audit.mjs
+          node --check tests/senecompare-v54-browser-live.mjs
+      - name: Run runtime contract
+        run: node tests/senecompare-v54-contract.mjs
+      - name: Run security and privacy audit
+        run: node tests/senecompare-v54-static-audit.mjs
+      - name: Validate Cloudflare bundle
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-v54
+      - name: Guard against secrets and embedded campaign binaries
+        run: |
+          set -euo pipefail
+          if grep -RInE '(sk-[A-Za-z0-9_-]{20,}|SUPABASE_SERVICE_ROLE_KEY[[:space:]]*=|Bearer[[:space:]]+[A-Za-z0-9._-]{24,})' \
+            src/senecompare-v54-router.js senecompare/premium-ads-v54.* senecompare/admin-auth-v54.* supabase/functions/senecompare-media-v54; then
+            echo 'Potential secret found.' >&2
+            exit 1
+          fi
+          if grep -RInE 'UklGR[A-Za-z0-9+/]{100}' supabase/migrations/*senecompare_premium_media_notifications_v54.sql; then
+            echo 'Campaign binary must stay outside Git history.' >&2
+            exit 1
+          fi
+
+  media-live:
+    needs: contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Verify private media service
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error "$MEDIA_EDGE/health" -o media-health.json
+          curl --fail --silent --show-error "$MEDIA_EDGE/samabusiness-campaign.webp" -o samabusiness.webp
+          curl --fail --silent --show-error "$MEDIA_EDGE/sowhat-africa-campaign.webp" -o sowhat-africa.webp
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          health=json.load(open('media-health.json'))
+          assert health.get('ok') is True and health.get('version') == '5.4.0'
+          expected={
+            'samabusiness.webp':'70f06b9f5118a97302d9100282b255aec58dbf1320b95078d32bbfbcde36b12c',
+            'sowhat-africa.webp':'ba9a293761943beb90712a41886b80d21b0ef7b916ee9b44347086bc8eae1b1d',
+          }
+          for name,digest in expected.items():
+            data=Path(name).read_bytes()
+            assert data[:4] == b'RIFF' and data[8:12] == b'WEBP', name
+            assert hashlib.sha256(data).hexdigest() == digest, name
+            assert len(data) > 20000, name
+          print('SeneCompare 5.4 campaign media verified')
+          PY
+      - name: Upload media evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: senecompare-v54-media-evidence
+          path: |
+            media-health.json
+            samabusiness.webp
+            sowhat-africa.webp
+          if-no-files-found: warn
+          retention-days: 14
+
+  production-certification:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: media-live
+    runs-on: ubuntu-latest
+    timeout-minutes: 16
+    steps:
+      - name: Wait for Cloudflare 5.4 deployment
+        run: |
+          set -euo pipefail
+          ready=false
+          for attempt in $(seq 1 48); do
+            root=$(curl -sS -H 'Cache-Control: no-cache' -o root.html -D root.headers -w '%{http_code}' --max-time 30 "$APP_URL/?v=540&deploy=$GITHUB_RUN_ID" || true)
+            admin=$(curl -sS -H 'Cache-Control: no-cache' -o admin.html -D admin.headers -w '%{http_code}' --max-time 30 "$APP_URL/admin?v=540&deploy=$GITHUB_RUN_ID" || true)
+            if [ "$root" = 200 ] && [ "$admin" = 200 ] \
+              && grep -qi '^x-senecompare-release: 5.4.0' root.headers \
+              && grep -q '/premium-ads-v54.js?v=540' root.html \
+              && grep -q '/premium-ads-v54.css?v=540' root.html \
+              && grep -q '/admin-auth-v54.js?v=540' admin.html \
+              && grep -q '/admin-auth-v54.css?v=540' admin.html; then
+              ready=true
+              break
+            fi
+            echo "Waiting ($attempt/48): root=$root admin=$admin"
+            sleep 10
+          done
+          test "$ready" = true
+      - name: Capture premium assets and APIs
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error -D sama.headers "$APP_URL/media/samabusiness-campaign.webp" -o samabusiness.webp
+          curl --fail --silent --show-error -D sowhat.headers "$APP_URL/media/sowhat-africa-campaign.webp" -o sowhat-africa.webp
+          curl --fail --silent --show-error "$APP_URL/premium-ads-v54.js?v=540" -o premium-ads-v54.js
+          curl --fail --silent --show-error "$APP_URL/admin-auth-v54.js?v=540" -o admin-auth-v54.js
+          curl --fail --silent --show-error "$APP_URL/api/ads" -o ads.json
+          curl --fail --silent --show-error --max-time 65 \
+            -X POST -H 'Content-Type: application/json' -H 'Origin: https://senecompare.dakarstyle.com' \
+            -H 'X-Client-Version: senecompare-v54-certification' \
+            --data '{"query":"application pour gérer un commerce au Sénégal","language":"fr","session_id":"v54-certification"}' \
+            "$APP_URL/api/search" -o search.json
+      - name: Validate turnkey evidence
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root=Path('root.html').read_text(errors='replace')
+          admin=Path('admin.html').read_text(errors='replace')
+          headers=Path('root.headers').read_text().lower()
+          assert 'x-senecompare-release: 5.4.0' in headers
+          assert 'x-senecompare-premium-ads: campaign-media-v54' in headers
+          assert 'x-senecompare-admin-auth: secure-link-recovery-v54' in headers
+          assert '/premium-ads-v54.js?v=540' in root
+          assert '/admin-auth-v54.js?v=540' in admin
+          assert 'senecompare ai' not in root.lower()
+          expected={
+            'samabusiness.webp':'70f06b9f5118a97302d9100282b255aec58dbf1320b95078d32bbfbcde36b12c',
+            'sowhat-africa.webp':'ba9a293761943beb90712a41886b80d21b0ef7b916ee9b44347086bc8eae1b1d',
+          }
+          for name,digest in expected.items():
+            data=Path(name).read_bytes()
+            assert data[:4] == b'RIFF' and data[8:12] == b'WEBP'
+            assert hashlib.sha256(data).hexdigest() == digest
+          ads=json.load(open('ads.json'))
+          items={item.get('slug'):item for item in ads.get('campaigns',[])}
+          assert items['samabusiness-launch']['image_url'].endswith('/media/samabusiness-campaign.webp')
+          assert items['sowhat-africa-culture']['image_url'].endswith('/media/sowhat-africa-campaign.webp')
+          assert 'hellodakarstyle@gmail.com' in Path('premium-ads-v54.js').read_text()
+          assert 'localhost' in Path('admin-auth-v54.js').read_text()
+          search=json.load(open('search.json'))
+          assert search.get('ok') is True and len(search.get('results',[])) >= 1
+          print('SeneCompare 5.4 production certification passed')
+          PY
+      - name: Upload production evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: senecompare-v54-production-${{ github.run_id }}
+          path: |
+            root.html
+            root.headers
+            admin.html
+            admin.headers
+            samabusiness.webp
+            sowhat-africa.webp
+            sama.headers
+            sowhat.headers
+            premium-ads-v54.js
+            admin-auth-v54.js
+            ads.json
+            search.json
+          if-no-files-found: warn
+          retention-days: 30
+
+  production-browser:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: production-certification
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      E2E_OUTPUT_DIR: test-results/senecompare-v54
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.1
+          npx playwright install --with-deps chromium
+      - name: Verify premium campaigns, contact and admin recovery
+        run: node tests/senecompare-v54-browser-live.mjs
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: senecompare-v54-browser-${{ github.run_id }}
+          path: test-results/senecompare-v54
+          if-no-files-found: warn
+          retention-days: 30
