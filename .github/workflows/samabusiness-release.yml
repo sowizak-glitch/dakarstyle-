@@ -35,6 +35,7 @@ env:
   API_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-api-v10
   ADDON_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-addon
   RENDERER_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-renderer-v12
+  COMMERCE_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-commerce-v13
 
 jobs:
   validate:
@@ -72,6 +73,16 @@ jobs:
           grep -q '__SAMABUSINESS_PRODUCT_SELECTORS_PATCHED__' supabase/functions/samabusiness-addon/index.ts
           grep -q 'productSelectorFix:true' supabase/functions/samabusiness-addon/index.ts
           grep -q 'samabusiness-api-v10' supabase/functions/samabusiness-addon/index.ts
+
+      - name: Validate site commerce proxy source
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "const VERSION = '13.0.0'" src/samabusiness-site-proxy.js
+          grep -q "const COMMERCE" src/samabusiness-site-proxy.js
+          grep -q "'/api/site-commerce'" src/samabusiness-site-proxy.js
+          grep -q 'catalogInjection: true' src/samabusiness-site-proxy.js
+          grep -q 'customDomains: true' src/samabusiness-site-proxy.js
 
       - name: Test PWA endpoints
         shell: bash
@@ -119,6 +130,28 @@ jobs:
           health = json.loads(Path('renderer-health.json').read_text())
           assert health.get('ok') is True, health
           assert health.get('service') == 'samabusiness-site-renderer-v12', health
+          assert health.get('version') == '12.2.0', health
+          PY
+
+      - name: Test site commerce API
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error "$COMMERCE_URL/health" -o commerce-health.json
+          curl --fail --silent --show-error \
+            --header 'content-type: application/json' \
+            --data '{"action":"public_catalog","payload":{"siteId":"sowhat-africa"}}' \
+            "$COMMERCE_URL" -o commerce-catalog.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          health = json.loads(Path('commerce-health.json').read_text())
+          assert health.get('ok') is True, health
+          assert health.get('version') == '13.0.0', health
+          assert 'moderated-media' in health.get('features', []), health
+          catalog = json.loads(Path('commerce-catalog.json').read_text())
+          assert catalog.get('ok') is True, catalog
+          assert catalog.get('site', {}).get('siteId') == 'sowhat-africa', catalog
           PY
 
       - name: Test runtime finishing addon
@@ -147,6 +180,8 @@ jobs:
             api-health.json
             api-options.headers
             renderer-health.json
+            commerce-health.json
+            commerce-catalog.json
             logo-file-type.txt
           if-no-files-found: error
           retention-days: 14
@@ -188,13 +223,20 @@ jobs:
             test "$status" = '200'
           done
           curl --fail --silent --show-error 'https://samabusiness.dakarstyle.com/site-platform-health' -o site-platform-health.json
+          curl --fail --silent --show-error 'https://samabusiness.dakarstyle.com/sites/sowhat-africa' -o sowhat-store.html
           python3 - <<'PY'
           import json
           from pathlib import Path
           health = json.loads(Path('site-platform-health.json').read_text())
           assert health.get('ok') is True, health
-          assert health.get('version') == '12.1.0', health
-          assert health.get('renderer') == '12.1.0', health
+          assert health.get('version') == '13.0.0', health
+          assert health.get('renderer') == '12.2.0', health
+          assert health.get('commerce') == '13.0.0', health
+          assert health.get('catalogInjection') is True, health
+          assert health.get('customDomains') is True, health
+          html = Path('sowhat-store.html').read_text()
+          assert '<!doctype html' in html.lower(), html[:200]
+          assert 'scatalog' in html or 'Catalogue visuel' in html, html[:500]
           PY
           cat production-checks.txt >> "$GITHUB_STEP_SUMMARY"
 
@@ -205,5 +247,6 @@ jobs:
           path: |
             production-checks.txt
             site-platform-health.json
+            sowhat-store.html
           if-no-files-found: error
           retention-days: 14
