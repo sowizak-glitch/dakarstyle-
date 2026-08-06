@@ -11,6 +11,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: samabusiness-supabase-cleanup
+  cancel-in-progress: false
+
 env:
   PROJECT_REF: xmdpmtvieqgoorbxytey
   SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
@@ -41,3 +45,11 @@ jobs:
           set -euo pipefail
           npx --yes supabase@latest functions list --project-ref "$PROJECT_REF" | tee functions-after-cleanup.txt
           ! grep -q 'sama-hotfix-v801' functions-after-cleanup.txt
+
+      - name: Record cleanup evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-supabase-cleanup
+          path: functions-after-cleanup.txt
+          if-no-files-found: error
+          retention-days: 7
