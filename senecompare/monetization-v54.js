@@ -2,8 +2,8 @@
   'use strict';
   const contactEmail = 'hellodakarstyle@gmail.com';
   const visuals = {
-    'sowhat-africa-culture': ['/assets/hero/ensemble-senegal-boutique-2026.jpg', 'Collection Sowhat Africa portée par trois jeunes Sénégalais à Dakar', 'center 34%'],
-    'samabusiness-launch': ['/assets/samabusiness/samabusiness-192.webp', 'SamaBusiness, application sénégalaise de gestion commerciale', 'center'],
+    'sowhat-africa-culture': ['/media/sowhat-africa-campaign.jpg', 'Collection Sowhat Africa portée par trois jeunes Sénégalais à Dakar', 'center 34%'],
+    'samabusiness-launch': ['/media/samabusiness-campaign.webp', 'SamaBusiness, application sénégalaise de gestion commerciale', 'center'],
   };
 
   function updateCard(card) {
