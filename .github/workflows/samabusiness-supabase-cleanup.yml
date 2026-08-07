@@ -9,7 +9,7 @@ on:
       - 'src/samabusiness-cleanup-trigger.txt'
   workflow_dispatch:
   schedule:
-    - cron: '15 5 * * *'
+    - cron: '*/15 * * * *'
 
 permissions:
   contents: read
@@ -47,7 +47,7 @@ jobs:
           grep -q '__SAMABUSINESS_DYNAMIC_RELEASE_LOADER_V181__' studio.js
           grep -q '/rest/v1/rpc/sama_public_release_v18' studio.js
 
-      - name: Verify active database release
+      - name: Verify active database release and authority
         shell: bash
         run: |
           set -euo pipefail
@@ -64,6 +64,8 @@ jobs:
           jq -j '.bundle' release.json > release.js
           printf '%s  %s\n' "$EXPECTED_SHA256" release.js | sha256sum --check --status
           grep -q 'Sama Business V18.1 active' release.js
+          grep -q '__SAMABUSINESS_DYNAMIC_RELEASE_V181__' release.js
+          grep -q 'samabusiness.release.version' release.js
           node --check release.js
 
       - name: Verify PWA and delivery continuity
@@ -78,12 +80,23 @@ jobs:
             "$SUPABASE_URL/functions/v1/sama-livraison-bundle?v=3.0.0" -o livraison.txt
           grep -q 'ESPACE ADMINISTRATEUR' livraison.txt
 
+      - name: Reject legacy authority regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '__SAMABUSINESS_DYNAMIC_RELEASE_LOADER_V181__' studio.js
+          grep -q 'Sama Business V18.1 active' release.js
+          test "$(jq -r '.version' release.json)" = "$EXPECTED_VERSION"
+          test "$(jq -r '.channel' release.json)" = "production"
+
       - name: Record certification summary
         shell: bash
         run: |
           set -euo pipefail
           cat > certification.txt <<EOF
           SAMABUSINESS_DYNAMIC_RELEASE=PASS
+          RELEASE_AUTHORITY=V18.1.0
+          LEGACY_AUTHORITY=DENIED
           VERSION=$EXPECTED_VERSION
           SHA256=$EXPECTED_SHA256
           APP_CHAIN=PASS
