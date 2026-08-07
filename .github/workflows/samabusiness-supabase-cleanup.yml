@@ -61,7 +61,7 @@ jobs:
           jq -e --arg version "$EXPECTED_VERSION" '.ok == true and .version == $version and .channel == "production"' release.json >/dev/null
           actual_sha=$(jq -r '.sha256' release.json)
           test "$actual_sha" = "$EXPECTED_SHA256"
-          jq -r '.bundle' release.json > release.js
+          jq -j '.bundle' release.json > release.js
           printf '%s  %s\n' "$EXPECTED_SHA256" release.js | sha256sum --check --status
           grep -q 'Sama Business V18.1 active' release.js
           node --check release.js
