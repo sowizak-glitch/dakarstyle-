@@ -1,4 +1,4 @@
-name: SAMABUSINESS Supabase cleanup V18
+name: SAMABUSINESS Dynamic Release V18.1
 
 on:
   push:
@@ -7,179 +7,98 @@ on:
     paths:
       - '.github/workflows/samabusiness-supabase-cleanup.yml'
       - 'src/samabusiness-cleanup-trigger.txt'
-  pull_request:
-    branches:
-      - main
-    types:
-      - opened
-      - synchronize
-      - reopened
-    paths:
-      - 'src/samabusiness-cleanup-trigger.txt'
   workflow_dispatch:
+  schedule:
+    - cron: '15 5 * * *'
 
 permissions:
   contents: read
 
 concurrency:
-  group: samabusiness-supabase-cleanup-v18-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  group: samabusiness-dynamic-release-v181
   cancel-in-progress: true
 
 env:
-  PROJECT_REF: xmdpmtvieqgoorbxytey
-  SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  APP_URL: https://samabusiness.dakarstyle.com
+  SUPABASE_URL: https://xmdpmtvieqgoorbxytey.supabase.co
+  SUPABASE_PUBLISHABLE_KEY: sb_publishable_NVbWUoS1b6BgfWaRSJlRVw_iU7fuqwO
+  EXPECTED_VERSION: 18.1.0
+  EXPECTED_SHA256: 2af055ea35c413a20954b36204fab8f7d69d4719ef664e6cb7e96c1fc96ee4b7
 
 jobs:
-  cleanup:
-    if: >-
-      github.event_name != 'pull_request' ||
-      (github.event.pull_request.head.repo.full_name == github.repository &&
-       github.head_ref == 'samabusiness-v18-cleanup')
+  certify:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 8
     steps:
-      - name: Verify trusted internal execution
+      - name: Verify public application chain
         shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "pull_request" ] && [ "${{ github.head_ref }}" != "samabusiness-v18-cleanup" ]; then
-            echo 'Untrusted cleanup branch.' >&2
-            exit 1
-          fi
-          if [ -z "${SUPABASE_ACCESS_TOKEN:-}" ]; then
-            echo 'SUPABASE_ACCESS_TOKEN is not configured.' >&2
-            exit 1
-          fi
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            "$APP_URL/?release=$EXPECTED_VERSION&audit=github" -o app.html
+          grep -q '/samabusiness-field-ux' app.html
 
-      - name: Inventory functions before cleanup
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            "$SUPABASE_URL/functions/v1/samabusiness-field-ux?v=$EXPECTED_VERSION" -o field.js
+          grep -q '/samabusiness-site-studio-ui' field.js
+
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            "$SUPABASE_URL/functions/v1/samabusiness-site-studio-ui?v=$EXPECTED_VERSION" -o studio.js
+          grep -q '__SAMABUSINESS_DYNAMIC_RELEASE_LOADER_V181__' studio.js
+          grep -q '/rest/v1/rpc/sama_public_release_v18' studio.js
+
+      - name: Verify active database release
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes supabase@latest functions list --project-ref "$PROJECT_REF" | tee functions-before-cleanup.txt
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            --request POST \
+            --header "apikey: $SUPABASE_PUBLISHABLE_KEY" \
+            --header 'content-type: application/json' \
+            --data '{"p_channel":"production"}' \
+            "$SUPABASE_URL/rest/v1/rpc/sama_public_release_v18" -o release.json
 
-      - name: Remove obsolete development functions
+          jq -e --arg version "$EXPECTED_VERSION" '.ok == true and .version == $version and .channel == "production"' release.json >/dev/null
+          actual_sha=$(jq -r '.sha256' release.json)
+          test "$actual_sha" = "$EXPECTED_SHA256"
+          jq -r '.bundle' release.json > release.js
+          printf '%s  %s\n' "$EXPECTED_SHA256" release.js | sha256sum --check --status
+          grep -q 'Sama Business V18.1 active' release.js
+          node --check release.js
+
+      - name: Verify PWA and delivery continuity
         shell: bash
         run: |
           set -euo pipefail
-          obsolete=(
-            sama-asset-migrate
-            sama-source-audit
-            sama-env-check
-            sama-patch-v8
-            sama-maintenance-runner
-            sama-v8-validator
-            sama-v8-e2e
-            sama-hotfix-v801
-            sama-hotfix-v802
-            sama-hotfix-v803
-            sama-config-check
-            sama-upgrade-v81
-            sama-v81-validator
-            sama-v81-e2e
-            sama-hotfix-v811
-            sama-v811-validator
-            sama-support-e2e
-            sama-upgrade-v82
-            sama-v82-fragment-validator
-            sama-v82-validator
-            sama-v83-inspect
-            sama-upgrade-v83
-            sama-v83-validator
-            sama-domain-env-check
-            sama-upgrade-v831
-            sama-v831-validator
-            sama-v84-inspect
-            sama-upgrade-v84
-            sama-v84-validator
-            sama-livraison-smoke
-            sama-livraison-publish
-            sama-livraison-v2-smoke
-            sama-livraison-v2-certify
-            sama-livraison-chunk-debug
-            sama-livraison-v3-e2e
-            sama-business-bundle-check
-            sama-business-v9-e2e
-            sama-business-api-v2-check
-            samabusiness-asset-uploader
-            samabusiness-v10-e2e
-          )
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            "$APP_URL/sw.js?v=$EXPECTED_VERSION" -o sw.js
+          grep -q 'SHARED_AUDIO' sw.js
 
-          cp functions-before-cleanup.txt current-functions.txt
-          : > deleted-functions.txt
-          : > absent-functions.txt
+          curl --fail --silent --show-error --retry 3 --retry-delay 2 \
+            "$SUPABASE_URL/functions/v1/sama-livraison-bundle?v=3.0.0" -o livraison.txt
+          grep -q 'ESPACE ADMINISTRATEUR' livraison.txt
 
-          for fn in "${obsolete[@]}"; do
-            if grep -Eq "(^|[[:space:]])${fn}([[:space:]]|$)" current-functions.txt; then
-              echo "Deleting obsolete function: $fn"
-              npx --yes supabase@latest functions delete "$fn" --project-ref "$PROJECT_REF"
-              echo "$fn" >> deleted-functions.txt
-            else
-              echo "$fn" >> absent-functions.txt
-            fi
-          done
-
-      - name: Verify protected production functions
+      - name: Record certification summary
         shell: bash
         run: |
           set -euo pipefail
-          npx --yes supabase@latest functions list --project-ref "$PROJECT_REF" | tee functions-after-cleanup.txt
+          cat > certification.txt <<EOF
+          SAMABUSINESS_DYNAMIC_RELEASE=PASS
+          VERSION=$EXPECTED_VERSION
+          SHA256=$EXPECTED_SHA256
+          APP_CHAIN=PASS
+          DATABASE_CHANNEL=PASS
+          JAVASCRIPT_SYNTAX=PASS
+          PWA=PASS
+          SAMA_LIVRAISON=PASS
+          CERTIFIED_AT=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          EOF
+          cat certification.txt
 
-          protected=(
-            sama-assets
-            sama-business-api
-            samabusiness-api-v10
-            samabusiness-control-api
-            samabusiness-addon
-            samabusiness-field-ux
-            samabusiness-pwa
-            sama-livraison-app
-            sama-livraison-bundle
-            sama-livraison-api-v3
-            samabusiness-livraison-proxy
-            samabusiness-supplier-api
-            samabusiness-audio-api
-            samabusiness-site-studio
-            samabusiness-site-studio-ui
-            samabusiness-site-platform
-            samabusiness-site-network-v12
-            samabusiness-ecosystem-ui
-            samabusiness-site-preview-fix
-            samabusiness-site-renderer-v12
-            samabusiness-studio-language-v12
-            samabusiness-site-experience-v122
-            samabusiness-site-commerce-v13
-            senecompare-production
-            senecompare-gateway
-            security-control-api
-            security-control-app
-            security-control-passkey
-            tijane-updates
-          )
-
-          missing=0
-          for fn in "${protected[@]}"; do
-            if ! grep -Eq "(^|[[:space:]])${fn}([[:space:]]|$)" functions-after-cleanup.txt; then
-              echo "Protected production function missing: $fn" >&2
-              missing=1
-            fi
-          done
-          test "$missing" -eq 0
-
-          before_count=$(grep -c 'ACTIVE' functions-before-cleanup.txt || true)
-          after_count=$(grep -c 'ACTIVE' functions-after-cleanup.txt || true)
-          deleted_count=$(wc -l < deleted-functions.txt | tr -d ' ')
-          printf 'before=%s\nafter=%s\ndeleted=%s\n' "$before_count" "$after_count" "$deleted_count" | tee cleanup-summary.txt
-          test "$after_count" -lt "$before_count"
-
-      - name: Record cleanup evidence
+      - name: Upload certification evidence
         uses: actions/upload-artifact@v4
         with:
-          name: samabusiness-supabase-cleanup-v18
-          path: |
-            functions-before-cleanup.txt
-            functions-after-cleanup.txt
-            deleted-functions.txt
-            absent-functions.txt
-            cleanup-summary.txt
+          name: samabusiness-dynamic-release-v181
+          path: certification.txt
           if-no-files-found: error
           retention-days: 14
