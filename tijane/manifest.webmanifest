@@ -1,0 +1,23 @@
+{
+  "id": "/tijane/",
+  "name": "Tijane Future — Langues, cultures, code et imagination",
+  "short_name": "Tijane",
+  "description": "Aventure éducative afro-futuriste pour enfants de 5 à 6 ans : code, sciences, IA junior, langues locales et internationales, cultures, création et bien-être.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/tijane/?source=pwa&v=511",
+  "scope": "/tijane/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#141638",
+  "theme_color": "#141638",
+  "categories": ["education", "games", "kids"],
+  "icons": [{"src":"/tijane/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}],
+  "shortcuts": [
+    {"name":"Safari du jour","short_name":"Safari","url":"/tijane/?module=adventure","icons":[{"src":"/tijane/icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Bus des langues","short_name":"Langues","url":"/tijane/?module=languageLab","icons":[{"src":"/tijane/icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Villages du monde","short_name":"Cultures","url":"/tijane/?module=culture","icons":[{"src":"/tijane/icon.svg","sizes":"any","type":"image/svg+xml"}]},
+    {"name":"Apprends au robot","short_name":"IA Junior","url":"/tijane/?module=aiLab","icons":[{"src":"/tijane/icon.svg","sizes":"any","type":"image/svg+xml"}]}
+  ]
+}
