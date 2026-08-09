@@ -3,7 +3,7 @@ import senecompare from './senecompare-v541.js';
 import samabusinessSites from './samabusiness-site-proxy-v131.js';
 import samabusinessMedia from './samabusiness-media-review-v133.js';
 import samabusinessOwner from './samabusiness-owner-command-v14.js';
-import { handleSocialIntelligence, runInstagramSync } from './social-intelligence-v1.js';
+import { handleSocialIntelligenceV2, runInstagramSync } from './social-intelligence-v2.js';
 
 const SENECOMPARE_HOSTS = new Set([
   'senecompare.dakarstyle.com',
@@ -29,7 +29,7 @@ const CORE_HOSTS = new Set([
 
 function isSocialIntelligenceRoute(url) {
   return url.pathname === '/social-intelligence'
-    || url.pathname === '/social-intelligence/'
+    || url.pathname.startsWith('/social-intelligence/')
     || url.pathname.startsWith('/api/social-intelligence/');
 }
 
@@ -42,7 +42,8 @@ function socialIntelligenceSecurityReady(url, env) {
   if (url.pathname === '/api/social-intelligence/snapshot' || url.pathname === '/api/social-intelligence/sync-instagram') {
     return hasSha256Binding(env.SOCIAL_INTELLIGENCE_WRITE_KEY_SHA256);
   }
-  return hasSha256Binding(env.SOCIAL_INTELLIGENCE_ADMIN_KEY_SHA256);
+  return hasSha256Binding(env.SOCIAL_INTELLIGENCE_ADMIN_KEY_SHA256)
+    && hasSha256Binding(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256);
 }
 
 function socialIntelligenceNotConfigured(url) {
@@ -57,7 +58,7 @@ function socialIntelligenceNotConfigured(url) {
       headers: { ...headers, 'content-type': 'application/json; charset=utf-8' },
     });
   }
-  return new Response('<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>SOWHAT Social Intelligence</title><body style="margin:0;background:#050913;color:#f5f8fc;font-family:system-ui;display:grid;place-items:center;min-height:100vh;padding:24px"><main><h1>Configuration sécurisée en cours</h1><p style="color:#91a5bc">Le tableau de bord reste fermé tant que sa clé d’administration serveur n’est pas configurée.</p></main></body></html>', {
+  return new Response('<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>SOWHAT Social Intelligence</title><body style="margin:0;background:#050810;color:#f5f8fc;font-family:system-ui;display:grid;place-items:center;min-height:100vh;padding:24px"><main><h1>Configuration sécurisée en cours</h1><p style="color:#91a5bc">Le tableau de bord reste fermé tant que ses identifiants privés ne sont pas configurés.</p></main></body></html>', {
     status: 503,
     headers: { ...headers, 'content-type': 'text/html; charset=utf-8' },
   });
@@ -89,7 +90,7 @@ export default {
     const url = new URL(request.url);
     if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceRoute(url)) {
       if (!socialIntelligenceSecurityReady(url, env)) return socialIntelligenceNotConfigured(url);
-      return handleSocialIntelligence(request, env, ctx);
+      return handleSocialIntelligenceV2(request, env, ctx);
     }
     if (SENECOMPARE_HOSTS.has(url.hostname)) {
       return senecompare.fetch(request, env, ctx);
