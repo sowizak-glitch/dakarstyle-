@@ -49,7 +49,12 @@ Aucune nouvelle base de données n'est requise pour v1.
 
 ## Variables serveur
 
-Obligatoires pour la synchronisation Instagram :
+Obligatoires pour ouvrir les surfaces privées :
+
+- `SOCIAL_INTELLIGENCE_ADMIN_KEY_SHA256`
+- `SOCIAL_INTELLIGENCE_WRITE_KEY_SHA256`
+
+Obligatoires pour la synchronisation Instagram réelle :
 
 - `INSTAGRAM_ACCESS_TOKEN`
 - `INSTAGRAM_USER_ID`
@@ -59,10 +64,8 @@ Optionnelles :
 - `INSTAGRAM_API_VERSION` : format `vXX.X`.
 - `INSTAGRAM_GRAPH_BASE` : uniquement `https://graph.instagram.com` ou `https://graph.facebook.com`.
 - `VISUAL_FACTORY_URL` : destination du bouton de création depuis le Coach.
-- `SOCIAL_INTELLIGENCE_ADMIN_KEY_SHA256` : remplace le hash admin par défaut.
-- `SOCIAL_INTELLIGENCE_WRITE_KEY_SHA256` : remplace le hash d'écriture par défaut.
 
-Les tokens et clés brutes ne doivent jamais être commis dans GitHub.
+Le routeur applique un mode fail-closed : le dashboard et les API privées restent fermés si leurs hashes serveur dédiés ne sont pas configurés. Les tokens et clés brutes ne doivent jamais être commis dans GitHub.
 
 ## Automatisation
 
@@ -75,6 +78,7 @@ Toutes les six heures, le routeur lance la synchronisation uniquement si `INSTAG
 ## Sécurité
 
 - Token Instagram exclusivement côté serveur.
+- Hashes d'administration et d'écriture obligatoires au niveau du routeur.
 - Dashboard privé avec comparaison SHA-256 constante.
 - CSP restrictive.
 - `frame-ancestors 'none'` et `X-Frame-Options: DENY`.
