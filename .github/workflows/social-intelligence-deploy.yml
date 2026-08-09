@@ -30,12 +30,13 @@ jobs:
     timeout-minutes: 8
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
+          package-manager-cache: false
 
       - name: Validate source
         run: |
@@ -60,7 +61,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Deploy Worker with repository credentials
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
@@ -96,7 +97,7 @@ jobs:
             fi
 
             if [ "$health_ok" = true ] && [ "$app_ok" = true ]; then
-              echo "Production v3 OK on attempt $attempt" >> "$GITHUB_STEP_SUMMARY"
+              echo "Production v4 OK on attempt $attempt" >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
 
@@ -104,5 +105,5 @@ jobs:
             sleep 20
           done
 
-          echo 'Social Intelligence v3 did not become ready in the verification window.' >&2
+          echo 'Social Intelligence v4 did not become ready in the verification window.' >&2
           exit 1
