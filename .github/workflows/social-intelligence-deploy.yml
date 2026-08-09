@@ -70,17 +70,32 @@ jobs:
           for attempt in 1 2 3 4 5 6; do
             health_status=$(curl --location --silent --show-error --output health.json --write-out '%{http_code}' --max-time 20 "$PRODUCTION_HEALTH_URL" || true)
             app_status=$(curl --location --silent --show-error --dump-header app.headers --output app.html --write-out '%{http_code}' --max-time 20 "$PRODUCTION_APP_URL" || true)
-            if [ "$health_status" = '200' ] && [ "$app_status" = '200' ]; then
-              node -e "const h=require('./health.json'); if(h.app!=='SOWHAT Social Intelligence'||h.version!=='1.0.0'||h.storage_configured!==true) process.exit(1); console.log(h)"
-              grep -q 'SOWHAT Control · Accès privé' app.html
-              grep -qi 'x-sowhat-social-intelligence-version: 3.0.0' app.headers
-              grep -q 'viewport-fit=cover' app.html
-              grep -q 'social-intelligence/login' app.html
+
+            health_ok=false
+            app_ok=false
+
+            if [ "$health_status" = '200' ]; then
+              if node -e "const h=require('./health.json'); if(h.app!=='SOWHAT Social Intelligence'||h.version!=='1.0.0'||h.storage_configured!==true) process.exit(1)"; then
+                health_ok=true
+              fi
+            fi
+
+            if [ "$app_status" = '200' ] \
+              && grep -q 'SOWHAT Control · Accès privé' app.html \
+              && grep -qi 'x-sowhat-social-intelligence-version: 3.0.0' app.headers \
+              && grep -q 'viewport-fit=cover' app.html \
+              && grep -q 'social-intelligence/login' app.html; then
+              app_ok=true
+            fi
+
+            if [ "$health_ok" = true ] && [ "$app_ok" = true ]; then
               echo "Production v3 OK on attempt $attempt" >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            echo "Attempt $attempt -> health=$health_status app=$app_status" >> "$GITHUB_STEP_SUMMARY"
+
+            echo "Attempt $attempt -> health=$health_status health_ok=$health_ok app=$app_status app_ok=$app_ok" >> "$GITHUB_STEP_SUMMARY"
             sleep 20
           done
+
           echo 'Social Intelligence v3 did not become ready in the verification window.' >&2
           exit 1
