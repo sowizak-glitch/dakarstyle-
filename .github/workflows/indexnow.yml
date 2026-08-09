@@ -10,56 +10,90 @@ on:
       - 'merchant-feed.xml'
       - 'assets/products/**'
       - 'assets/hero/**'
+      - '3c1568dbd24f8e50c1875a76882f449d.txt'
+      - '.github/workflows/indexnow.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: indexnow-dakarstyle
+  cancel-in-progress: true
+
 jobs:
   notify-indexnow:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Submit current sitemap URLs to IndexNow
+      - name: Validate IndexNow key and submit sitemap URLs
         shell: bash
         run: |
           set -euo pipefail
+
           KEY='3c1568dbd24f8e50c1875a76882f449d'
           HOST='dakarstyle.com'
           KEY_LOCATION="https://${HOST}/${KEY}.txt"
-          URLS='[
-            "https://dakarstyle.com/",
-            "https://dakarstyle.com/products/ensemble-senegal/",
-            "https://dakarstyle.com/products/ensemble-dakar/",
-            "https://dakarstyle.com/products/s0special-221/",
-            "https://dakarstyle.com/products/sneakers-sowhat-africa/",
-            "https://dakarstyle.com/products/maillot-senegal-2026/",
-            "https://dakarstyle.com/products/debardeur-senegal/",
-            "https://dakarstyle.com/products/wear-the-culture/",
-            "https://dakarstyle.com/products/tshirt-numero-10/",
-            "https://dakarstyle.com/products/casquette-sowhat-africa/",
-            "https://dakarstyle.com/products/lunettes-soleil-urban/",
-            "https://dakarstyle.com/products/nomad-spirit/"
-          ]'
-          BODY=$(cat <<JSON
-          {
-            "host": "${HOST}",
-            "key": "${KEY}",
-            "keyLocation": "${KEY_LOCATION}",
-            "urlList": ${URLS}
-          }
-JSON
-          )
+          SITEMAP_URL="https://${HOST}/sitemap.xml"
+
+          echo 'Validating public IndexNow key...'
+          KEY_BODY=$(curl --fail --silent --show-error --location --retry 3 --retry-delay 2 --max-time 20 "$KEY_LOCATION")
+          KEY_BODY="${KEY_BODY//$'\r'/}"
+          KEY_BODY="${KEY_BODY//$'\n'/}"
+          if [ "$KEY_BODY" != "$KEY" ]; then
+            echo 'IndexNow key file is missing or does not contain the expected key.' >&2
+            exit 1
+          fi
+
+          echo 'Fetching sitemap...'
+          SITEMAP_XML=$(curl --fail --silent --show-error --location --retry 3 --retry-delay 2 --max-time 30 "$SITEMAP_URL")
+          URL_LINES=$(printf '%s' "$SITEMAP_XML" | grep -oE '<loc>[^<]+</loc>' | sed -E 's#</?loc>##g' || true)
+          if [ -z "$URL_LINES" ]; then
+            echo 'No URLs found in sitemap.xml.' >&2
+            exit 1
+          fi
+
+          URLS_JSON=$(printf '%s\n' "$URL_LINES" | sed '/^[[:space:]]*$/d' | head -n 10000 | jq -R . | jq -s .)
+          URL_COUNT=$(printf '%s' "$URLS_JSON" | jq 'length')
+          if [ "$URL_COUNT" -lt 1 ]; then
+            echo 'IndexNow URL list is empty.' >&2
+            exit 1
+          fi
+
+          BODY=$(jq -cn \
+            --arg host "$HOST" \
+            --arg key "$KEY" \
+            --arg keyLocation "$KEY_LOCATION" \
+            --argjson urlList "$URLS_JSON" \
+            '{host:$host,key:$key,keyLocation:$keyLocation,urlList:$urlList}')
+
+          echo "Submitting ${URL_COUNT} URL(s) to IndexNow..."
           for attempt in 1 2 3 4; do
-            code=$(curl -sS -o /tmp/indexnow-response.txt -w '%{http_code}' \
+            code=$(curl --silent --show-error \
+              --output /tmp/indexnow-response.txt \
+              --write-out '%{http_code}' \
+              --max-time 30 \
               -X POST 'https://api.indexnow.org/indexnow' \
               -H 'Content-Type: application/json; charset=utf-8' \
               --data "$BODY" || true)
+
             echo "IndexNow HTTP ${code} (attempt ${attempt})"
             cat /tmp/indexnow-response.txt || true
-            if [ "$code" = '200' ] || [ "$code" = '202' ]; then
-              exit 0
-            fi
-            sleep 30
+            echo
+
+            case "$code" in
+              200|202)
+                echo 'IndexNow submission accepted.'
+                exit 0
+                ;;
+              429|5??)
+                sleep $((attempt * 15))
+                ;;
+              *)
+                break
+                ;;
+            esac
           done
-          echo 'IndexNow did not accept the submission after retries.' >&2
+
+          echo 'IndexNow submission failed.' >&2
           exit 1
