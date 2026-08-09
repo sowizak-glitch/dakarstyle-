@@ -3,6 +3,7 @@ import senecompare from './senecompare-v541.js';
 import samabusinessSites from './samabusiness-site-proxy-v131.js';
 import samabusinessMedia from './samabusiness-media-review-v133.js';
 import samabusinessOwner from './samabusiness-owner-command-v14.js';
+import { handleSocialIntelligence, runInstagramSync } from './social-intelligence-v1.js';
 
 const SENECOMPARE_HOSTS = new Set([
   'senecompare.dakarstyle.com',
@@ -13,6 +14,11 @@ const SAMABUSINESS_HOSTS = new Set([
   'samacahier.dakarstyle.com',
 ]);
 
+const SOCIAL_INTELLIGENCE_HOSTS = new Set([
+  'dakarstyle.com',
+  'www.dakarstyle.com',
+]);
+
 const CORE_HOSTS = new Set([
   'dakarstyle.com',
   'www.dakarstyle.com',
@@ -20,6 +26,12 @@ const CORE_HOSTS = new Set([
   'samacahier.dakarstyle.com',
   'senecompare.dakarstyle.com',
 ]);
+
+function isSocialIntelligenceRoute(url) {
+  return url.pathname === '/social-intelligence'
+    || url.pathname === '/social-intelligence/'
+    || url.pathname.startsWith('/api/social-intelligence/');
+}
 
 function isSamabusinessOwnerRoute(url) {
   return url.pathname === '/api/owner-command-center';
@@ -45,6 +57,9 @@ function isCustomStorefront(url) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceRoute(url)) {
+      return handleSocialIntelligence(request, env, ctx);
+    }
     if (SENECOMPARE_HOSTS.has(url.hostname)) {
       return senecompare.fetch(request, env, ctx);
     }
@@ -61,5 +76,10 @@ export default {
       return samabusinessSites.fetch(request, env, ctx);
     }
     return application.fetch(request, env, ctx);
+  },
+
+  async scheduled(_controller, env, ctx) {
+    if (!env.INSTAGRAM_ACCESS_TOKEN || !env.INSTAGRAM_USER_ID) return;
+    ctx.waitUntil(runInstagramSync(env, null));
   },
 };
