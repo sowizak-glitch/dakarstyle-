@@ -1,0 +1,78 @@
+name: Social Intelligence Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/social-intelligence-v1.js'
+      - 'src/router.js'
+      - 'wrangler.jsonc'
+      - 'tests/social-intelligence-contract.mjs'
+      - '.github/workflows/social-intelligence-quality.yml'
+      - '.github/workflows/social-intelligence-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PRODUCTION_HEALTH_URL: https://dakarstyle.com/api/social-intelligence/health
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Validate source
+        run: |
+          node --check src/social-intelligence-v1.js
+          node --check src/router.js
+          node tests/social-intelligence-contract.mjs
+
+      - name: Validate Cloudflare bundle
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-social-out
+
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Deploy Worker with repository credentials
+        if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
+        run: npx --yes wrangler@4 deploy
+
+      - name: Record Cloudflare Git integration mode
+        if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
+        run: echo 'Cloudflare Git integration is expected to publish main because repository deployment credentials are not available to this workflow.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify Social Intelligence production health
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in 1 2 3 4 5 6; do
+            status=$(curl --location --silent --show-error --output health.json --write-out '%{http_code}' --max-time 20 "$PRODUCTION_HEALTH_URL" || true)
+            if [ "$status" = '200' ]; then
+              node -e "const h=require('./health.json'); if(h.app!=='SOWHAT Social Intelligence'||h.version!=='1.0.0'||h.storage_configured!==true) process.exit(1); console.log(h)"
+              echo "Production health OK on attempt $attempt" >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+            echo "Attempt $attempt -> HTTP $status" >> "$GITHUB_STEP_SUMMARY"
+            sleep 20
+          done
+          echo 'Social Intelligence production health did not become ready in the verification window.' >&2
+          exit 1
