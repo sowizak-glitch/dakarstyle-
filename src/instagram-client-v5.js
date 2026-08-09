@@ -35,6 +35,8 @@ export const META_ERROR = Object.freeze({
   SERVER_ERROR: 'meta_server_error',
   TIMEOUT: 'meta_timeout',
   NETWORK: 'meta_network_error',
+  INVALID_ENDPOINT: 'meta_invalid_endpoint',
+  UNSAFE_REDIRECT: 'meta_unsafe_redirect',
   UNKNOWN: 'meta_unknown_error',
 });
 
@@ -90,15 +92,42 @@ function sanitizeApiVersion(value) {
   return /^v\d{1,2}\.\d{1,2}$/.test(version) ? version : DEFAULT_API_VERSION;
 }
 
-function graphBase(env) {
+/**
+ * Hotes Meta officiels autorises a recevoir le credential. Toute autre
+ * destination est refusee : une variable d'environnement mal configuree ne
+ * doit jamais pouvoir exfiltrer le token vers un domaine tiers.
+ */
+export const META_ALLOWED_HOSTS = Object.freeze([
+  'graph.facebook.com',
+  'graph.instagram.com',
+]);
+
+export function isAllowedMetaOrigin(value) {
+  try {
+    const url = new URL(String(value || ''));
+    return url.protocol === 'https:'
+      && META_ALLOWED_HOSTS.includes(url.hostname)
+      && url.port === '';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Resout l'origine Graph. Fail closed : une valeur d'environnement non
+ * autorisee ne retombe PAS silencieusement sur la valeur par defaut, elle
+ * fait echouer la construction du client. Un mauvais parametrage doit etre
+ * bruyant, pas discret.
+ */
+export function resolveGraphOrigin(env) {
   const configured = String(env?.INSTAGRAM_GRAPH_BASE || '').trim();
   if (!configured) return DEFAULT_GRAPH_BASE;
-  try {
-    const url = new URL(configured);
-    return url.protocol === 'https:' ? url.origin : DEFAULT_GRAPH_BASE;
-  } catch {
-    return DEFAULT_GRAPH_BASE;
+  if (!isAllowedMetaOrigin(configured)) {
+    throw new MetaApiError(META_ERROR.INVALID_ENDPOINT, {
+      detail: `origine Graph refusee : seuls ${META_ALLOWED_HOSTS.join(', ')} en https sans port sont autorises`,
+    });
   }
+  return new URL(configured).origin;
 }
 
 /** Traduit un couple statut/charge utile Meta en erreur stable. */
@@ -166,25 +195,52 @@ export function createInstagramClient(env, options = {}) {
   const onEvent = typeof options.onEvent === 'function' ? options.onEvent : () => {};
 
   const version = sanitizeApiVersion(env?.INSTAGRAM_API_VERSION);
-  const base = graphBase(env);
+  // Une origine de test ne peut venir QUE du code appelant (tests), jamais de
+  // l'environnement, et jamais sans fetch injecte : la production ne peut donc
+  // pas ouvrir cette porte par configuration.
+  const testOrigin = options.testOrigin && options.fetchImpl && options.fetchImpl !== globalThis.fetch
+    ? String(options.testOrigin)
+    : '';
+  const base = testOrigin || resolveGraphOrigin(env);
   const token = String(env?.INSTAGRAM_ACCESS_TOKEN || '').trim();
   const userId = String(env?.INSTAGRAM_USER_ID || '').trim();
 
-  const state = { lastAppUsage: null, throttledUntil: 0, calls: 0 };
+  // Transport du credential. L'en-tete Authorization evite d'ecrire le token
+  // dans l'URL (donc dans les journaux serveur, les traces et les referrers).
+  // La documentation Meta n'ayant pas pu etre verifiee dans cet environnement,
+  // le transport n'est pas SUPPOSE : il est decouvert a l'execution. En cas de
+  // rejet d'authentification au tout premier appel, le client bascule une seule
+  // fois sur le parametre de requete et memorise le transport qui fonctionne.
+  const state = {
+    lastAppUsage: null,
+    throttledUntil: 0,
+    calls: 0,
+    transport: options.tokenTransport === 'query' ? 'query' : 'header',
+    transportConfirmed: options.tokenTransport === 'query',
+  };
 
   function requireConfigured() {
     if (!token || !userId) throw new MetaApiError(META_ERROR.NOT_CONFIGURED, { detail: 'INSTAGRAM_ACCESS_TOKEN ou INSTAGRAM_USER_ID absent' });
   }
 
-  function buildUrl(path, params) {
+  function buildUrl(path, params, transport) {
     const clean = String(path || '').replace(/^\/+/, '');
     const url = new URL(`${base}/${version}/${clean}`);
+    if (!isAllowedMetaOrigin(url.origin) && !testOrigin) {
+      throw new MetaApiError(META_ERROR.INVALID_ENDPOINT, { detail: 'origine de requete non autorisee' });
+    }
     for (const [key, value] of Object.entries(params || {})) {
       if (value === undefined || value === null || value === '') continue;
       url.searchParams.set(key, String(value));
     }
-    url.searchParams.set('access_token', token);
+    if (transport === 'query') url.searchParams.set('access_token', token);
     return url;
+  }
+
+  function buildHeaders(transport) {
+    const headers = { accept: 'application/json' };
+    if (transport === 'header') headers.authorization = `Bearer ${token}`;
+    return headers;
   }
 
   /** Chemin appelable, sans jamais exposer le token. */
@@ -192,20 +248,33 @@ export function createInstagramClient(env, options = {}) {
     return redactSecrets(String(path || '')).slice(0, 120);
   }
 
-  async function requestOnce(url) {
+  async function requestOnce(url, transport) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await fetchImpl(url.toString(), {
         method: 'GET',
-        headers: { accept: 'application/json' },
+        headers: buildHeaders(transport),
+        // Jamais de suivi automatique : un 3xx pourrait renvoyer le credential
+        // vers un hote non autorise. On refuse, on ne suit pas.
+        redirect: 'manual',
         signal: controller.signal,
       });
+      if (response.status >= 300 && response.status < 400) {
+        const target = response.headers?.get?.('location') || '';
+        throw new MetaApiError(META_ERROR.UNSAFE_REDIRECT, {
+          status: response.status,
+          detail: `redirection refusee vers ${redactSecrets(target).slice(0, 120)}`,
+        });
+      }
       const text = await response.text();
       let payload = null;
       try { payload = text ? JSON.parse(text) : {}; } catch { payload = { raw: redactSecrets(text).slice(0, 300) }; }
       return { response, payload };
     } catch (error) {
+      // Une erreur deja classee (redirection refusee, endpoint interdit) ne
+      // doit pas etre requalifiee en panne reseau.
+      if (error instanceof MetaApiError) throw error;
       const name = String(error?.name || '');
       if (name === 'AbortError' || name === 'TimeoutError') {
         throw new MetaApiError(META_ERROR.TIMEOUT, { detail: `depassement de ${timeoutMs} ms` });
@@ -219,17 +288,18 @@ export function createInstagramClient(env, options = {}) {
   /** Requete avec repli exponentiel borne sur les erreurs rejouables. */
   async function request(path, params = {}) {
     requireConfigured();
-    const url = buildUrl(path, params);
     const label = safeLabel(path);
     let lastError = null;
+    let switched = false;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       const wait = state.throttledUntil - now();
       if (wait > 0) await sleep(Math.min(wait, MAX_BACKOFF_MS));
 
+      const url = buildUrl(path, params, state.transport);
       try {
         state.calls += 1;
-        const { response, payload } = await requestOnce(url);
+        const { response, payload } = await requestOnce(url, state.transport);
         const usage = readAppUsage(response.headers);
         if (usage !== null) {
           state.lastAppUsage = usage;
@@ -237,10 +307,23 @@ export function createInstagramClient(env, options = {}) {
         }
 
         if (response.ok) {
-          onEvent({ type: 'meta_call', path: label, attempt, status: response.status, app_usage: usage });
+          state.transportConfirmed = true;
+          onEvent({ type: 'meta_call', path: label, attempt, status: response.status, app_usage: usage, transport: state.transport });
           return payload;
         }
         lastError = classifyMetaError(response.status, payload);
+
+        // Decouverte du transport : si le tout premier appel en en-tete est
+        // rejete pour authentification, on tente une seule fois le parametre
+        // de requete avant de conclure que le jeton est reellement invalide.
+        const authRejected = lastError.code === META_ERROR.UNAUTHORIZED
+          || lastError.code === META_ERROR.TOKEN_EXPIRED;
+        if (authRejected && !state.transportConfirmed && state.transport === 'header' && !switched) {
+          switched = true;
+          state.transport = 'query';
+          onEvent({ type: 'meta_transport_fallback', path: label, attempt });
+          continue;
+        }
       } catch (error) {
         lastError = error instanceof MetaApiError
           ? error
@@ -311,6 +394,7 @@ export function createInstagramClient(env, options = {}) {
     request,
     paginate,
     checkTokenHealth,
-    stats: () => ({ calls: state.calls, last_app_usage: state.lastAppUsage }),
+    stats: () => ({ calls: state.calls, last_app_usage: state.lastAppUsage, transport: state.transport, transport_confirmed: state.transportConfirmed }),
+    graphOrigin: base,
   };
 }
