@@ -1,0 +1,53 @@
+name: Social Intelligence Quality
+
+on:
+  pull_request:
+    paths:
+      - 'src/social-intelligence-v1.js'
+      - 'src/router.js'
+      - 'wrangler.jsonc'
+      - 'tests/social-intelligence-contract.mjs'
+      - '.github/workflows/social-intelligence-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/social-intelligence-v1.js'
+      - 'src/router.js'
+      - 'wrangler.jsonc'
+      - 'tests/social-intelligence-contract.mjs'
+      - '.github/workflows/social-intelligence-quality.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: JavaScript syntax
+        run: |
+          node --check src/social-intelligence-v1.js
+          node --check src/router.js
+          node --check tests/social-intelligence-contract.mjs
+
+      - name: Production contract
+        run: node tests/social-intelligence-contract.mjs
+
+      - name: Secret hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -En "INSTAGRAM_(ACCESS_TOKEN|USER_ID)[[:space:]]*=[[:space:]]*['\"][^'\"]+" src/social-intelligence-v1.js; then
+            echo 'Raw Instagram credential detected in source.' >&2
+            exit 1
+          fi
+          echo 'No raw Instagram credential committed.'
