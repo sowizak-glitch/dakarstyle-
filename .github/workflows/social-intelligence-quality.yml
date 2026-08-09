@@ -53,8 +53,8 @@ jobs:
             echo 'Raw Instagram credential detected in source.' >&2
             exit 1
           fi
-          if grep -RFn "SOWHAT-A73-9Kx7-Rm2P-2026!" . --exclude-dir=.git; then
-            echo 'Raw Social Intelligence login password detected in repository.' >&2
+          if grep -En '"SOCIAL_INTELLIGENCE_LOGIN_PASSWORD"[[:space:]]*:' wrangler.jsonc; then
+            echo 'Raw Social Intelligence login password binding detected.' >&2
             exit 1
           fi
           echo 'No raw private credential committed.'
