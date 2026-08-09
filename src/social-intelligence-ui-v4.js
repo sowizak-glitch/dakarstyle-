@@ -240,7 +240,7 @@ const APP_CSS_COMPONENTS = `
 .publishNotice{margin-top:12px;padding:11px;border-radius:13px;border:1px solid var(--line);background:var(--bg2);color:var(--muted);font-size:10px;line-height:1.5}
 .libraryHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:16px}
 .libraryHead h3{margin:0;font-size:13px}
-.libraryBtn{min-height:38px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--soft);padding:0 11px;font-size:10px;font-weight:850;cursor:pointer}
+.libraryBtn{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--soft);padding:0 11px;font-size:10px;font-weight:850;cursor:pointer}
 .libraryBtn:disabled{opacity:.5;cursor:not-allowed}
 .library{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-top:10px}
 .visualCard{position:relative;padding:0;border:1px solid var(--line);border-radius:14px;background:#0c0c10;overflow:hidden;cursor:pointer;text-align:left}

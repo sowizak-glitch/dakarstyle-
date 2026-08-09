@@ -24,7 +24,7 @@
 | Tests | 1 test statique | Contrat statique **+ 21 scénarios de comportement exécutés** |
 | `npm test` | Inexistant | `npm test` = syntaxe + contrat + comportement |
 | Code mort | `social-intelligence-v2.js` (51 Ko) + `functions/**` | Supprimés dans la branche |
-| Bundle d'assets | **2 251 fichiers** dès qu'un `npm install` était lancé | **349 fichiers** |
+| Hygiène des assets | `.dev.vars` et `.env` **non exclus** du répertoire d'assets | exclus, avec `node_modules` et `.wrangler` |
 
 ---
 
@@ -45,7 +45,7 @@
 - `.github/workflows/social-intelligence-quality.yml` — nouveaux chemins, `node --check` étendu, suite de comportement
 - `.github/workflows/social-intelligence-deploy.yml` — idem + vérification production `4.0.0`
 - `.github/workflows/check-visual-upload-endpoint.yml` — recalé de `functions/` (mort) vers `src/legacy-index.js` (réel)
-- `.assetsignore` — exclut `package.json`, `node_modules`, sorties de build
+- `.assetsignore` — exclut `package.json`, `node_modules`, `.wrangler`, `.dev.vars`, `.env`, sorties de build
 - `.gitignore` — `node_modules/`, sorties wrangler
 
 **Supprimés (branche uniquement, rollback par le tag)**
@@ -142,7 +142,9 @@ Le Bridge n8n de production n'a **jamais** été appelé : `fetch` est remplacé
 1. **CSP à nonce** — le durcissement le plus intrusif. Un `<style>` ou `<script>` sans nonce serait désormais bloqué. Le scénario 1 vérifie la correspondance nonce/balise, mais **un rendu navigateur réel n'a pas été observé**.
 2. **Version 4.0.0** — la vérification de production du workflow de déploiement attend maintenant `4.0.0`. Si la V3 reste en ligne, le workflow échouera : c'est voulu.
 3. **`onlyIf: etagDoesNotMatch`** — supporté par R2 en production, simulé fidèlement dans les tests. Si le binding l'ignorait, la lecture préalable resterait un garde-fou dégradé.
-4. **`node_modules` dans les assets** — bug latent découvert : `assets.directory` vaut `"."`, donc un `npm install` à la racine publiait **1 658 fichiers de dépendances** sur `dakarstyle.com`. `package.json` est volontairement **sans dépendances** et `.assetsignore` a été durci.
+4. **Hygiène du répertoire d'assets** — `assets.directory` vaut `"."` : la racine du dépôt est aussi la racine des fichiers publics. `.dev.vars`, `.env`, `.wrangler` et `node_modules` n'y étaient pas tous exclus ; ils le sont maintenant.
+
+   **Correction d'une affirmation antérieure** : j'avais écrit que `node_modules` était publié (2 251 fichiers contre 349). C'était faux. Le compteur « Read N files » de wrangler est **pré-filtrage** — vérifié en retirant `tests/` (23 fichiers) de `.assetsignore` : le compteur n'a pas bougé. Aucune conclusion ne peut être tirée de ce nombre. L'exclusion de `.dev.vars` reste une amélioration réelle (elle était absente), mais elle relève de la défense en profondeur, pas d'une fuite prouvée.
 
 ---
 
@@ -231,3 +233,66 @@ Puis, dans l'ordre :
 **État à ne jamais présumer :** ni le déploiement, ni le merge, ni la présence des secrets Instagram
 ne sont acquis. Vérifier `/api/social-intelligence/health` et l'en-tête
 `x-sowhat-social-intelligence-version` avant toute conclusion.
+
+---
+
+## 9. Validation d'integration (session du 9 aout 2026)
+
+### GitHub : toujours bloque
+
+Verifie sur les trois canaux disponibles, aucun ne repond :
+
+```
+env GH_TOKEN / GITHUB_TOKEN        absent
+gh CLI                             non installe
+git credential.helper              aucun
+~/.git-credentials, ~/.netrc, ~/.ssh  absents
+git push --dry-run                 fatal: could not read Username for 'https://github.com'
+connecteur MCP GitHub              authentification requise, impossible en session non interactive
+connecteur MCP GitKraken           "you must sign into your GitKraken account"
+```
+
+Aucun developpement n'a ete repris. Le bundle et le patch restent la voie de reprise.
+
+### Validation navigateur : impossible dans cet environnement
+
+- Aucun navigateur present ; le telechargement de Chromium par Playwright est bloque par le reseau.
+- `wrangler dev` demarre et ouvre bien le port 8787, mais **workerd reinitialise chaque connexion**
+  (`ECONNRESET`) dans ce bac a sable. Le serveur local n'est donc pas exploitable.
+- Chaque appel shell s'execute par ailleurs dans son propre espace reseau isole.
+
+**Remplacement effectue** : validation en processus contre le vrai handler, avec objets
+`Request`/`Response` reels, bucket R2 simule et reseau sortant coupe. **46 controles, 0 anomalie.**
+
+Couvert : CSP a nonce (correspondance exacte nonce/balise, absence de `on*=`, absence de `style=`,
+absence de ressource externe), les 6 sections et leurs declencheurs, absence de bouton mort,
+bibliotheque R2 (tri, manifest, types, CSRF), garde SAFE, refus `http://`, CSRF, etats et historique,
+non-regression SeneCompare / Sama Business / `/visuals/*` / routes legacy.
+
+**Non couvert, et non revendique** : le rendu graphique reel. Aucun pixel n'a ete observe.
+
+### Audit responsive statique
+
+Analyse des regles CSS appliquees a 360 / 390 / 412 / 430 / 768 / 1280 px et en mode tactile.
+11 constats, 0 anomalie apres correction.
+
+| Largeur | Navigation | Bibliotheque |
+|---|---|---|
+| 360 - 430 px | barre basse 6 actions, 55,3 px par bouton a 360 px | 3 colonnes |
+| 768 px | barre basse | 4 colonnes |
+| 1280 px + souris | sidebar | 5 colonnes |
+| tactile en mode "site pour ordinateur" | `hover:none` + `pointer:coarse` force la barre basse | 3 colonnes |
+
+Garde-fous verifies : `overflow-x:hidden`, `min-width:0`, `minmax(0,1fr)` (5 occurrences),
+`env(safe-area-inset-bottom)` (3 occurrences), aucune largeur fixe depassant la zone utile a 360 px.
+
+### Anomalie trouvee et corrigee
+
+`.libraryBtn` (bouton « Charger depuis R2 », introduit dans cette branche) avait une hauteur
+tactile de **38 px**, sous le seuil confortable. Portee a **44 px**.
+
+### Verdict
+
+**GO conditionnel** pour le merge : code, tests et non-regressions sont verts, mais le rendu
+graphique n'a jamais ete observe. Ouvrir `/social-intelligence` sur un Samsung reel et regarder
+la console avant de merger.
