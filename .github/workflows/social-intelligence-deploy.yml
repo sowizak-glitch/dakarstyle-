@@ -9,12 +9,14 @@ on:
       - 'src/social-intelligence-ui-v4.js'
       - 'src/social-intelligence-memory-v4.js'
       - 'src/instagram-client-v5.js'
+      - 'src/instagram-sync-v5.js'
       - 'src/router.js'
       - 'wrangler.jsonc'
       - 'package.json'
       - 'tests/social-intelligence-contract.mjs'
       - 'tests/social-intelligence-behaviour.mjs'
       - 'tests/instagram-client-v5.mjs'
+      - 'tests/instagram-sync-v5.mjs'
       - '.github/workflows/social-intelligence-quality.yml'
       - '.github/workflows/social-intelligence-deploy.yml'
   workflow_dispatch:
@@ -47,10 +49,12 @@ jobs:
           node --check src/social-intelligence-ui-v4.js
           node --check src/social-intelligence-memory-v4.js
           node --check src/instagram-client-v5.js
+          node --check src/instagram-sync-v5.js
           node --check src/router.js
           node tests/social-intelligence-contract.mjs
           node tests/social-intelligence-behaviour.mjs
           node tests/instagram-client-v5.mjs
+          node tests/instagram-sync-v5.mjs
 
       - name: Validate Cloudflare bundle
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-social-out

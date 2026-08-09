@@ -8,12 +8,14 @@ on:
       - 'src/social-intelligence-ui-v4.js'
       - 'src/social-intelligence-memory-v4.js'
       - 'src/instagram-client-v5.js'
+      - 'src/instagram-sync-v5.js'
       - 'src/router.js'
       - 'wrangler.jsonc'
       - 'package.json'
       - 'tests/social-intelligence-contract.mjs'
       - 'tests/social-intelligence-behaviour.mjs'
       - 'tests/instagram-client-v5.mjs'
+      - 'tests/instagram-sync-v5.mjs'
       - '.github/workflows/social-intelligence-quality.yml'
   push:
     branches: [main]
@@ -23,12 +25,14 @@ on:
       - 'src/social-intelligence-ui-v4.js'
       - 'src/social-intelligence-memory-v4.js'
       - 'src/instagram-client-v5.js'
+      - 'src/instagram-sync-v5.js'
       - 'src/router.js'
       - 'wrangler.jsonc'
       - 'package.json'
       - 'tests/social-intelligence-contract.mjs'
       - 'tests/social-intelligence-behaviour.mjs'
       - 'tests/instagram-client-v5.mjs'
+      - 'tests/instagram-sync-v5.mjs'
       - '.github/workflows/social-intelligence-quality.yml'
 
 permissions:
@@ -55,6 +59,7 @@ jobs:
           node --check src/social-intelligence-ui-v4.js
           node --check src/social-intelligence-memory-v4.js
           node --check src/instagram-client-v5.js
+          node --check src/instagram-sync-v5.js
           node --check src/router.js
           node --check tests/social-intelligence-contract.mjs
           node --check tests/social-intelligence-behaviour.mjs
@@ -67,6 +72,9 @@ jobs:
 
       - name: Meta client suite (auth, retry, rate limit, pagination)
         run: node tests/instagram-client-v5.mjs
+
+      - name: Sync suite (incremental, idempotence, partial data)
+        run: node tests/instagram-sync-v5.mjs
 
       - name: Secret hygiene
         shell: bash
