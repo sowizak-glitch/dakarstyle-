@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'src/social-intelligence-v1.js'
+      - 'src/social-intelligence-v2.js'
       - 'src/router.js'
       - 'wrangler.jsonc'
       - 'tests/social-intelligence-contract.mjs'
@@ -17,6 +18,7 @@ permissions:
 
 env:
   PRODUCTION_HEALTH_URL: https://dakarstyle.com/api/social-intelligence/health
+  PRODUCTION_APP_URL: https://dakarstyle.com/social-intelligence
 
 jobs:
   validate:
@@ -34,6 +36,7 @@ jobs:
       - name: Validate source
         run: |
           node --check src/social-intelligence-v1.js
+          node --check src/social-intelligence-v2.js
           node --check src/router.js
           node tests/social-intelligence-contract.mjs
 
@@ -60,19 +63,24 @@ jobs:
         if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
         run: echo 'Cloudflare Git integration is expected to publish main because repository deployment credentials are not available to this workflow.' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Verify Social Intelligence production health
+      - name: Verify Social Intelligence production
         shell: bash
         run: |
           set -euo pipefail
           for attempt in 1 2 3 4 5 6; do
-            status=$(curl --location --silent --show-error --output health.json --write-out '%{http_code}' --max-time 20 "$PRODUCTION_HEALTH_URL" || true)
-            if [ "$status" = '200' ]; then
+            health_status=$(curl --location --silent --show-error --output health.json --write-out '%{http_code}' --max-time 20 "$PRODUCTION_HEALTH_URL" || true)
+            app_status=$(curl --location --silent --show-error --dump-header app.headers --output app.html --write-out '%{http_code}' --max-time 20 "$PRODUCTION_APP_URL" || true)
+            if [ "$health_status" = '200' ] && [ "$app_status" = '200' ]; then
               node -e "const h=require('./health.json'); if(h.app!=='SOWHAT Social Intelligence'||h.version!=='1.0.0'||h.storage_configured!==true) process.exit(1); console.log(h)"
-              echo "Production health OK on attempt $attempt" >> "$GITHUB_STEP_SUMMARY"
+              grep -q 'SOWHAT Intelligence · Accès privé' app.html
+              grep -qi 'x-sowhat-social-intelligence-version: 2.0.0' app.headers
+              grep -q 'viewport-fit=cover' app.html
+              grep -q 'social-intelligence/login' app.html
+              echo "Production v2 OK on attempt $attempt" >> "$GITHUB_STEP_SUMMARY"
               exit 0
             fi
-            echo "Attempt $attempt -> HTTP $status" >> "$GITHUB_STEP_SUMMARY"
+            echo "Attempt $attempt -> health=$health_status app=$app_status" >> "$GITHUB_STEP_SUMMARY"
             sleep 20
           done
-          echo 'Social Intelligence production health did not become ready in the verification window.' >&2
+          echo 'Social Intelligence v2 did not become ready in the verification window.' >&2
           exit 1
