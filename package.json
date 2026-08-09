@@ -1,0 +1,14 @@
+{
+  "name": "dakarstyle-worker",
+  "private": true,
+  "type": "module",
+  "description": "Worker Cloudflare DakarStyle : SOWHAT Control, SeneCompare, Sama Business et storefronts.",
+  "comment": "Aucune dependance runtime ni de developpement n'est installee dans ce depot : la racine du depot est aussi la racine des assets publics du Worker (assets.directory = '.'), et un node_modules local serait servi publiquement. Wrangler est invoque via npx dans la CI.",
+  "scripts": {
+    "check": "node --check src/router.js && node --check src/social-intelligence-v1.js && node --check src/social-intelligence-v3.js && node --check src/social-intelligence-ui-v4.js && node --check src/social-intelligence-memory-v4.js",
+    "test:contract": "node tests/social-intelligence-contract.mjs",
+    "test:behaviour": "node tests/social-intelligence-behaviour.mjs",
+    "test": "npm run check && npm run test:contract && npm run test:behaviour",
+    "build:dry-run": "npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-dry-out"
+  }
+}

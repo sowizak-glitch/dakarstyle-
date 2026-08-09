@@ -6,9 +6,13 @@ on:
     paths:
       - 'src/social-intelligence-v1.js'
       - 'src/social-intelligence-v3.js'
+      - 'src/social-intelligence-ui-v4.js'
+      - 'src/social-intelligence-memory-v4.js'
       - 'src/router.js'
       - 'wrangler.jsonc'
+      - 'package.json'
       - 'tests/social-intelligence-contract.mjs'
+      - 'tests/social-intelligence-behaviour.mjs'
       - '.github/workflows/social-intelligence-quality.yml'
       - '.github/workflows/social-intelligence-deploy.yml'
   workflow_dispatch:
@@ -37,8 +41,11 @@ jobs:
         run: |
           node --check src/social-intelligence-v1.js
           node --check src/social-intelligence-v3.js
+          node --check src/social-intelligence-ui-v4.js
+          node --check src/social-intelligence-memory-v4.js
           node --check src/router.js
           node tests/social-intelligence-contract.mjs
+          node tests/social-intelligence-behaviour.mjs
 
       - name: Validate Cloudflare bundle
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-social-out
@@ -82,7 +89,7 @@ jobs:
 
             if [ "$app_status" = '200' ] \
               && grep -q 'SOWHAT Control · Accès privé' app.html \
-              && grep -qi 'x-sowhat-social-intelligence-version: 3.0.0' app.headers \
+              && grep -qi 'x-sowhat-social-intelligence-version: 4.0.0' app.headers \
               && grep -q 'viewport-fit=cover' app.html \
               && grep -q 'social-intelligence/login' app.html; then
               app_ok=true

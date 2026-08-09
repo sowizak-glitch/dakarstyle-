@@ -5,18 +5,26 @@ on:
     paths:
       - 'src/social-intelligence-v1.js'
       - 'src/social-intelligence-v3.js'
+      - 'src/social-intelligence-ui-v4.js'
+      - 'src/social-intelligence-memory-v4.js'
       - 'src/router.js'
       - 'wrangler.jsonc'
+      - 'package.json'
       - 'tests/social-intelligence-contract.mjs'
+      - 'tests/social-intelligence-behaviour.mjs'
       - '.github/workflows/social-intelligence-quality.yml'
   push:
     branches: [main]
     paths:
       - 'src/social-intelligence-v1.js'
       - 'src/social-intelligence-v3.js'
+      - 'src/social-intelligence-ui-v4.js'
+      - 'src/social-intelligence-memory-v4.js'
       - 'src/router.js'
       - 'wrangler.jsonc'
+      - 'package.json'
       - 'tests/social-intelligence-contract.mjs'
+      - 'tests/social-intelligence-behaviour.mjs'
       - '.github/workflows/social-intelligence-quality.yml'
 
 permissions:
@@ -39,17 +47,23 @@ jobs:
         run: |
           node --check src/social-intelligence-v1.js
           node --check src/social-intelligence-v3.js
+          node --check src/social-intelligence-ui-v4.js
+          node --check src/social-intelligence-memory-v4.js
           node --check src/router.js
           node --check tests/social-intelligence-contract.mjs
+          node --check tests/social-intelligence-behaviour.mjs
 
       - name: Production contract
         run: node tests/social-intelligence-contract.mjs
+
+      - name: Behaviour suite (SAFE gate, idempotency, states, CSRF)
+        run: node tests/social-intelligence-behaviour.mjs
 
       - name: Secret hygiene
         shell: bash
         run: |
           set -euo pipefail
-          if grep -En "INSTAGRAM_(ACCESS_TOKEN|USER_ID)[[:space:]]*=[[:space:]]*['\"][^'\"]+" src/social-intelligence-v1.js src/social-intelligence-v3.js; then
+          if grep -En "INSTAGRAM_(ACCESS_TOKEN|USER_ID)[[:space:]]*=[[:space:]]*['\"][^'\"]+" src/social-intelligence-v1.js src/social-intelligence-v3.js src/social-intelligence-ui-v4.js src/social-intelligence-memory-v4.js; then
             echo 'Raw Instagram credential detected in source.' >&2
             exit 1
           fi

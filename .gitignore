@@ -4,3 +4,6 @@
 !.dev.vars.example
 .env*
 !.env.example
+node_modules/
+.wrangler-dry-out/
+.wrangler-social-out/

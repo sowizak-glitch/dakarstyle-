@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'functions/visuals/api/upload.js'
+      - 'src/legacy-index.js'
       - 'src/index.js'
       - 'wrangler.jsonc'
       - '.github/workflows/check-visual-upload-endpoint.yml'
