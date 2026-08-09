@@ -58,7 +58,7 @@ assert.ok(routerSource.includes('runInstagramSync(env, null)'), 'scheduled Insta
 assert.ok(wranglerSource.includes('17 */6 * * *'), 'six-hour cron schedule is missing');
 assert.ok(wranglerSource.includes('SOCIAL_INTELLIGENCE_LOGIN_USER'), 'login user binding is missing');
 assert.ok(wranglerSource.includes('SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256'), 'login password hash binding is missing');
-assert.equal(/SOWHAT-A73-9Kx7-Rm2P-2026!/.test(wranglerSource), false, 'raw login password must never be committed');
+assert.equal(/"SOCIAL_INTELLIGENCE_LOGIN_PASSWORD"\s*:/.test(wranglerSource), false, 'raw login password binding must never be committed');
 assert.equal(/INSTAGRAM_ACCESS_TOKEN\s*=\s*['"][^'"]+['"]/.test(engineSource), false, 'raw Instagram credential detected');
 assert.equal(/Bearer\s+[A-Za-z0-9_-]{24,}/.test(engineSource), false, 'raw bearer credential detected');
 
