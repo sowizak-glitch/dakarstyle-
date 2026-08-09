@@ -26,8 +26,8 @@ assert.ok(moduleSource.includes('content-security-policy'), 'CSP is missing');
 assert.ok(moduleSource.includes("x-frame-options':'DENY'"), 'clickjacking protection is missing');
 assert.ok(moduleSource.includes('noindex, nofollow, noarchive'), 'private dashboard noindex contract is missing');
 assert.ok(moduleSource.includes('timingSafeEqual'), 'constant-time hash comparison helper is missing');
-assert.ok(moduleSource.includes('SOCIAL_INTELLIGENCE_ADMIN_KEY_SHA256'), 'admin key hash override is missing');
-assert.ok(moduleSource.includes('SOCIAL_INTELLIGENCE_WRITE_KEY_SHA256'), 'write key hash override is missing');
+assert.ok(moduleSource.includes('SOCIAL_INTELLIGENCE_ADMIN_KEY_SHA256'), 'admin key hash binding is missing');
+assert.ok(moduleSource.includes('SOCIAL_INTELLIGENCE_WRITE_KEY_SHA256'), 'write key hash binding is missing');
 assert.ok(moduleSource.includes('median('), 'personal baseline scoring is missing');
 assert.ok(moduleSource.includes('buildWeeklyPlan'), 'weekly content plan engine is missing');
 assert.ok(moduleSource.includes('buildRecommendations'), 'coach recommendation engine is missing');
@@ -36,6 +36,10 @@ assert.ok(moduleSource.includes('mapWithConcurrency'), 'bounded Instagram insigh
 assert.ok(routerSource.includes("from './social-intelligence-v1.js'"), 'router does not import Social Intelligence');
 assert.ok(routerSource.includes('handleSocialIntelligence(request, env, ctx)'), 'router does not route Social Intelligence');
 assert.ok(routerSource.includes('runInstagramSync(env, null)'), 'scheduled Instagram learning is not wired');
+assert.ok(routerSource.includes('socialIntelligenceSecurityReady(url, env)'), 'router security gate is missing');
+assert.ok(routerSource.includes('SOCIAL_INTELLIGENCE_ADMIN_KEY_SHA256'), 'router does not require a dedicated admin hash');
+assert.ok(routerSource.includes('SOCIAL_INTELLIGENCE_WRITE_KEY_SHA256'), 'router does not require a dedicated write hash');
+assert.ok(routerSource.includes('social_intelligence_security_not_configured'), 'router must fail closed when private hashes are absent');
 assert.ok(wranglerSource.includes('17 */6 * * *'), 'six-hour cron schedule is missing');
 
 const rawSecretPatterns = [
