@@ -3,7 +3,7 @@ import senecompare from './senecompare-v541.js';
 import samabusinessSites from './samabusiness-site-proxy-v131.js';
 import samabusinessMedia from './samabusiness-media-review-v133.js';
 import samabusinessOwner from './samabusiness-owner-command-v14.js';
-import { handleSocialIntelligenceV2, runInstagramSync } from './social-intelligence-v2.js';
+import { handleSocialIntelligenceV3, runInstagramSync } from './social-intelligence-v3.js';
 
 const SENECOMPARE_HOSTS = new Set([
   'senecompare.dakarstyle.com',
@@ -58,7 +58,7 @@ function socialIntelligenceNotConfigured(url) {
       headers: { ...headers, 'content-type': 'application/json; charset=utf-8' },
     });
   }
-  return new Response('<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>SOWHAT Social Intelligence</title><body style="margin:0;background:#050810;color:#f5f8fc;font-family:system-ui;display:grid;place-items:center;min-height:100vh;padding:24px"><main><h1>Configuration sécurisée en cours</h1><p style="color:#91a5bc">Le tableau de bord reste fermé tant que ses identifiants privés ne sont pas configurés.</p></main></body></html>', {
+  return new Response('<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>SOWHAT Control</title><body style="margin:0;background:#08080a;color:#f6f2e9;font-family:system-ui;display:grid;place-items:center;min-height:100vh;padding:24px"><main><h1>Configuration sécurisée en cours</h1><p style="color:#96938b">Le cockpit reste fermé tant que ses identifiants privés ne sont pas configurés.</p></main></body></html>', {
     status: 503,
     headers: { ...headers, 'content-type': 'text/html; charset=utf-8' },
   });
@@ -90,7 +90,7 @@ export default {
     const url = new URL(request.url);
     if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceRoute(url)) {
       if (!socialIntelligenceSecurityReady(url, env)) return socialIntelligenceNotConfigured(url);
-      return handleSocialIntelligenceV2(request, env, ctx);
+      return handleSocialIntelligenceV3(request, env, ctx);
     }
     if (SENECOMPARE_HOSTS.has(url.hostname)) {
       return senecompare.fetch(request, env, ctx);
