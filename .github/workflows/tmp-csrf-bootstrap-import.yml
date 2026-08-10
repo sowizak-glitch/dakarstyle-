@@ -1,0 +1,61 @@
+name: Temporary CSRF bootstrap import
+
+on:
+  push:
+    branches:
+      - tmp/csrf-bootstrap-import-20260810
+
+permissions:
+  contents: write
+
+jobs:
+  validate-and-stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout runner branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Verify exact patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          PATCH=.tmp/sowhat-v5-fix-csrf-bootstrap.patch
+          test "$(wc -c < "$PATCH")" -eq 18566
+          test "$(sha256sum "$PATCH" | awk '{print $1}')" = "0bc40c96735d1a64e56147fffbaf19eda5c5d5ed65646c42017d3ba9254195c9"
+          cp "$PATCH" /tmp/fix.patch
+
+      - name: Apply on exact production base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SOWHAT Import Bot"
+          git config user.email "agent@sowhat.local"
+          git checkout --detach 033d89d7ee06cc089ca64b3cc9db991136805d0b
+          git am /tmp/fix.patch
+          test "$(git rev-list --count 033d89d7ee06cc089ca64b3cc9db991136805d0b..HEAD)" -eq 1
+          git diff --quiet 033d89d7ee06cc089ca64b3cc9db991136805d0b^..033d89d7ee06cc089ca64b3cc9db991136805d0b || true
+          changed="$(git diff-tree --no-commit-id --name-only -r HEAD | sort)"
+          expected="$(printf '%s\n' src/security-v5.js tests/routes-v5.mjs tests/security-audit-v5.mjs tests/studio-v5.mjs | sort)"
+          test "$changed" = "$expected"
+
+      - name: Full V5 test suite
+        run: npm test
+
+      - name: Security audit
+        run: node tests/security-audit-v5.mjs
+
+      - name: Cloudflare dry-run
+        run: npm run build:dry-run
+
+      - name: Publish validated commit to isolated output branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push origin HEAD:refs/heads/tmp/csrf-bootstrap-validated --force
+          echo "VALIDATED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Summary
+        run: echo "Validated commit $VALIDATED_SHA"
