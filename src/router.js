@@ -4,7 +4,7 @@ import samabusinessSites from './samabusiness-site-proxy-v131.js';
 import samabusinessMedia from './samabusiness-media-review-v133.js';
 import samabusinessOwner from './samabusiness-owner-command-v14.js';
 import { handleSocialIntelligenceV3, runInstagramSync } from './social-intelligence-v3.js';
-import { handleSocialIntelligenceV5, isSocialIntelligenceV5Route } from './social-intelligence-v5-routes.js';
+import { authorizeV5, handleSocialIntelligenceV5, isSocialIntelligenceV5Route } from './social-intelligence-v5-routes.js';
 
 const SENECOMPARE_HOSTS = new Set([
   'senecompare.dakarstyle.com',
@@ -32,6 +32,25 @@ function isSocialIntelligenceRoute(url) {
   return url.pathname === '/social-intelligence'
     || url.pathname.startsWith('/social-intelligence/')
     || url.pathname.startsWith('/api/social-intelligence/');
+}
+
+function isV5BrowserPage(request, url) {
+  return ['GET', 'HEAD'].includes(request.method)
+    && (url.pathname === '/social-intelligence/v5'
+      || url.pathname === '/social-intelligence/v5/'
+      || url.pathname === '/social-intelligence/v5/studio');
+}
+
+function v5LoginRedirect() {
+  return new Response(null, {
+    status: 302,
+    headers: {
+      location: '/social-intelligence',
+      'cache-control': 'no-store',
+      'x-content-type-options': 'nosniff',
+      'x-robots-tag': 'noindex, nofollow, noarchive',
+    },
+  });
 }
 
 function hasSha256Binding(value) {
@@ -93,6 +112,13 @@ export default {
     // V4 capterait ses chemins. Aucune route V4 n est modifiee pour autant.
     if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceV5Route(url)) {
       if (!socialIntelligenceSecurityReady(url, env)) return socialIntelligenceNotConfigured(url);
+      // Une page HTML doit conduire l operateur vers l ecran de connexion au
+      // lieu d exposer le contrat JSON 401 reserve aux API. La V5 reste fail
+      // closed : on utilise exactement authorizeV5, sans contourner la session.
+      if (isV5BrowserPage(request, url)) {
+        const auth = await authorizeV5(request, env);
+        if (!auth.ok) return v5LoginRedirect();
+      }
       return handleSocialIntelligenceV5(request, env, ctx);
     }
     if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceRoute(url)) {
