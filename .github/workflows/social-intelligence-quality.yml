@@ -7,11 +7,39 @@ on:
       - 'src/social-intelligence-v3.js'
       - 'src/social-intelligence-ui-v4.js'
       - 'src/social-intelligence-memory-v4.js'
+      - 'src/instagram-client-v5.js'
+      - 'src/instagram-sync-v5.js'
+      - 'src/coach-v5.js'
+      - 'src/content-memory-v5.js'
+      - 'src/learning-v5.js'
+      - 'src/observability-v5.js'
+      - 'src/plan-v5.js'
+      - 'src/publishing-v5.js'
+      - 'src/scheduler-v5.js'
+      - 'src/security-v5.js'
+      - 'src/social-intelligence-ui-v5.js'
+      - 'src/social-intelligence-v5-routes.js'
+      - 'src/sowhat-score-v5.js'
+      - 'src/studio-v5.js'
       - 'src/router.js'
       - 'wrangler.jsonc'
       - 'package.json'
       - 'tests/social-intelligence-contract.mjs'
       - 'tests/social-intelligence-behaviour.mjs'
+      - 'tests/instagram-client-v5.mjs'
+      - 'tests/instagram-sync-v5.mjs'
+      - 'tests/coach-v5.mjs'
+      - 'tests/content-memory-v5.mjs'
+      - 'tests/learning-v5.mjs'
+      - 'tests/observability-v5.mjs'
+      - 'tests/plan-v5.mjs'
+      - 'tests/publishing-v5.mjs'
+      - 'tests/routes-v5.mjs'
+      - 'tests/scheduler-v5.mjs'
+      - 'tests/security-audit-v5.mjs'
+      - 'tests/sowhat-score-v5.mjs'
+      - 'tests/studio-v5.mjs'
+      - 'tests/ui-v5.mjs'
       - '.github/workflows/social-intelligence-quality.yml'
   push:
     branches: [main]
@@ -20,11 +48,39 @@ on:
       - 'src/social-intelligence-v3.js'
       - 'src/social-intelligence-ui-v4.js'
       - 'src/social-intelligence-memory-v4.js'
+      - 'src/instagram-client-v5.js'
+      - 'src/instagram-sync-v5.js'
+      - 'src/coach-v5.js'
+      - 'src/content-memory-v5.js'
+      - 'src/learning-v5.js'
+      - 'src/observability-v5.js'
+      - 'src/plan-v5.js'
+      - 'src/publishing-v5.js'
+      - 'src/scheduler-v5.js'
+      - 'src/security-v5.js'
+      - 'src/social-intelligence-ui-v5.js'
+      - 'src/social-intelligence-v5-routes.js'
+      - 'src/sowhat-score-v5.js'
+      - 'src/studio-v5.js'
       - 'src/router.js'
       - 'wrangler.jsonc'
       - 'package.json'
       - 'tests/social-intelligence-contract.mjs'
       - 'tests/social-intelligence-behaviour.mjs'
+      - 'tests/instagram-client-v5.mjs'
+      - 'tests/instagram-sync-v5.mjs'
+      - 'tests/coach-v5.mjs'
+      - 'tests/content-memory-v5.mjs'
+      - 'tests/learning-v5.mjs'
+      - 'tests/observability-v5.mjs'
+      - 'tests/plan-v5.mjs'
+      - 'tests/publishing-v5.mjs'
+      - 'tests/routes-v5.mjs'
+      - 'tests/scheduler-v5.mjs'
+      - 'tests/security-audit-v5.mjs'
+      - 'tests/sowhat-score-v5.mjs'
+      - 'tests/studio-v5.mjs'
+      - 'tests/ui-v5.mjs'
       - '.github/workflows/social-intelligence-quality.yml'
 
 permissions:
@@ -50,6 +106,20 @@ jobs:
           node --check src/social-intelligence-v3.js
           node --check src/social-intelligence-ui-v4.js
           node --check src/social-intelligence-memory-v4.js
+          node --check src/instagram-client-v5.js
+          node --check src/instagram-sync-v5.js
+          node --check src/coach-v5.js
+          node --check src/content-memory-v5.js
+          node --check src/learning-v5.js
+          node --check src/observability-v5.js
+          node --check src/plan-v5.js
+          node --check src/publishing-v5.js
+          node --check src/scheduler-v5.js
+          node --check src/security-v5.js
+          node --check src/social-intelligence-ui-v5.js
+          node --check src/social-intelligence-v5-routes.js
+          node --check src/sowhat-score-v5.js
+          node --check src/studio-v5.js
           node --check src/router.js
           node --check tests/social-intelligence-contract.mjs
           node --check tests/social-intelligence-behaviour.mjs
@@ -60,16 +130,66 @@ jobs:
       - name: Behaviour suite (SAFE gate, idempotency, states, CSRF)
         run: node tests/social-intelligence-behaviour.mjs
 
+      - name: Meta client suite (auth, retry, rate limit, pagination)
+        run: node tests/instagram-client-v5.mjs
+
+      - name: Sync suite (incremental, idempotence, partial data)
+        run: node tests/instagram-sync-v5.mjs
+
+      - name: Score suite (null vs zero, cohorts, sample size)
+        run: node tests/sowhat-score-v5.mjs
+
+      - name: Content memory suite (observation vs correlation, confidence)
+        run: node tests/content-memory-v5.mjs
+
+      - name: Coach suite (evidence, limits, insufficient data fallback)
+        run: node tests/coach-v5.mjs
+
+      - name: Plan suite (7 days, traceable justification, Studio prefill)
+        run: node tests/plan-v5.mjs
+
+      - name: Studio suite (state machine, SAFE gate, CSRF, media validation)
+        run: node tests/studio-v5.mjs
+
+      - name: Publishing suite (container, confirmation, no double publish)
+        run: node tests/publishing-v5.mjs
+
+      - name: Scheduler suite (lock, concurrency, token health)
+        run: node tests/scheduler-v5.mjs
+
+      - name: Learning suite (idempotent checkpoints, append-only history)
+        run: node tests/learning-v5.mjs
+
+      - name: Observability suite (structured logs, no secret leak)
+        run: node tests/observability-v5.mjs
+
+      - name: UI suite (states, responsive, escaping, touch targets)
+        run: node tests/ui-v5.mjs
+
+      - name: Routes suite (namespace isolation, auth, CSRF, CSP)
+        run: node tests/routes-v5.mjs
+
+      - name: Security audit (static guarantees cannot be removed silently)
+        run: node tests/security-audit-v5.mjs
+
       - name: Secret hygiene
         shell: bash
         run: |
           set -euo pipefail
-          if grep -En "INSTAGRAM_(ACCESS_TOKEN|USER_ID)[[:space:]]*=[[:space:]]*['\"][^'\"]+" src/social-intelligence-v1.js src/social-intelligence-v3.js src/social-intelligence-ui-v4.js src/social-intelligence-memory-v4.js; then
+          if grep -REn "INSTAGRAM_(ACCESS_TOKEN|USER_ID)[[:space:]]*=[[:space:]]*['\"][^'\"]+" src/; then
             echo 'Raw Instagram credential detected in source.' >&2
             exit 1
           fi
           if grep -En '"SOCIAL_INTELLIGENCE_LOGIN_PASSWORD"[[:space:]]*:' wrangler.jsonc; then
             echo 'Raw Social Intelligence login password binding detected.' >&2
+            exit 1
+          fi
+          if grep -REn "\bEAA[A-Za-z0-9_-]{20,}" src/; then
+            echo 'Raw Meta access token detected in source.' >&2
+            exit 1
+          fi
+          if grep -REn "SOCIAL_INTELLIGENCE_CSRF_SECRET[[:space:]]*[:=][[:space:]]*['\"][^'\"]{8,}" src/ wrangler.jsonc; then
+            echo 'Raw CSRF secret detected.' >&2
             exit 1
           fi
           echo 'No raw private credential committed.'

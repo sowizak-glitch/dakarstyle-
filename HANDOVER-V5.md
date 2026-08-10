@@ -14,9 +14,9 @@ Regle de lecture : ce qui n'est pas ecrit ici comme verifie ne l'est pas.
 | Depot | `sowizak-glitch/dakarstyle-` |
 | Branche | `agent/sowhat-control-v5-instagram-engine` |
 | Base | `da65da8f829c0e26d82f071a80622e399fb5366e` |
-| Commits V5 | 10 (3 repris de la session precedente, 7 ajoutes) |
+| Commits V5 depuis la base | 16 (3 repris de la session precedente, 13 ajoutes) |
 | Modules V5 | 14 fichiers `src/*-v5*.js` |
-| Suites de tests | 14 suites, 311 scenarios, tous verts |
+| Suites de tests | 15 suites, 311 scenarios, tous verts |
 | Dry-run Cloudflare | OK — 491,74 KiB / gzip 136,66 KiB |
 | Fichiers V4 modifies | `src/router.js` uniquement (3 lignes ajoutees) |
 | Deploiement | Aucun. La branche V5 n'est deployee par aucun workflow. |
