@@ -342,6 +342,10 @@ test('la saisie ne declenche pas le zoom automatique sur mobile', () => {
 
 /* ---------------- Comportement client ---------------- */
 
+test('le JavaScript reellement servi au navigateur est syntaxiquement valide', () => {
+  assert.doesNotThrow(() => new Function(STUDIO_CLIENT_JS));
+});
+
 test('le script client n execute aucun code construit dynamiquement', () => {
   assert.equal(/\beval\s*\(/.test(STUDIO_CLIENT_JS), false);
   assert.equal(/new Function\s*\(/.test(STUDIO_CLIENT_JS), false);
