@@ -1,0 +1,63 @@
+name: Hotfix Studio File Selection
+
+on:
+  push:
+    branches:
+      - hotfix/studio-file-selection
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: hotfix/studio-file-selection
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Apply targeted Studio fix
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/studio-client-v5.js')
+          s = p.read_text()
+          old1 = "    setDefaultFormatForKind(spec.kind);\n    renderMediaPreview(file);"
+          new1 = "    // Un nouveau fichier choisit d abord son format naturel. L operateur peut\n    // ensuite basculer volontairement en Story. Cela evite qu un ancien choix\n    // Story masque le type reel du nouveau fichier.\n    setFormatForKind(spec.kind);\n    renderMediaPreview(file);"
+          old2 = "      setDefaultFormatForKind(state.media && state.media.kind);"
+          new2 = "      setFormatForKind(state.media && state.media.kind);"
+          old3 = "    if (nodes.file) nodes.file.addEventListener('change', function () {\n      handleFile(nodes.file.files && nodes.file.files[0]);\n    });"
+          new3 = "    if (nodes.file) nodes.file.addEventListener('change', function () {\n      var selected = nodes.file.files && nodes.file.files[0];\n      // Le champ natif garde le dernier nom de fichier. Le vider apres avoir\n      // capture le File permet de reprendre exactement la meme photo si besoin.\n      if (selected) handleFile(selected);\n      nodes.file.value = '';\n    });"
+          for old, new, label in [(old1,new1,'format-before-upload'),(old2,new2,'format-after-upload'),(old3,new3,'same-file-reselect')]:
+              if old not in s:
+                  raise SystemExit(f'pattern missing: {label}')
+              s = s.replace(old, new, 1)
+          p.write_text(s)
+          PY
+      - name: Targeted assertions
+        shell: bash
+        run: |
+          grep -F "setFormatForKind(spec.kind);" src/studio-client-v5.js
+          grep -F "nodes.file.value = '';" src/studio-client-v5.js
+          ! grep -F "setDefaultFormatForKind(spec.kind);" src/studio-client-v5.js
+      - name: Full tests
+        run: npm test
+      - name: Security audit
+        run: node tests/security-audit-v5.mjs
+      - name: Cloudflare dry-run
+        run: npm run build:dry-run
+      - name: Commit validated hotfix
+        shell: bash
+        run: |
+          git rm .github/workflows/hotfix-studio-file-selection.yml
+          git config user.name "sowizak-glitch"
+          git config user.email "sow.izak@gmail.com"
+          git add src/studio-client-v5.js
+          git commit -m "fix(studio): make photo selection reliable"
+          git push origin HEAD:hotfix/studio-file-selection
