@@ -175,6 +175,22 @@ check('session privee, CSRF et en-tetes de securite', async () => {
   assert.ok(!/ style="/.test(session.markup), 'aucun attribut style= en ligne ne doit subsister');
 });
 
+check('mot de passe de recuperation devient persistant', async () => {
+  const recoveryPassword = 'recuperation-test-seulement';
+  const recoveryHash = createHash('sha256').update(recoveryPassword).digest('hex');
+  const env = makeEnv({ SOCIAL_INTELLIGENCE_RECOVERY_PASSWORD_SHA256: recoveryHash });
+  installBridge();
+  const form = new URLSearchParams({ username: 'sowhat', password: recoveryPassword });
+  const first = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/login`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), env, {});
+  assert.equal(first.status, 303);
+  const stored = env.VISUALS_BUCKET.readJson('visuals/social-intelligence/auth/login-password.json');
+  assert.equal(stored.password_sha256, recoveryHash);
+  delete env.SOCIAL_INTELLIGENCE_RECOVERY_PASSWORD_SHA256;
+  env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 = '0'.repeat(64);
+  const second = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/login`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), env, {});
+  assert.equal(second.status, 303);
+});
+
 check('acces refuse sans session', async () => {
   const env = makeEnv();
   installBridge();

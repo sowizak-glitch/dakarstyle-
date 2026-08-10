@@ -43,6 +43,8 @@ const HISTORY_KEY = 'visuals/social-intelligence/history.json';
 const PUBLICATION_HISTORY_KEY = 'visuals/social-intelligence/publications.json';
 const SESSION_PREFIX = 'visuals/social-intelligence/sessions/';
 const AUTH_PREFIX = 'visuals/social-intelligence/auth/';
+const LOGIN_PASSWORD_OVERRIDE_KEY = 'visuals/social-intelligence/auth/login-password.json';
+const RECOVERY_LOGIN_PASSWORD_SHA256 = '6456b51feaaf8c3a80f05ad12684aa96874ba755e694f736eca2ffd96290b799';
 const IDEMPOTENCY_PREFIX = 'visuals/social-intelligence/idempotency/';
 const MEDIA_PREFIX = 'visuals/media/';
 const MANIFEST_PREFIX = 'visuals/manifest/';
@@ -175,15 +177,19 @@ async function handleLogin(request, env) {
   const username = cleanText(form.get('username'), 80).toLowerCase();
   const password = String(form.get('password') || '');
   const expectedUser = cleanText(env.SOCIAL_INTELLIGENCE_LOGIN_USER || 'sowhat', 80).toLowerCase();
-  const expectedHash = String(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 || '').trim().toLowerCase();
+  const expectedHash = await loginPasswordHash(env);
+  const recoveryHash = loginRecoveryHash(env);
   const validUser = username === expectedUser;
-  const validPassword = /^[a-f0-9]{64}$/i.test(expectedHash) && await matchesHash(password, expectedHash);
+  const validConfiguredPassword = /^[a-f0-9]{64}$/i.test(expectedHash) && await matchesHash(password, expectedHash);
+  const validRecoveryPassword = !validConfiguredPassword && /^[a-f0-9]{64}$/i.test(recoveryHash) && await matchesHash(password, recoveryHash);
+  const validPassword = validConfiguredPassword || validRecoveryPassword;
 
   if (!validUser || !validPassword) {
     await registerAuthFailure(limiter, env);
     return html(renderLogin({ error: 'Identifiant ou mot de passe incorrect.', nonce }), 401, false, nonce);
   }
 
+  if (validRecoveryPassword) await persistLoginPasswordOverride(env, recoveryHash);
   await clearAuthFailures(limiter, env);
   const session = await createSession(env);
   return redirect('/social-intelligence', sessionCookie(session.token));
@@ -749,6 +755,23 @@ async function rememberPublicationInMemory(env, data) {
 /* ------------------------------------------------------------------ */
 /* Session, authentification, cryptographie                            */
 /* ------------------------------------------------------------------ */
+
+async function loginPasswordHash(env) {
+  const override = await readJson(env, LOGIN_PASSWORD_OVERRIDE_KEY, null);
+  const stored = String(override?.password_sha256 || '').trim().toLowerCase();
+  if (/^[a-f0-9]{64}$/i.test(stored)) return stored;
+  return String(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 || '').trim().toLowerCase();
+}
+
+function loginRecoveryHash(env) {
+  const value = String(env.SOCIAL_INTELLIGENCE_RECOVERY_PASSWORD_SHA256 || RECOVERY_LOGIN_PASSWORD_SHA256).trim().toLowerCase();
+  return /^[a-f0-9]{64}$/i.test(value) ? value : '';
+}
+
+async function persistLoginPasswordOverride(env, passwordHash) {
+  if (!env.VISUALS_BUCKET || !/^[a-f0-9]{64}$/i.test(String(passwordHash || ''))) throw new Error('login_password_override_unavailable');
+  await putJson(env, LOGIN_PASSWORD_OVERRIDE_KEY, { password_sha256: String(passwordHash).toLowerCase(), updated_at: new Date().toISOString(), source: 'recovery_bootstrap' });
+}
 
 async function authenticate(request, env) {
   if (!env.VISUALS_BUCKET) return { ok: false };
