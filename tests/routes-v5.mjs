@@ -818,6 +818,13 @@ test('sans stockage, le cockpit refuse au lieu d improviser un secret', async ()
   assert.equal((await response.json()).error, 'csrf_not_configured');
 });
 
+test('le Studio ne masque plus le detail reel d une erreur Meta', () => {
+  const source = readFileSync(new URL('../src/studio-client-v5.js', import.meta.url), 'utf8');
+  assert.ok(source.includes("meta_bad_request: 'Instagram a refuse la demande de publication.'"));
+  assert.ok(source.includes("var detail = String(error && error.detail || '').trim().slice(0, 300);"));
+  assert.ok(source.includes("code.indexOf('meta_') === 0"));
+  assert.ok(!source.includes("humanError(error.code, error.detail ? null : '')"));
+});
 /* ---------------- Execution ---------------- */
 
 let failures = 0;
