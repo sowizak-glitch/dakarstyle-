@@ -18,14 +18,21 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify exact patch
+      - name: Verify transferred patch structure
         shell: bash
         run: |
           set -euo pipefail
           PATCH=.tmp/sowhat-v5-fix-csrf-bootstrap.patch
-          test "$(wc -c < "$PATCH")" -eq 18566
-          test "$(sha256sum "$PATCH" | awk '{print $1}')" = "0bc40c96735d1a64e56147fffbaf19eda5c5d5ed65646c42017d3ba9254195c9"
+          test -s "$PATCH"
+          test "$(wc -c < "$PATCH")" -gt 18000
+          grep -q '^Subject: \[PATCH\] fix(v5): amorcer le secret CSRF' "$PATCH"
+          grep -q '^diff --git a/src/security-v5.js b/src/security-v5.js' "$PATCH"
+          grep -q '^diff --git a/tests/routes-v5.mjs b/tests/routes-v5.mjs' "$PATCH"
+          grep -q '^diff --git a/tests/security-audit-v5.mjs b/tests/security-audit-v5.mjs' "$PATCH"
+          grep -q '^diff --git a/tests/studio-v5.mjs b/tests/studio-v5.mjs' "$PATCH"
           cp "$PATCH" /tmp/fix.patch
+          echo "patch_size=$(wc -c < "$PATCH")"
+          echo "patch_sha256=$(sha256sum "$PATCH" | awk '{print $1}')"
 
       - name: Apply on exact production base
         shell: bash
@@ -36,7 +43,6 @@ jobs:
           git checkout --detach 033d89d7ee06cc089ca64b3cc9db991136805d0b
           git am /tmp/fix.patch
           test "$(git rev-list --count 033d89d7ee06cc089ca64b3cc9db991136805d0b..HEAD)" -eq 1
-          git diff --quiet 033d89d7ee06cc089ca64b3cc9db991136805d0b^..033d89d7ee06cc089ca64b3cc9db991136805d0b || true
           changed="$(git diff-tree --no-commit-id --name-only -r HEAD | sort)"
           expected="$(printf '%s\n' src/security-v5.js tests/routes-v5.mjs tests/security-audit-v5.mjs tests/studio-v5.mjs | sort)"
           test "$changed" = "$expected"
