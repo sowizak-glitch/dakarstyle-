@@ -114,7 +114,17 @@ export function containerFieldsFor(draft, mediaUrl, caption) {
 }
 
 /**
- * Suit le traitement du conteneur jusqu a un etat terminal. Ne conclut jamais
+ * Meta traite les videos de facon asynchrone : Reel, video classique et
+ * Story video doivent atteindre FINISHED avant media_publish. Un conteneur
+ * image suit le parcours officiel create -> publish et ne doit pas etre bloque
+ * par un polling reserve au traitement video.
+ */
+export function requiresContainerProcessing(draft) {
+  return String(draft?.media?.kind || '').toUpperCase() === 'VIDEO';
+}
+
+/**
+ * Suit le traitement d un conteneur video jusqu a un etat terminal. Ne conclut jamais
  * a partir du seul succes HTTP : seul `status_code` fait foi.
  */
 export async function waitForContainer(client, creationId, options = {}) {
@@ -244,14 +254,23 @@ export async function publishDraft(env, client, draft, options = {}) {
     return { ...failure(code, detail, PUBLISH_STAGE.CONTAINER), idempotency_key: key, publication_job_id: jobId };
   }
 
-  // --- 4. Suivi du traitement : seul status_code fait foi ---
-  try {
-    await waitForContainer(client, creationId, { ...options.containerPolling, onEvent });
-  } catch (error) {
-    await completeIdempotencyKey(env, key, { stage: PUBLISH_STAGE.PROCESSING, status: 'failed', creation_id: creationId, error_code: error.code });
-    const code = error instanceof MetaApiError ? error.code : (error.code || META_ERROR.UNKNOWN);
-    const detail = error instanceof MetaApiError ? error.detail : error.detail || error.message;
-    return { ...failure(code, detail, PUBLISH_STAGE.PROCESSING), creation_id: creationId, idempotency_key: key, publication_job_id: jobId };
+  // --- 4. Suivi du traitement : uniquement pour les medias video ---
+  if (requiresContainerProcessing(draft)) {
+    try {
+      await waitForContainer(client, creationId, { ...options.containerPolling, onEvent });
+    } catch (error) {
+      await completeIdempotencyKey(env, key, { stage: PUBLISH_STAGE.PROCESSING, status: 'failed', creation_id: creationId, error_code: error.code });
+      const code = error instanceof MetaApiError ? error.code : (error.code || META_ERROR.UNKNOWN);
+      const detail = error instanceof MetaApiError ? error.detail : error.detail || error.message;
+      return { ...failure(code, detail, PUBLISH_STAGE.PROCESSING), creation_id: creationId, idempotency_key: key, publication_job_id: jobId };
+    }
+  } else {
+    onEvent({
+      type: 'container_processing_skipped',
+      publication_job_id: jobId,
+      creation_id: creationId,
+      reason: 'image_container',
+    });
   }
 
   // --- 5. Publication : la seule etape non rejouable ---

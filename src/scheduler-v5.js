@@ -208,6 +208,8 @@ export async function publishAndPersist(env, client, draft, options = {}) {
     outcome: result.status,
     reason: result.error_code,
     detail: result.detail || '',
+    stage: result.stage || 'publish',
+    creation_id: result.creation_id || null,
     requires_manual_check: result.status === PUBLISH_STATUS.REQUIRES_MANUAL_CHECK,
     draft: stored,
   };
