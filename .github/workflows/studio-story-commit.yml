@@ -39,12 +39,12 @@ jobs:
           npm test
           node tests/security-audit-v5.mjs
           npm run build:dry-run
-      - name: Commit source
+      - name: Commit source only
         shell: bash
         run: |
           set -euo pipefail
           git config user.name 'sowizak-glitch'
           git config user.email 'sow.izak@gmail.com'
-          git add src/security-v5.js src/studio-v5.js src/publishing-v5.js src/studio-ui-v5.js src/studio-client-v5.js tests/studio-v5.mjs tests/publishing-v5.mjs tests/ui-v5.mjs .github/workflows/social-intelligence-deploy.yml
+          git add src/security-v5.js src/studio-v5.js src/publishing-v5.js src/studio-ui-v5.js src/studio-client-v5.js tests/studio-v5.mjs tests/publishing-v5.mjs tests/ui-v5.mjs
           git commit -m 'feat(studio): add Stories and harden media previews'
           git push origin HEAD:agent/sowhat-control-v5-story-final
