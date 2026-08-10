@@ -21,6 +21,7 @@ export const MEDIA_KEY = `${V5_PREFIX}media.json`;
 export const SYNC_STATE_KEY = `${V5_PREFIX}sync-state.json`;
 export const SYNC_RUNS_KEY = `${V5_PREFIX}sync-runs.json`;
 export const ERROR_EVENTS_KEY = `${V5_PREFIX}error-events.json`;
+export const ACCOUNT_HISTORY_KEY = `${V5_PREFIX}account-history.json`;
 
 export const MEDIA_FIELDS = [
   'id', 'caption', 'media_type', 'media_product_type', 'media_url',
@@ -33,10 +34,14 @@ const MEDIA_INSIGHT_METRICS = {
   IMAGE: ['reach', 'saved', 'shares', 'total_interactions'],
   CAROUSEL_ALBUM: ['reach', 'saved', 'shares', 'total_interactions'],
   VIDEO: ['reach', 'saved', 'shares', 'total_interactions', 'views'],
-  REELS: ['reach', 'saved', 'shares', 'total_interactions', 'views'],
+  // ig_reels_avg_watch_time est la seule mesure de retention que Meta expose.
+  // La duree totale du media n'est pas exposee par l'edge /media : la part
+  // visionnee reste donc non calculable, et le score le declare tel quel.
+  REELS: ['reach', 'saved', 'shares', 'total_interactions', 'views', 'ig_reels_avg_watch_time'],
 };
 
 const MAX_MEDIA_RECORDS = 400;
+const MAX_ACCOUNT_HISTORY = 180;
 const MAX_SYNC_RUNS = 30;
 const MAX_ERROR_EVENTS = 60;
 const INSIGHT_CONCURRENCY = 4;
@@ -116,6 +121,8 @@ export function normalizeMediaRecord(raw, insights, existing) {
     comments,
     shares: measured(values.shares),
     saves: measured(values.saved),
+    avg_watch_time_ms: measured(values.ig_reels_avg_watch_time),
+    video_duration_ms: measured(raw?.video_duration_ms),
     interactions,
     engagement_rate: engagementRate(interactions, reach),
     performance_score: null,
@@ -169,6 +176,35 @@ async function writeJson(env, key, value) {
 export async function readMediaRecords(env) {
   const stored = await readJson(env, MEDIA_KEY, []);
   return Array.isArray(stored) ? stored : [];
+}
+
+export async function readAccountHistory(env) {
+  const stored = await readJson(env, ACCOUNT_HISTORY_KEY, []);
+  return Array.isArray(stored) ? stored : [];
+}
+
+/**
+ * Un releve d'abonnes par jour. Sans serie, la croissance ne serait pas
+ * mesurable : un point unique ne dit rien d'une evolution. On ne reecrit
+ * jamais un releve d'un jour anterieur, on ne fait qu'ajouter.
+ */
+export async function appendAccountHistory(env, snapshot) {
+  const followers = measured(snapshot?.followers_count);
+  if (followers === null) return;
+  const at = String(snapshot?.at || new Date().toISOString());
+  const day = at.slice(0, 10);
+  const history = await readAccountHistory(env);
+  const withoutToday = history.filter((row) => String(row?.at || '').slice(0, 10) !== day);
+  withoutToday.push({
+    at,
+    followers_count: followers,
+    follows_count: measured(snapshot?.follows_count),
+    media_count: measured(snapshot?.media_count),
+  });
+  const ordered = withoutToday
+    .sort((a, b) => Date.parse(a.at || 0) - Date.parse(b.at || 0))
+    .slice(-MAX_ACCOUNT_HISTORY);
+  await writeJson(env, ACCOUNT_HISTORY_KEY, ordered);
 }
 
 export async function readSyncState(env) {
@@ -334,6 +370,12 @@ export async function runIncrementalSync(env, client, options = {}) {
     follows_count: measured(account?.follows_count),
     media_count: measured(account?.media_count),
     synced_at: new Date(now()).toISOString(),
+  });
+  await appendAccountHistory(env, {
+    at: new Date(now()).toISOString(),
+    followers_count: account?.followers_count,
+    follows_count: account?.follows_count,
+    media_count: account?.media_count,
   });
   await writeJson(env, SYNC_STATE_KEY, {
     last_run_at: new Date(now()).toISOString(),
