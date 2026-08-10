@@ -1,0 +1,108 @@
+name: Hotfix Instagram Image Publish Flow
+
+on:
+  push:
+    branches:
+      - hotfix/instagram-image-publish-flow
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Apply targeted hotfix
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one anchor, found {count}')
+              p.write_text(text.replace(old, new, 1))
+
+          # 1) Meta: une image ne demande pas de polling de traitement. Les videos oui.
+          pub = 'src/publishing-v5.js'
+          replace_once(pub,
+          """  return { image_url: mediaUrl, caption };\n}\n\n/**\n * Suit le traitement du conteneur jusqu a un etat terminal. Ne conclut jamais\n""",
+          """  return { image_url: mediaUrl, caption };\n}\n\n/**\n * Meta traite les videos de facon asynchrone : Reel, video classique et\n * Story video doivent atteindre FINISHED avant media_publish. Un conteneur\n * image suit le parcours officiel create -> publish et ne doit pas etre bloque\n * par un polling reserve au traitement video.\n */\nexport function requiresContainerProcessing(draft) {\n  return String(draft?.media?.kind || '').toUpperCase() === 'VIDEO';\n}\n\n/**\n * Suit le traitement d un conteneur video jusqu a un etat terminal. Ne conclut jamais\n""")
+
+          replace_once(pub,
+          """  // --- 4. Suivi du traitement : seul status_code fait foi ---\n  try {\n    await waitForContainer(client, creationId, { ...options.containerPolling, onEvent });\n  } catch (error) {\n    await completeIdempotencyKey(env, key, { stage: PUBLISH_STAGE.PROCESSING, status: 'failed', creation_id: creationId, error_code: error.code });\n    const code = error instanceof MetaApiError ? error.code : (error.code || META_ERROR.UNKNOWN);\n    const detail = error instanceof MetaApiError ? error.detail : error.detail || error.message;\n    return { ...failure(code, detail, PUBLISH_STAGE.PROCESSING), creation_id: creationId, idempotency_key: key, publication_job_id: jobId };\n  }\n\n  // --- 5. Publication : la seule etape non rejouable ---\n""",
+          """  // --- 4. Suivi du traitement : uniquement pour les medias video ---\n  if (requiresContainerProcessing(draft)) {\n    try {\n      await waitForContainer(client, creationId, { ...options.containerPolling, onEvent });\n    } catch (error) {\n      await completeIdempotencyKey(env, key, { stage: PUBLISH_STAGE.PROCESSING, status: 'failed', creation_id: creationId, error_code: error.code });\n      const code = error instanceof MetaApiError ? error.code : (error.code || META_ERROR.UNKNOWN);\n      const detail = error instanceof MetaApiError ? error.detail : error.detail || error.message;\n      return { ...failure(code, detail, PUBLISH_STAGE.PROCESSING), creation_id: creationId, idempotency_key: key, publication_job_id: jobId };\n    }\n  } else {\n    onEvent({\n      type: 'container_processing_skipped',\n      publication_job_id: jobId,\n      creation_id: creationId,\n      reason: 'image_container',\n    });\n  }\n\n  // --- 5. Publication : la seule etape non rejouable ---\n""")
+
+          # 2) L API Studio doit remonter le vrai code de refus au navigateur.
+          routes = 'src/studio-routes-v5.js'
+          replace_once(routes,
+          """    return {\n      status: published ? 200 : 502,\n      body: { ok: published, result: report, ...draftView(stored) },\n    };\n""",
+          """    const failureView = published ? {} : {\n      error: report.reason || 'publish_failed',\n      detail: String(report.detail || '').slice(0, 300),\n      requires_manual_check: Boolean(report.requires_manual_check),\n    };\n    return {\n      status: published ? 200 : 502,\n      body: { ok: published, ...failureView, result: report, ...draftView(stored) },\n    };\n""")
+
+          # 3) Le scheduler conserve aussi l etape reelle pour le diagnostic.
+          sched = 'src/scheduler-v5.js'
+          replace_once(sched,
+          """    outcome: result.status,\n    reason: result.error_code,\n    detail: result.detail || '',\n    requires_manual_check: result.status === PUBLISH_STATUS.REQUIRES_MANUAL_CHECK,\n    draft: stored,\n""",
+          """    outcome: result.status,\n    reason: result.error_code,\n    detail: result.detail || '',\n    stage: result.stage || 'publish',\n    creation_id: result.creation_id || null,\n    requires_manual_check: result.status === PUBLISH_STATUS.REQUIRES_MANUAL_CHECK,\n    draft: stored,\n""")
+
+          # 4) Tests: source de verite = parcours Meta reel, pas notre ancienne hypothese.
+          tests = 'tests/publishing-v5.mjs'
+          replace_once(tests,
+          """  containerFieldsFor, mediaUrlFor, publishDraft, waitForContainer,\n""",
+          """  containerFieldsFor, mediaUrlFor, publishDraft, requiresContainerProcessing, waitForContainer,\n""")
+
+          replace_once(tests,
+          """function readyDraft(overrides = {}) {\n  const draft = createDraft({\n    draft_id: 'DRAFT-TEST',\n    caption: 'Nouvelle collection.',\n    hashtags: ['#dakar'],\n    format: 'IMAGE',\n    media: {\n      r2_key: `${MEDIA_KEY_PREFIX}2026/07/visuel.jpg`,\n      content_type: 'image/jpeg',\n      size_bytes: 400000,\n      filename: 'visuel.jpg',\n    },\n    ...overrides,\n  }, { now: NOW });\n  return markReady(approveDraft(draft, { now: NOW }), { now: NOW });\n}\n""",
+          """function readyDraft(overrides = {}) {\n  const draft = createDraft({\n    draft_id: 'DRAFT-TEST',\n    caption: 'Nouvelle collection.',\n    hashtags: ['#dakar'],\n    format: 'IMAGE',\n    media: {\n      r2_key: `${MEDIA_KEY_PREFIX}2026/07/visuel.jpg`,\n      content_type: 'image/jpeg',\n      size_bytes: 400000,\n      filename: 'visuel.jpg',\n    },\n    ...overrides,\n  }, { now: NOW });\n  return markReady(approveDraft(draft, { now: NOW }), { now: NOW });\n}\n\nfunction readyVideoDraft(overrides = {}) {\n  return readyDraft({\n    format: 'REEL',\n    media: {\n      r2_key: `${MEDIA_KEY_PREFIX}2026/07/visuel.mp4`,\n      content_type: 'video/mp4',\n      size_bytes: 900000,\n      filename: 'visuel.mp4',\n      kind: 'VIDEO',\n    },\n    ...overrides,\n  });\n}\n""")
+
+          replace_once(tests,
+          """test('champs du conteneur selon le format reel', () => {\n""",
+          """test('seules les videos exigent un polling de traitement Meta', () => {\n  assert.equal(requiresContainerProcessing(readyDraft()), false);\n  assert.equal(requiresContainerProcessing(readyDraft({ format: 'STORY' })), false);\n  assert.equal(requiresContainerProcessing(readyVideoDraft()), true);\n  assert.equal(requiresContainerProcessing(readyVideoDraft({ format: 'STORY' })), true);\n});\n\ntest('champs du conteneur selon le format reel', () => {\n""")
+
+          replace_once(tests,
+          """  assert.deepEqual(kinds, [\n    `POST ${USER}/media`,\n    'GET CONTAINER-1',\n    `POST ${USER}/media_publish`,\n    'GET 17999',\n  ]);\n""",
+          """  assert.deepEqual(kinds, [\n    `POST ${USER}/media`,\n    `POST ${USER}/media_publish`,\n    'GET 17999',\n  ]);\n  assert.equal(client.calls.some((c) => c.kind === 'GET' && c.path === 'CONTAINER-1'), false, 'une photo ne doit pas attendre status_code');\n""")
+
+          replace_once(tests,
+          """test('Story image : conteneur STORIES et confirmation adaptee', async () => {\n""",
+          """test('Reel video : attend FINISHED avant media_publish', async () => {\n  const env = makeEnv();\n  const client = makeClient({ statusSequence: ['IN_PROGRESS', 'FINISHED'] });\n  const result = await publishDraft(env, client, readyVideoDraft(), { ...noSleep, now: () => NOW });\n  assert.equal(result.status, PUBLISH_STATUS.PUBLISHED);\n  const kinds = client.calls.map((c) => `${c.kind} ${c.path}`);\n  assert.deepEqual(kinds.slice(0, 4), [\n    `POST ${USER}/media`,\n    'GET CONTAINER-1',\n    'GET CONTAINER-1',\n    `POST ${USER}/media_publish`,\n  ]);\n});\n\ntest('Story image : conteneur STORIES et confirmation adaptee', async () => {\n""")
+
+          replace_once(tests,
+          """  const result = await publishDraft(env, client, readyDraft(), { ...noSleep, now: () => NOW });\n  assert.equal(result.status, PUBLISH_STATUS.FAILED);\n  assert.equal(result.stage, PUBLISH_STAGE.PROCESSING);\n""",
+          """  const result = await publishDraft(env, client, readyVideoDraft(), { ...noSleep, now: () => NOW });\n  assert.equal(result.status, PUBLISH_STATUS.FAILED);\n  assert.equal(result.stage, PUBLISH_STAGE.PROCESSING);\n""")
+
+          print('targeted hotfix applied')
+          PY
+
+      - name: Syntax
+        run: |
+          node --check src/publishing-v5.js
+          node --check src/studio-routes-v5.js
+          node --check src/scheduler-v5.js
+          node --check tests/publishing-v5.mjs
+      - name: Full test suite
+        run: npm test
+      - name: Security audit
+        run: node tests/security-audit-v5.mjs
+      - name: Cloudflare dry-run
+        run: npm run build:dry-run
+      - name: Commit verified hotfix
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/publishing-v5.js src/studio-routes-v5.js src/scheduler-v5.js tests/publishing-v5.mjs
+          git commit -m "fix: align image publishing with Meta flow and surface errors"
+          git push origin HEAD:hotfix/instagram-image-publish-flow
