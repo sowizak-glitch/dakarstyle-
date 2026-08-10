@@ -1,0 +1,84 @@
+name: Social Intelligence V5 Studio Quality
+
+on:
+  pull_request:
+    paths:
+      - 'src/media-upload-v5.js'
+      - 'src/studio-routes-v5.js'
+      - 'src/studio-ui-v5.js'
+      - 'src/studio-client-v5.js'
+      - 'src/studio-v5.js'
+      - 'src/publishing-v5.js'
+      - 'src/social-intelligence-ui-v5.js'
+      - 'src/social-intelligence-v5-routes.js'
+      - 'src/security-v5.js'
+      - 'tests/media-upload-v5.mjs'
+      - 'tests/studio-v5.mjs'
+      - 'tests/publishing-v5.mjs'
+      - 'tests/routes-v5.mjs'
+      - 'tests/ui-v5.mjs'
+      - 'tests/security-audit-v5.mjs'
+      - 'package.json'
+      - '.github/workflows/social-intelligence-v5-studio-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/media-upload-v5.js'
+      - 'src/studio-routes-v5.js'
+      - 'src/studio-ui-v5.js'
+      - 'src/studio-client-v5.js'
+      - 'src/studio-v5.js'
+      - 'src/publishing-v5.js'
+      - 'src/social-intelligence-ui-v5.js'
+      - 'src/social-intelligence-v5-routes.js'
+      - 'src/security-v5.js'
+      - 'tests/media-upload-v5.mjs'
+      - 'tests/studio-v5.mjs'
+      - 'tests/publishing-v5.mjs'
+      - 'tests/routes-v5.mjs'
+      - 'tests/ui-v5.mjs'
+      - 'tests/security-audit-v5.mjs'
+      - 'package.json'
+      - '.github/workflows/social-intelligence-v5-studio-quality.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: social-intelligence-v5-studio-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  studio-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Syntax — Studio and upload modules
+        run: |
+          node --check src/media-upload-v5.js
+          node --check src/studio-routes-v5.js
+          node --check src/studio-ui-v5.js
+          node --check src/studio-client-v5.js
+          node --check src/studio-v5.js
+          node --check src/publishing-v5.js
+          node --check src/social-intelligence-ui-v5.js
+          node --check src/social-intelligence-v5-routes.js
+          node --check src/security-v5.js
+
+      - name: Full Social Intelligence suite
+        run: npm test
+
+      - name: Security audit
+        run: node tests/security-audit-v5.mjs
+
+      - name: Cloudflare dry-run
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-v5-studio-quality
