@@ -26,13 +26,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Decode and verify exact uploaded patch
+      - name: Reconstruct and verify exact uploaded patch
         shell: bash
         run: |
           set -euo pipefail
-          base64 -d .v5-studio-upload.patch.bz2.b64 | bzip2 -dc > /tmp/studio-upload.patch
+          for n in 00 01 02 03 04 05 06 07 08; do test -s ".v5parts/$n"; done
+          cat .v5parts/00 .v5parts/01 .v5parts/02 .v5parts/03 .v5parts/04 .v5parts/05 .v5parts/06 .v5parts/07 .v5parts/08 \
+            | base64 -d | bzip2 -dc > /tmp/studio-upload.patch
           echo "$PATCH_SHA256  /tmp/studio-upload.patch" | sha256sum -c -
           test "$(grep -c '^From [0-9a-f]\{40\} Mon Sep 17 00:00:00 2001$' /tmp/studio-upload.patch)" = "6"
+          test "$(wc -c < /tmp/studio-upload.patch)" = "203668"
 
       - name: Verify target has not moved
         shell: bash
