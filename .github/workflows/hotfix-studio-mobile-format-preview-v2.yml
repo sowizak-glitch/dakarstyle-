@@ -27,6 +27,16 @@ jobs:
           set -euo pipefail
           git checkout -B hotfix/social-intelligence-one-time-reset origin/main
           python3 .github/scripts/apply-one-time-reset.py
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('tests/social-intelligence-behaviour.mjs')
+          s = p.read_text()
+          old = "  assert.ok((await oldCookie.text()).includes('Connexion'), 'les sessions existantes sont révoquées');\n"
+          new = "  assert.equal(oldCookie.status, 303, 'une ancienne session doit être redirigée vers la connexion');\n  assert.equal(oldCookie.headers.get('location'), '/social-intelligence');\n"
+          if old not in s:
+              raise SystemExit('revocation assertion anchor missing')
+          p.write_text(s.replace(old, new, 1))
+          PY
           git diff --check
           npm test
           node tests/security-audit-v5.mjs
