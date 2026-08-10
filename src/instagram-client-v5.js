@@ -2,19 +2,21 @@
  * SOWHAT Control V5 - Client Meta Graph API (Instagram)
  *
  * Couche unique d'acces a l'API Meta. Aucun autre module ne doit appeler
- * graph.facebook.com directement.
+ * graph.facebook.com ou graph.instagram.com directement.
  *
  * Garanties :
+ *   - le transport du credential est DETERMINISTE : il decoule du flux Meta
+ *     configure, jamais d'une decouverte empirique a l'execution ;
  *   - le token n'est jamais journalise, ni renvoye, ni present dans un message
  *     d'erreur : `redactSecrets` nettoie toute chaine avant sortie ;
  *   - toute erreur Meta est traduite en code stable et explicitement marquee
  *     rejouable ou non ;
  *   - les tentatives sont bornees, avec repli exponentiel et gigue ;
+ *   - une ecriture (POST) n'est JAMAIS rejouee a l'aveugle ;
  *   - la pagination est bornee pour ne jamais boucler indefiniment ;
  *   - le temps et le reseau sont injectables, donc entierement testables.
  */
 
-const DEFAULT_GRAPH_BASE = 'https://graph.facebook.com';
 const DEFAULT_API_VERSION = 'v21.0';
 const DEFAULT_TIMEOUT_MS = 15000;
 const DEFAULT_MAX_ATTEMPTS = 4;
@@ -36,6 +38,7 @@ export const META_ERROR = Object.freeze({
   TIMEOUT: 'meta_timeout',
   NETWORK: 'meta_network_error',
   INVALID_ENDPOINT: 'meta_invalid_endpoint',
+  INVALID_FLOW: 'meta_invalid_flow',
   UNSAFE_REDIRECT: 'meta_unsafe_redirect',
   UNKNOWN: 'meta_unknown_error',
 });
@@ -46,6 +49,14 @@ const RETRYABLE = new Set([
   META_ERROR.TIMEOUT,
   META_ERROR.NETWORK,
 ]);
+
+/**
+ * Une ecriture rejetee pour quota n'a PAS ete traitee par Meta : elle peut etre
+ * retentee sans risque de doublon. Toute autre erreur rejouable (5xx, timeout,
+ * panne reseau) est AMBIGUE sur un POST : la creation a peut-etre abouti cote
+ * Meta. On ne rejoue donc jamais, c'est l'idempotence metier qui tranche.
+ */
+const WRITE_RETRYABLE = new Set([META_ERROR.RATE_LIMITED]);
 
 export class MetaApiError extends Error {
   constructor(code, { status = 0, detail = '', metaCode = null, metaSubcode = null } = {}) {
@@ -77,6 +88,7 @@ export function redactSecrets(value) {
     .replace(/access_token=[^&\s"']+/gi, 'access_token=[REDACTED]')
     .replace(/"access_token"\s*:\s*"[^"]*"/gi, '"access_token":"[REDACTED]"')
     .replace(/EAA[A-Za-z0-9_-]{20,}/g, '[REDACTED]')
+    .replace(/IG[A-Za-z0-9_-]{20,}/g, '[REDACTED]')
     .replace(/Bearer\s+[A-Za-z0-9._-]{20,}/gi, 'Bearer [REDACTED]');
 }
 
@@ -102,6 +114,47 @@ export const META_ALLOWED_HOSTS = Object.freeze([
   'graph.instagram.com',
 ]);
 
+/**
+ * Les deux flux officiels Meta. Le choix du flux determine A LA FOIS l'hote
+ * Graph et le transport du credential. Il n'existe aucun autre chemin.
+ *
+ *   - instagram_login  : Instagram API with Instagram Login.
+ *                        graph.instagram.com, credential en en-tete Bearer.
+ *   - facebook_login   : Instagram API with Facebook Login.
+ *                        graph.facebook.com, credential en parametre
+ *                        `access_token` (query en lecture, champ de formulaire
+ *                        en ecriture pour ne pas ecrire le token dans une URL).
+ *
+ * Le flux par defaut est `instagram_login` parce que c'est celui que le socle
+ * existant utilise deja : `social-intelligence-v1.js` interroge
+ * graph.instagram.com avec un en-tete Bearer et lit des metriques
+ * (views, total_interactions, accounts_engaged, media_product_type) propres a
+ * ce flux. Ce defaut aligne V5 sur l'architecture reelle, il ne la change pas.
+ */
+export const META_API_FLOW = Object.freeze({
+  INSTAGRAM_LOGIN: 'instagram_login',
+  FACEBOOK_LOGIN: 'facebook_login',
+});
+
+export const META_FLOW_PROFILE = Object.freeze({
+  [META_API_FLOW.INSTAGRAM_LOGIN]: Object.freeze({
+    flow: META_API_FLOW.INSTAGRAM_LOGIN,
+    host: 'graph.instagram.com',
+    origin: 'https://graph.instagram.com',
+    transport: 'header',
+    label: 'Instagram API with Instagram Login',
+  }),
+  [META_API_FLOW.FACEBOOK_LOGIN]: Object.freeze({
+    flow: META_API_FLOW.FACEBOOK_LOGIN,
+    host: 'graph.facebook.com',
+    origin: 'https://graph.facebook.com',
+    transport: 'query',
+    label: 'Instagram API with Facebook Login',
+  }),
+});
+
+export const DEFAULT_META_API_FLOW = META_API_FLOW.INSTAGRAM_LOGIN;
+
 export function isAllowedMetaOrigin(value) {
   try {
     const url = new URL(String(value || ''));
@@ -114,20 +167,60 @@ export function isAllowedMetaOrigin(value) {
 }
 
 /**
- * Resout l'origine Graph. Fail closed : une valeur d'environnement non
- * autorisee ne retombe PAS silencieusement sur la valeur par defaut, elle
- * fait echouer la construction du client. Un mauvais parametrage doit etre
- * bruyant, pas discret.
+ * Resout le flux Meta. Fail closed : une valeur inconnue ne retombe pas sur le
+ * defaut, elle fait echouer la construction du client. On ne devine jamais le
+ * mecanisme d'authentification.
  */
-export function resolveGraphOrigin(env) {
+export function resolveApiFlow(env) {
+  const configured = String(env?.INSTAGRAM_API_FLOW || '').trim().toLowerCase();
+  if (!configured) return DEFAULT_META_API_FLOW;
+  if (!Object.prototype.hasOwnProperty.call(META_FLOW_PROFILE, configured)) {
+    throw new MetaApiError(META_ERROR.INVALID_FLOW, {
+      detail: `flux Meta inconnu : valeurs acceptees ${Object.values(META_API_FLOW).join(', ')}`,
+    });
+  }
+  return configured;
+}
+
+/**
+ * Transport du credential. Il decoule du flux. Une surcharge explicite reste
+ * possible pour couvrir un cas documente par Meta, mais elle doit etre ecrite
+ * dans la configuration : jamais decouverte a l'execution, jamais modifiee
+ * apres un 401.
+ */
+export function resolveTokenTransport(env, flow = resolveApiFlow(env)) {
+  const override = String(env?.INSTAGRAM_TOKEN_TRANSPORT || '').trim().toLowerCase();
+  if (!override) return META_FLOW_PROFILE[flow].transport;
+  if (override !== 'header' && override !== 'query') {
+    throw new MetaApiError(META_ERROR.INVALID_FLOW, {
+      detail: 'transport du credential invalide : header ou query uniquement',
+    });
+  }
+  return override;
+}
+
+/**
+ * Resout l'origine Graph. Fail closed a deux titres : une origine non
+ * autorisee est refusee, et une origine autorisee mais incoherente avec le
+ * flux configure est refusee aussi. Une incoherence de configuration doit
+ * etre bruyante, pas discrete.
+ */
+export function resolveGraphOrigin(env, flow = resolveApiFlow(env)) {
+  const expected = META_FLOW_PROFILE[flow].origin;
   const configured = String(env?.INSTAGRAM_GRAPH_BASE || '').trim();
-  if (!configured) return DEFAULT_GRAPH_BASE;
+  if (!configured) return expected;
   if (!isAllowedMetaOrigin(configured)) {
     throw new MetaApiError(META_ERROR.INVALID_ENDPOINT, {
       detail: `origine Graph refusee : seuls ${META_ALLOWED_HOSTS.join(', ')} en https sans port sont autorises`,
     });
   }
-  return new URL(configured).origin;
+  const origin = new URL(configured).origin;
+  if (origin !== expected) {
+    throw new MetaApiError(META_ERROR.INVALID_ENDPOINT, {
+      detail: `origine Graph incoherente avec le flux ${flow} : ${expected} attendu`,
+    });
+  }
+  return origin;
 }
 
 /** Traduit un couple statut/charge utile Meta en erreur stable. */
@@ -195,35 +288,33 @@ export function createInstagramClient(env, options = {}) {
   const onEvent = typeof options.onEvent === 'function' ? options.onEvent : () => {};
 
   const version = sanitizeApiVersion(env?.INSTAGRAM_API_VERSION);
+
+  // Flux et transport sont figes ici, une fois pour toutes, avant tout appel.
+  const flow = resolveApiFlow(env);
+  const transport = resolveTokenTransport(env, flow);
+
   // Une origine de test ne peut venir QUE du code appelant (tests), jamais de
   // l'environnement, et jamais sans fetch injecte : la production ne peut donc
   // pas ouvrir cette porte par configuration.
   const testOrigin = options.testOrigin && options.fetchImpl && options.fetchImpl !== globalThis.fetch
     ? String(options.testOrigin)
     : '';
-  const base = testOrigin || resolveGraphOrigin(env);
+  const base = testOrigin || resolveGraphOrigin(env, flow);
   const token = String(env?.INSTAGRAM_ACCESS_TOKEN || '').trim();
   const userId = String(env?.INSTAGRAM_USER_ID || '').trim();
 
-  // Transport du credential. L'en-tete Authorization evite d'ecrire le token
-  // dans l'URL (donc dans les journaux serveur, les traces et les referrers).
-  // La documentation Meta n'ayant pas pu etre verifiee dans cet environnement,
-  // le transport n'est pas SUPPOSE : il est decouvert a l'execution. En cas de
-  // rejet d'authentification au tout premier appel, le client bascule une seule
-  // fois sur le parametre de requete et memorise le transport qui fonctionne.
   const state = {
     lastAppUsage: null,
     throttledUntil: 0,
     calls: 0,
-    transport: options.tokenTransport === 'query' ? 'query' : 'header',
-    transportConfirmed: options.tokenTransport === 'query',
+    writes: 0,
   };
 
   function requireConfigured() {
     if (!token || !userId) throw new MetaApiError(META_ERROR.NOT_CONFIGURED, { detail: 'INSTAGRAM_ACCESS_TOKEN ou INSTAGRAM_USER_ID absent' });
   }
 
-  function buildUrl(path, params, transport) {
+  function buildUrl(path, params, { withCredential }) {
     const clean = String(path || '').replace(/^\/+/, '');
     const url = new URL(`${base}/${version}/${clean}`);
     if (!isAllowedMetaOrigin(url.origin) && !testOrigin) {
@@ -233,12 +324,12 @@ export function createInstagramClient(env, options = {}) {
       if (value === undefined || value === null || value === '') continue;
       url.searchParams.set(key, String(value));
     }
-    if (transport === 'query') url.searchParams.set('access_token', token);
+    if (withCredential && transport === 'query') url.searchParams.set('access_token', token);
     return url;
   }
 
-  function buildHeaders(transport) {
-    const headers = { accept: 'application/json' };
+  function buildHeaders(extra = {}) {
+    const headers = { accept: 'application/json', ...extra };
     if (transport === 'header') headers.authorization = `Bearer ${token}`;
     return headers;
   }
@@ -248,18 +339,20 @@ export function createInstagramClient(env, options = {}) {
     return redactSecrets(String(path || '')).slice(0, 120);
   }
 
-  async function requestOnce(url, transport) {
+  async function requestOnce(url, { method = 'GET', body = null } = {}) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetchImpl(url.toString(), {
-        method: 'GET',
-        headers: buildHeaders(transport),
+      const init = {
+        method,
+        headers: buildHeaders(body ? { 'content-type': 'application/x-www-form-urlencoded' } : {}),
         // Jamais de suivi automatique : un 3xx pourrait renvoyer le credential
         // vers un hote non autorise. On refuse, on ne suit pas.
         redirect: 'manual',
         signal: controller.signal,
-      });
+      };
+      if (body) init.body = body;
+      const response = await fetchImpl(url.toString(), init);
       if (response.status >= 300 && response.status < 400) {
         const target = response.headers?.get?.('location') || '';
         throw new MetaApiError(META_ERROR.UNSAFE_REDIRECT, {
@@ -285,21 +378,20 @@ export function createInstagramClient(env, options = {}) {
     }
   }
 
-  /** Requete avec repli exponentiel borne sur les erreurs rejouables. */
+  /** Requete de lecture, avec repli exponentiel borne sur les erreurs rejouables. */
   async function request(path, params = {}) {
     requireConfigured();
     const label = safeLabel(path);
     let lastError = null;
-    let switched = false;
 
     for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
       const wait = state.throttledUntil - now();
       if (wait > 0) await sleep(Math.min(wait, MAX_BACKOFF_MS));
 
-      const url = buildUrl(path, params, state.transport);
+      const url = buildUrl(path, params, { withCredential: true });
       try {
         state.calls += 1;
-        const { response, payload } = await requestOnce(url, state.transport);
+        const { response, payload } = await requestOnce(url, { method: 'GET' });
         const usage = readAppUsage(response.headers);
         if (usage !== null) {
           state.lastAppUsage = usage;
@@ -307,23 +399,10 @@ export function createInstagramClient(env, options = {}) {
         }
 
         if (response.ok) {
-          state.transportConfirmed = true;
-          onEvent({ type: 'meta_call', path: label, attempt, status: response.status, app_usage: usage, transport: state.transport });
+          onEvent({ type: 'meta_call', path: label, attempt, status: response.status, app_usage: usage, flow, transport });
           return payload;
         }
         lastError = classifyMetaError(response.status, payload);
-
-        // Decouverte du transport : si le tout premier appel en en-tete est
-        // rejete pour authentification, on tente une seule fois le parametre
-        // de requete avant de conclure que le jeton est reellement invalide.
-        const authRejected = lastError.code === META_ERROR.UNAUTHORIZED
-          || lastError.code === META_ERROR.TOKEN_EXPIRED;
-        if (authRejected && !state.transportConfirmed && state.transport === 'header' && !switched) {
-          switched = true;
-          state.transport = 'query';
-          onEvent({ type: 'meta_transport_fallback', path: label, attempt });
-          continue;
-        }
       } catch (error) {
         lastError = error instanceof MetaApiError
           ? error
@@ -332,6 +411,68 @@ export function createInstagramClient(env, options = {}) {
 
       onEvent({ type: 'meta_error', path: label, attempt, code: lastError.code, retryable: lastError.retryable });
       if (!lastError.retryable || attempt === maxAttempts) break;
+      await sleep(backoffDelay(attempt, random));
+    }
+
+    throw lastError || new MetaApiError(META_ERROR.UNKNOWN, {});
+  }
+
+  /**
+   * Ecriture Meta (POST). Deux regles non negociables :
+   *   1. le credential ne circule jamais dans l'URL d'une ecriture : en flux
+   *      query il part dans le corps de formulaire ;
+   *   2. une ecriture n'est rejouee que si Meta l'a explicitement REJETEE sans
+   *      la traiter (quota). 5xx, timeout et panne reseau sont ambigus : on
+   *      remonte l'erreur, c'est a l'idempotence metier de decider.
+   */
+  async function mutate(path, fields = {}) {
+    requireConfigured();
+    const label = safeLabel(path);
+    const maxWriteAttempts = Number(options.maxWriteAttempts) > 0 ? Number(options.maxWriteAttempts) : 2;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxWriteAttempts; attempt += 1) {
+      const wait = state.throttledUntil - now();
+      if (wait > 0) await sleep(Math.min(wait, MAX_BACKOFF_MS));
+
+      const url = buildUrl(path, {}, { withCredential: false });
+      const form = new URLSearchParams();
+      for (const [key, value] of Object.entries(fields || {})) {
+        if (value === undefined || value === null || value === '') continue;
+        form.set(key, String(value));
+      }
+      if (transport === 'query') form.set('access_token', token);
+
+      try {
+        state.calls += 1;
+        state.writes += 1;
+        const { response, payload } = await requestOnce(url, { method: 'POST', body: form.toString() });
+        const usage = readAppUsage(response.headers);
+        if (usage !== null) {
+          state.lastAppUsage = usage;
+          if (usage >= APP_USAGE_PAUSE_THRESHOLD) state.throttledUntil = now() + MAX_BACKOFF_MS;
+        }
+        if (response.ok) {
+          onEvent({ type: 'meta_write', path: label, attempt, status: response.status, app_usage: usage, flow, transport });
+          return payload;
+        }
+        lastError = classifyMetaError(response.status, payload);
+      } catch (error) {
+        lastError = error instanceof MetaApiError
+          ? error
+          : new MetaApiError(META_ERROR.UNKNOWN, { detail: redactSecrets(error?.message || '') });
+      }
+
+      const replayable = WRITE_RETRYABLE.has(lastError.code);
+      onEvent({
+        type: 'meta_write_error',
+        path: label,
+        attempt,
+        code: lastError.code,
+        retryable: replayable,
+        ambiguous: lastError.retryable && !replayable,
+      });
+      if (!replayable || attempt === maxWriteAttempts) break;
       await sleep(backoffDelay(attempt, random));
     }
 
@@ -357,10 +498,11 @@ export function createInstagramClient(env, options = {}) {
 
   /**
    * Etat du jeton. Ne renvoie jamais le jeton, uniquement un diagnostic.
-   * `unknown` est un resultat legitime : on ne devine pas.
+   * `unknown` est un resultat legitime : on ne devine pas. Un 401 est une vraie
+   * erreur d'authentification, plus jamais un signal de mauvais transport.
    */
   async function checkTokenHealth() {
-    if (!token || !userId) return { status: 'not_configured', checked_at: new Date(now()).toISOString(), detail: '' };
+    if (!token || !userId) return { status: 'not_configured', checked_at: new Date(now()).toISOString(), detail: '', flow };
     try {
       const payload = await request(userId, { fields: 'id,username' });
       return {
@@ -368,6 +510,7 @@ export function createInstagramClient(env, options = {}) {
         checked_at: new Date(now()).toISOString(),
         username: String(payload?.username || ''),
         detail: '',
+        flow,
       };
     } catch (error) {
       const code = error instanceof MetaApiError ? error.code : META_ERROR.UNKNOWN;
@@ -384,17 +527,27 @@ export function createInstagramClient(env, options = {}) {
         checked_at: new Date(now()).toISOString(),
         detail: error instanceof MetaApiError ? error.detail : '',
         error_code: code,
+        flow,
       };
     }
   }
 
   return {
     version,
+    flow,
+    transport,
     isConfigured: () => Boolean(token && userId),
     request,
+    mutate,
     paginate,
     checkTokenHealth,
-    stats: () => ({ calls: state.calls, last_app_usage: state.lastAppUsage, transport: state.transport, transport_confirmed: state.transportConfirmed }),
+    stats: () => ({
+      calls: state.calls,
+      writes: state.writes,
+      last_app_usage: state.lastAppUsage,
+      flow,
+      transport,
+    }),
     graphOrigin: base,
   };
 }

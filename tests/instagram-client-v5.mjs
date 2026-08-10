@@ -14,7 +14,12 @@ import {
   isInstagramConfigured,
   readAppUsage,
   resolveGraphOrigin,
+  resolveApiFlow,
+  resolveTokenTransport,
   redactSecrets,
+  META_API_FLOW,
+  META_FLOW_PROFILE,
+  DEFAULT_META_API_FLOW,
 } from '../src/instagram-client-v5.js';
 
 const TOKEN = 'EAAtokentresecretquilnefautjamaisvoirdanslogs';
@@ -129,13 +134,12 @@ test('403 n est jamais rejoue', async () => {
   assert.equal(calls.length, 1, 'une erreur de permission ne doit pas etre rejouee');
 });
 
-test('401 : une seule bascule de transport, aucun rejeu ensuite', async () => {
+test('401 : erreur d authentification reelle, aucun rejeu, aucune bascule', async () => {
   const { client, calls, slept } = makeClient({ responses: [json(401, {})] });
   await assert.rejects(() => client.request('me'), (e) => e.code === META_ERROR.UNAUTHORIZED);
-  assert.equal(calls.length, 2, 'un essai en en-tete puis un essai en parametre, pas davantage');
-  assert.ok(calls[0].includes('access_token=') === false, 'le premier essai ne met pas le token dans l URL');
-  assert.ok(calls[1].includes('access_token='), 'le second essai bascule sur le parametre de requete');
-  assert.deepEqual(slept, [], 'une bascule de transport n est pas un rejeu : aucun repli');
+  assert.equal(calls.length, 1, 'un 401 est definitif : le transport ne se decouvre pas a l execution');
+  assert.ok(!calls[0].includes('access_token='), 'flux instagram_login : le token reste dans l en-tete');
+  assert.deepEqual(slept, [], 'aucune attente : rien n est rejoue');
 });
 
 test('timeout : classe en depassement et rejoue', async () => {
@@ -223,9 +227,18 @@ test('etat du jeton : indetermine plutot que devine', async () => {
   assert.equal(health.status, 'unknown', 'une panne serveur ne prouve pas que le jeton est invalide');
 });
 
-/* ---------------- Durcissement : transport du credential ---------------- */
+/* ---------------- Transport du credential : deterministe ---------------- */
 
-test('par defaut le token voyage en en-tete Authorization, pas dans l URL', async () => {
+test('flux par defaut : Instagram Login, en-tete Bearer, graph.instagram.com', () => {
+  assert.equal(DEFAULT_META_API_FLOW, META_API_FLOW.INSTAGRAM_LOGIN);
+  assert.equal(resolveApiFlow({}), META_API_FLOW.INSTAGRAM_LOGIN);
+  assert.equal(resolveTokenTransport({}), 'header');
+  assert.equal(resolveGraphOrigin({}), 'https://graph.instagram.com');
+  assert.equal(META_FLOW_PROFILE[META_API_FLOW.FACEBOOK_LOGIN].transport, 'query');
+  assert.equal(META_FLOW_PROFILE[META_API_FLOW.FACEBOOK_LOGIN].origin, 'https://graph.facebook.com');
+});
+
+test('flux Instagram Login : le token voyage en en-tete, jamais dans l URL', async () => {
   const captured = [];
   const client = createInstagramClient(ENV, {
     fetchImpl: async (url, init) => { captured.push({ url, init }); return json(200, { id: '1' }); },
@@ -237,36 +250,138 @@ test('par defaut le token voyage en en-tete Authorization, pas dans l URL', asyn
   assert.ok(!captured[0].url.includes(TOKEN), 'le token ne doit apparaitre nulle part dans l URL');
   assert.equal(captured[0].init.headers.authorization, `Bearer ${TOKEN}`);
   assert.equal(client.stats().transport, 'header');
-  assert.equal(client.stats().transport_confirmed, true);
+  assert.equal(client.stats().flow, META_API_FLOW.INSTAGRAM_LOGIN);
 });
 
-test('bascule vers le parametre de requete uniquement si l en-tete est rejete, puis memorisee', async () => {
-  let call = 0;
-  const urls = [];
-  const client = createInstagramClient(ENV, {
-    fetchImpl: async (url) => {
-      urls.push(url); call += 1;
-      if (call === 1) return json(401, metaError(190, 'jeton refuse'));
-      return json(200, { id: 'ok' });
-    },
+test('flux Facebook Login : le token voyage en parametre de requete, sans en-tete', async () => {
+  const captured = [];
+  const env = { ...ENV, INSTAGRAM_API_FLOW: 'facebook_login' };
+  const client = createInstagramClient(env, {
+    fetchImpl: async (url, init) => { captured.push({ url, init }); return json(200, { id: '1' }); },
     sleep: async () => {}, random: () => 0.5, now: () => 0,
   });
-  const payload = await client.request('me');
-  assert.equal(payload.id, 'ok');
+  await client.request('me');
+  assert.ok(captured[0].url.startsWith('https://graph.facebook.com/'), 'hote conforme au flux');
+  assert.ok(captured[0].url.includes('access_token='), 'flux documente avec access_token en query');
+  assert.equal(captured[0].init.headers.authorization, undefined, 'pas de double transport');
   assert.equal(client.stats().transport, 'query');
-  await client.request('me');
-  assert.ok(urls[2].includes('access_token='), 'le transport retenu doit etre reutilise');
 });
 
-test('transport confirme : plus aucune bascule ensuite', async () => {
-  let call = 0;
-  const client = createInstagramClient(ENV, {
-    fetchImpl: async () => { call += 1; return call === 1 ? json(200, { id: '1' }) : json(401, {}); },
+test('un 401 ne fait jamais changer de transport, quel que soit le flux', async () => {
+  for (const flow of [META_API_FLOW.INSTAGRAM_LOGIN, META_API_FLOW.FACEBOOK_LOGIN]) {
+    const urls = [];
+    const client = createInstagramClient({ ...ENV, INSTAGRAM_API_FLOW: flow }, {
+      fetchImpl: async (url) => { urls.push(url); return json(401, metaError(190, 'jeton refuse')); },
+      sleep: async () => {}, random: () => 0.5, now: () => 0,
+    });
+    await assert.rejects(() => client.request('me'), (e) => e.code === META_ERROR.TOKEN_EXPIRED);
+    assert.equal(urls.length, 1, `${flow} : un seul appel, aucune tentative d autre transport`);
+    const withToken = urls[0].includes('access_token=');
+    assert.equal(withToken, flow === META_API_FLOW.FACEBOOK_LOGIN, `${flow} : transport inchange`);
+    assert.equal(client.stats().transport, META_FLOW_PROFILE[flow].transport);
+  }
+});
+
+test('surcharge explicite du transport : possible par configuration, jamais par decouverte', async () => {
+  const captured = [];
+  const client = createInstagramClient({ ...ENV, INSTAGRAM_TOKEN_TRANSPORT: 'query' }, {
+    fetchImpl: async (url, init) => { captured.push({ url, init }); return json(200, { id: '1' }); },
     sleep: async () => {}, random: () => 0.5, now: () => 0,
   });
   await client.request('me');
-  await assert.rejects(() => client.request('me'), (e) => e.code === META_ERROR.UNAUTHORIZED);
-  assert.equal(call, 2, 'apres confirmation, un 401 est un vrai 401');
+  assert.ok(captured[0].url.includes('access_token='));
+  assert.equal(captured[0].init.headers.authorization, undefined);
+  assert.equal(resolveTokenTransport({ INSTAGRAM_TOKEN_TRANSPORT: 'header', INSTAGRAM_API_FLOW: 'facebook_login' }), 'header');
+});
+
+test('flux ou transport invalide : le client refuse de se construire', () => {
+  assert.throws(() => resolveApiFlow({ INSTAGRAM_API_FLOW: 'devine' }), (e) => e.code === META_ERROR.INVALID_FLOW);
+  assert.throws(() => resolveTokenTransport({ INSTAGRAM_TOKEN_TRANSPORT: 'cookie' }), (e) => e.code === META_ERROR.INVALID_FLOW);
+  assert.throws(
+    () => createInstagramClient({ ...ENV, INSTAGRAM_API_FLOW: 'auto' }, { fetchImpl: async () => json(200, {}) }),
+    (e) => e.code === META_ERROR.INVALID_FLOW,
+  );
+});
+
+test('hote incoherent avec le flux : refuse', () => {
+  assert.throws(
+    () => resolveGraphOrigin({ INSTAGRAM_GRAPH_BASE: 'https://graph.facebook.com' }, META_API_FLOW.INSTAGRAM_LOGIN),
+    (e) => e.code === META_ERROR.INVALID_ENDPOINT,
+  );
+  assert.equal(
+    resolveGraphOrigin({ INSTAGRAM_GRAPH_BASE: 'https://graph.facebook.com' }, META_API_FLOW.FACEBOOK_LOGIN),
+    'https://graph.facebook.com',
+  );
+});
+
+/* ---------------- Ecritures : aucun rejeu aveugle ---------------- */
+
+test('ecriture : le credential ne circule jamais dans l URL', async () => {
+  for (const flow of [META_API_FLOW.INSTAGRAM_LOGIN, META_API_FLOW.FACEBOOK_LOGIN]) {
+    const captured = [];
+    const client = createInstagramClient({ ...ENV, INSTAGRAM_API_FLOW: flow }, {
+      fetchImpl: async (url, init) => { captured.push({ url, init }); return json(200, { id: 'container_1' }); },
+      sleep: async () => {}, random: () => 0.5, now: () => 0,
+    });
+    const out = await client.mutate('17841400000000000/media', { caption: 'test' });
+    assert.equal(out.id, 'container_1');
+    assert.equal(captured[0].init.method, 'POST');
+    assert.ok(!captured[0].url.includes('access_token='), `${flow} : pas de token dans l URL d une ecriture`);
+    assert.ok(!captured[0].url.includes(TOKEN), `${flow} : pas de token dans l URL`);
+    assert.ok(captured[0].init.body.includes('caption=test'));
+    if (flow === META_API_FLOW.FACEBOOK_LOGIN) {
+      assert.ok(captured[0].init.body.includes('access_token='), 'flux query : credential dans le corps');
+    } else {
+      assert.equal(captured[0].init.headers.authorization, `Bearer ${TOKEN}`);
+      assert.ok(!captured[0].init.body.includes('access_token='));
+    }
+  }
+});
+
+test('ecriture : un 500 n est jamais rejoue (creation potentiellement aboutie)', async () => {
+  let calls = 0;
+  const client = createInstagramClient(ENV, {
+    fetchImpl: async () => { calls += 1; return json(500, metaError(1, 'boom')); },
+    sleep: async () => {}, random: () => 0.5, now: () => 0,
+  });
+  await assert.rejects(() => client.mutate('me/media', { caption: 'x' }), (e) => e.code === META_ERROR.SERVER_ERROR);
+  assert.equal(calls, 1, 'un POST ambigu ne doit jamais etre rejoue a l aveugle');
+});
+
+test('ecriture : un timeout et une panne reseau ne sont jamais rejoues', async () => {
+  for (const failure of [
+    () => { const e = new Error('aborted'); e.name = 'AbortError'; throw e; },
+    () => { throw new Error('connexion perdue'); },
+  ]) {
+    let calls = 0;
+    const client = createInstagramClient(ENV, {
+      fetchImpl: async () => { calls += 1; return failure(); },
+      sleep: async () => {}, random: () => 0.5, now: () => 0,
+    });
+    await assert.rejects(() => client.mutate('me/media', { caption: 'x' }));
+    assert.equal(calls, 1, 'aucun rejeu sur une ecriture au resultat inconnu');
+  }
+});
+
+test('ecriture : un 429 est rejouable car Meta a rejete sans traiter', async () => {
+  let calls = 0;
+  const client = createInstagramClient(ENV, {
+    fetchImpl: async () => { calls += 1; return calls === 1 ? json(429, metaError(4, 'quota')) : json(200, { id: 'ok' }); },
+    sleep: async () => {}, random: () => 0.5, now: () => 0,
+  });
+  const out = await client.mutate('me/media', { caption: 'x' });
+  assert.equal(out.id, 'ok');
+  assert.equal(calls, 2);
+});
+
+test('ecriture : un 401 est definitif', async () => {
+  let calls = 0;
+  const client = createInstagramClient(ENV, {
+    fetchImpl: async () => { calls += 1; return json(401, {}); },
+    sleep: async () => {}, random: () => 0.5, now: () => 0,
+  });
+  await assert.rejects(() => client.mutate('me/media', {}), (e) => e.code === META_ERROR.UNAUTHORIZED);
+  assert.equal(calls, 1);
 });
 
 /* ---------------- Durcissement : allowlist d hotes ---------------- */
@@ -276,7 +391,7 @@ test('hotes Meta officiels acceptes', () => {
   assert.equal(isAllowedMetaOrigin('https://graph.facebook.com'), true);
   assert.equal(isAllowedMetaOrigin('https://graph.instagram.com'), true);
   assert.equal(resolveGraphOrigin({ INSTAGRAM_GRAPH_BASE: 'https://graph.instagram.com' }), 'https://graph.instagram.com');
-  assert.equal(resolveGraphOrigin({}), 'https://graph.facebook.com');
+  assert.equal(resolveGraphOrigin({}), 'https://graph.instagram.com');
 });
 
 test('hote arbitraire refuse : fail closed, pas de repli silencieux', () => {
@@ -296,9 +411,9 @@ test('hote arbitraire refuse : fail closed, pas de repli silencieux', () => {
 });
 
 test('http en clair refuse', () => {
-  assert.equal(isAllowedMetaOrigin('http://graph.facebook.com'), false);
+  assert.equal(isAllowedMetaOrigin('http://graph.instagram.com'), false);
   assert.throws(
-    () => resolveGraphOrigin({ INSTAGRAM_GRAPH_BASE: 'http://graph.facebook.com' }),
+    () => resolveGraphOrigin({ INSTAGRAM_GRAPH_BASE: 'http://graph.instagram.com' }),
     (e) => e.code === META_ERROR.INVALID_ENDPOINT,
   );
 });
@@ -317,7 +432,7 @@ test('une origine de test ne peut pas etre ouverte par l environnement', () => {
   // testOrigin exige un fetch injecte : la production, qui utilise le fetch
   // global, ne peut pas l activer, meme si la variable existait.
   const production = createInstagramClient(ENV, { testOrigin: 'https://localhost:9999' });
-  assert.equal(production.graphOrigin, 'https://graph.facebook.com');
+  assert.equal(production.graphOrigin, 'https://graph.instagram.com');
   const underTest = createInstagramClient(ENV, {
     testOrigin: 'https://localhost:9999',
     fetchImpl: async () => json(200, {}),
