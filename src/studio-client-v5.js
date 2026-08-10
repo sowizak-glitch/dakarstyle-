@@ -419,7 +419,10 @@ export const STUDIO_CLIENT_JS = `'use strict';
 
     message('', 'neutral');
     state.media = null;
-    setDefaultFormatForKind(spec.kind);
+    // Un nouveau fichier choisit d abord son format naturel. L operateur peut
+    // ensuite basculer volontairement en Story. Cela evite qu un ancien choix
+    // Story masque le type reel du nouveau fichier.
+    setFormatForKind(spec.kind);
     renderMediaPreview(file);
 
     state.uploading = true;
@@ -431,7 +434,7 @@ export const STUDIO_CLIENT_JS = `'use strict';
 
     upload(file).then(function (data) {
       state.media = data.media;
-      setDefaultFormatForKind(state.media && state.media.kind);
+      setFormatForKind(state.media && state.media.kind);
       state.uploading = false;
       show(nodes.progress, false);
       mediaState('Media pret', 'good');
@@ -610,7 +613,11 @@ export const STUDIO_CLIENT_JS = `'use strict';
 
   function bind() {
     if (nodes.file) nodes.file.addEventListener('change', function () {
-      handleFile(nodes.file.files && nodes.file.files[0]);
+      var selected = nodes.file.files && nodes.file.files[0];
+      // Le champ natif garde le dernier nom de fichier. Le vider apres avoir
+      // capture le File permet de reprendre exactement la meme photo si besoin.
+      if (selected) handleFile(selected);
+      nodes.file.value = '';
     });
     if (nodes.replace) nodes.replace.addEventListener('click', function () {
       if (nodes.file) nodes.file.click();
