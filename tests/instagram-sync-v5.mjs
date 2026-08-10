@@ -6,9 +6,9 @@
 import assert from 'node:assert/strict';
 import { META_ERROR, MetaApiError } from '../src/instagram-client-v5.js';
 import {
-  ACCOUNT_KEY, ERROR_EVENTS_KEY, MEDIA_KEY, SYNC_RUNS_KEY, SYNC_STATE_KEY,
-  engagementRate, extractHook, measured, normalizeMediaRecord,
-  readMediaRecords, runIncrementalSync,
+  ACCOUNT_HISTORY_KEY, ACCOUNT_KEY, ERROR_EVENTS_KEY, MEDIA_KEY, SYNC_RUNS_KEY, SYNC_STATE_KEY,
+  appendAccountHistory, engagementRate, extractHook, measured, normalizeMediaRecord,
+  readAccountHistory, readMediaRecords, runIncrementalSync,
 } from '../src/instagram-sync-v5.js';
 
 const cases = [];
@@ -226,6 +226,47 @@ test('aucun media : synchronisation reussie et vide, sans invention', async () =
   assert.equal(run.created, 0);
   assert.deepEqual(await readMediaRecords(env), []);
   assert.equal(env.VISUALS_BUCKET.json(SYNC_STATE_KEY).known_media_count, 0);
+});
+
+/* ---------------- Historique de compte : base de la croissance ---------------- */
+
+test('historique : un releve d abonnes est ajoute a chaque synchronisation', async () => {
+  const env = makeEnv();
+  const client = makeClient({ items: [media('A', '2026-06-01T10:00:00+0000')] });
+  await runIncrementalSync(env, client, { now: () => Date.parse('2026-06-01T12:00:00Z') });
+  const history = env.VISUALS_BUCKET.json(ACCOUNT_HISTORY_KEY);
+  assert.equal(history.length, 1);
+  assert.equal(history[0].followers_count, 1200);
+});
+
+test('historique : un seul releve par jour, mais les jours s accumulent', async () => {
+  const env = makeEnv();
+  await appendAccountHistory(env, { at: '2026-06-01T08:00:00.000Z', followers_count: 1000 });
+  await appendAccountHistory(env, { at: '2026-06-01T20:00:00.000Z', followers_count: 1010 });
+  await appendAccountHistory(env, { at: '2026-06-02T08:00:00.000Z', followers_count: 1050 });
+  const history = await readAccountHistory(env);
+  assert.equal(history.length, 2, 'un point par jour');
+  assert.equal(history[0].followers_count, 1010, 'le releve le plus recent du jour est conserve');
+  assert.equal(history[1].followers_count, 1050);
+});
+
+test('historique : un nombre d abonnes absent n est jamais enregistre comme zero', async () => {
+  const env = makeEnv();
+  await appendAccountHistory(env, { at: '2026-06-01T08:00:00.000Z', followers_count: null });
+  assert.deepEqual(await readAccountHistory(env), []);
+});
+
+test('duree vue moyenne d un Reel : collectee telle quelle, absente sinon', async () => {
+  const env = makeEnv();
+  const client = makeClient({
+    items: [media('R1', '2026-06-01T10:00:00+0000', { media_type: 'VIDEO', media_product_type: 'REELS' })],
+    insights: { R1: { reach: 500, ig_reels_avg_watch_time: 4200 } },
+  });
+  await runIncrementalSync(env, client, { now: () => Date.parse('2026-06-01T12:00:00Z') });
+  const [record] = env.VISUALS_BUCKET.json(MEDIA_KEY);
+  assert.equal(record.format, 'REEL');
+  assert.equal(record.avg_watch_time_ms, 4200);
+  assert.equal(record.video_duration_ms, null, 'Meta ne fournit pas la duree totale : elle reste null');
 });
 
 let failures = 0;
