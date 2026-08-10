@@ -9,7 +9,7 @@ import { META_ERROR, MetaApiError } from '../src/instagram-client-v5.js';
 import { MEDIA_KEY_PREFIX, readIdempotencyRecord } from '../src/security-v5.js';
 import {
   PUBLISH_ERROR, PUBLISH_STAGE, PUBLISH_STATUS,
-  containerFieldsFor, mediaUrlFor, publishDraft, waitForContainer,
+  containerFieldsFor, mediaUrlFor, publishDraft, requiresContainerProcessing, waitForContainer,
 } from '../src/publishing-v5.js';
 import {
   STUDIO_STATE, approveDraft, beginPublishing, createDraft, markFailed, markPublished, markReady,
@@ -58,6 +58,20 @@ function readyDraft(overrides = {}) {
   return markReady(approveDraft(draft, { now: NOW }), { now: NOW });
 }
 
+function readyVideoDraft(overrides = {}) {
+  return readyDraft({
+    format: 'REEL',
+    media: {
+      r2_key: `${MEDIA_KEY_PREFIX}2026/07/visuel.mp4`,
+      content_type: 'video/mp4',
+      size_bytes: 900000,
+      filename: 'visuel.mp4',
+      kind: 'VIDEO',
+    },
+    ...overrides,
+  });
+}
+
 /**
  * Client Meta double. `script` decrit ce que fait chaque etape.
  * Chaque appel est enregistre pour verifier qu aucune etape n est rejouee.
@@ -104,6 +118,13 @@ test('URL de media : https obligatoire, base configuree obligatoire', () => {
     assert.throws(() => mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: base }, 'a.jpg'), (e) => e.code === PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED, base);
   }
   assert.throws(() => mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: 'https://x.com' }, ''), (e) => e.code === PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED);
+});
+
+test('seules les videos exigent un polling de traitement Meta', () => {
+  assert.equal(requiresContainerProcessing(readyDraft()), false);
+  assert.equal(requiresContainerProcessing(readyDraft({ format: 'STORY' })), false);
+  assert.equal(requiresContainerProcessing(readyVideoDraft()), true);
+  assert.equal(requiresContainerProcessing(readyVideoDraft({ format: 'STORY' })), true);
 });
 
 test('champs du conteneur selon le format reel', () => {
@@ -157,11 +178,25 @@ test('publication reussie : les quatre etapes, dans l ordre, une seule fois', as
   const kinds = client.calls.map((c) => `${c.kind} ${c.path}`);
   assert.deepEqual(kinds, [
     `POST ${USER}/media`,
-    'GET CONTAINER-1',
     `POST ${USER}/media_publish`,
     'GET 17999',
   ]);
+  assert.equal(client.calls.some((c) => c.kind === 'GET' && c.path === 'CONTAINER-1'), false, 'une photo ne doit pas attendre status_code');
   assert.equal(client.calls.filter((c) => c.path.endsWith('media_publish')).length, 1, 'une seule publication');
+});
+
+test('Reel video : attend FINISHED avant media_publish', async () => {
+  const env = makeEnv();
+  const client = makeClient({ statusSequence: ['IN_PROGRESS', 'FINISHED'] });
+  const result = await publishDraft(env, client, readyVideoDraft(), { ...noSleep, now: () => NOW });
+  assert.equal(result.status, PUBLISH_STATUS.PUBLISHED);
+  const kinds = client.calls.map((c) => `${c.kind} ${c.path}`);
+  assert.deepEqual(kinds.slice(0, 4), [
+    `POST ${USER}/media`,
+    'GET CONTAINER-1',
+    'GET CONTAINER-1',
+    `POST ${USER}/media_publish`,
+  ]);
 });
 
 test('Story image : conteneur STORIES et confirmation adaptee', async () => {
@@ -178,7 +213,7 @@ test('Story image : conteneur STORIES et confirmation adaptee', async () => {
 test('HTTP 200 a la creation du conteneur ne vaut pas publication', async () => {
   const env = makeEnv();
   const client = makeClient({ statusSequence: ['ERROR'] });
-  const result = await publishDraft(env, client, readyDraft(), { ...noSleep, now: () => NOW });
+  const result = await publishDraft(env, client, readyVideoDraft(), { ...noSleep, now: () => NOW });
   assert.equal(result.status, PUBLISH_STATUS.FAILED);
   assert.equal(result.stage, PUBLISH_STAGE.PROCESSING);
   assert.equal(result.instagram_media_id, undefined, 'aucun identifiant : rien n a ete publie');

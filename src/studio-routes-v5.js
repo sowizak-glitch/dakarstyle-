@@ -194,9 +194,14 @@ async function handleDraftAction(action, draft, request, env, context) {
     });
     const { draft: stored, ...report } = outcome;
     const published = report.outcome === 'published' || report.outcome === 'already_published';
+    const failureView = published ? {} : {
+      error: report.reason || 'publish_failed',
+      detail: String(report.detail || '').slice(0, 300),
+      requires_manual_check: Boolean(report.requires_manual_check),
+    };
     return {
       status: published ? 200 : 502,
-      body: { ok: published, result: report, ...draftView(stored) },
+      body: { ok: published, ...failureView, result: report, ...draftView(stored) },
     };
   }
 
