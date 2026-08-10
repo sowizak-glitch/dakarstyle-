@@ -194,7 +194,7 @@ export const STUDIO_CLIENT_JS = `'use strict';
   function publicMediaPath(media) {
     var key = String(media && media.r2_key || '');
     var prefix = 'visuals/social-intelligence/v5/media/';
-    if (key.indexOf(prefix) !== 0 || key.indexOf('..') !== -1 || key.indexOf('\\') !== -1 || key.indexOf('//') !== -1) return '';
+    if (key.indexOf(prefix) !== 0 || key.indexOf('..') !== -1 || key.indexOf('\\\\') !== -1 || key.indexOf('//') !== -1) return '';
     return '/' + key.split('/').map(encodeURIComponent).join('/');
   }
 
