@@ -4,6 +4,8 @@
  */
 
 import assert from 'node:assert/strict';
+import { STUDIO_CLIENT_ROUTE, STUDIO_CSS, STUDIO_ROUTE, renderStudioDocument } from '../src/studio-ui-v5.js';
+import { STUDIO_CLIENT_JS } from '../src/studio-client-v5.js';
 import { readFileSync } from 'node:fs';
 import {
   COCKPIT_CSS, UI_STATE, deriveState, displayValue, renderBadge,
@@ -186,6 +188,219 @@ test('renderValue produit une paire libelle/valeur echappee', () => {
   const html = renderValue('Compte & statut', '<b>x</b>');
   assert.ok(html.includes('Compte &amp; statut'));
   assert.ok(html.includes('&lt;b&gt;x&lt;/b&gt;'));
+});
+
+/* ---------------- Ecran Publier : structure ---------------- */
+
+test('le Studio reutilise les tokens V4 et n en redefinit aucun', () => {
+  const document = renderStudioDocument();
+  assert.ok(document.includes(DESIGN_TOKENS), 'les tokens V4 doivent etre inclus tels quels');
+  for (const token of ['--gold', '--panel', '--txt', '--danger', '--muted']) {
+    assert.ok(!new RegExp(`${token}\\s*:`).test(STUDIO_CSS), `le CSS du Studio ne doit pas redefinir ${token}`);
+    assert.ok(STUDIO_CSS.includes(`var(${token})`), `le CSS du Studio doit consommer ${token}`);
+  }
+});
+
+test('le parcours attendu est present, dans l ordre', () => {
+  const full = renderStudioDocument();
+  // Seul le corps compte : la feuille de style contient les memes mots.
+  const document = full.slice(full.indexOf('<body'));
+  const steps = [
+    'Ajouter une photo ou une video',
+    'Format',
+    'Legende',
+    'Hashtags',
+    'Apercu Instagram',
+    'Publier maintenant',
+  ];
+  let cursor = -1;
+  for (const step of steps) {
+    const at = document.indexOf(step);
+    assert.ok(at > cursor, `etape hors sequence ou absente : ${step}`);
+    cursor = at;
+  }
+});
+
+test('le selecteur de fichier accepte exactement les formats supportes', () => {
+  const document = renderStudioDocument();
+  assert.ok(document.includes('type="file"'));
+  assert.ok(document.includes('accept="image/jpeg,image/png,video/mp4"'));
+  assert.equal(/type="url"/i.test(document), false, 'aucun champ URL');
+  assert.equal(/coller.{0,20}(lien|url)/i.test(document), false, 'aucune invitation a coller une URL');
+});
+
+test('aucune notion technique n apparait a l ecran', () => {
+  const document = renderStudioDocument();
+  for (const word of ['r2_key', 'R2', 'bucket', 'SOWHAT_MEDIA_PUBLIC_BASE', 'media_url', 'JSON', 'API Meta', 'container']) {
+    assert.equal(document.includes(word), false, `« ${word} » ne doit jamais etre montre a l operateur`);
+  }
+});
+
+test('les trois actions existent, avec une hierarchie visuelle explicite', () => {
+  const document = renderStudioDocument();
+  assert.ok(document.includes('Enregistrer le brouillon'));
+  assert.ok(document.includes('Programmer'));
+  assert.ok(document.includes('Publier maintenant'));
+  const publish = document.slice(document.indexOf('id="st-publish"') - 120, document.indexOf('id="st-publish"') + 40);
+  assert.ok(publish.includes('data-variant="primary"'), 'Publier maintenant est l action principale');
+  assert.ok(publish.includes('disabled'), 'elle est fermee tant que rien n est pret');
+});
+
+test('les compteurs de legende et de hashtags sont affiches', () => {
+  const document = renderStudioDocument();
+  assert.ok(document.includes('/ 2200'));
+  assert.ok(document.includes('/ 30'));
+  assert.ok(document.includes('maxlength="2200"'));
+});
+
+test('l apercu Instagram distingue la photo carree du Reel vertical', () => {
+  assert.ok(/\.st-ig-media\{[^}]*aspect-ratio:1\/1/.test(STUDIO_CSS), 'photo carree');
+  assert.ok(/\[data-format="REEL"\] \.st-ig-media\{aspect-ratio:9\/16\}/.test(STUDIO_CSS), 'Reel vertical');
+  assert.ok(renderStudioDocument().includes('data-format="IMAGE"'));
+});
+
+/* ---------------- Ecran Publier : securite du rendu ---------------- */
+
+test('aucun evenement en ligne, aucun style en ligne, aucun script inline', () => {
+  const document = renderStudioDocument({ prefill: { caption: 'test' } });
+  assert.equal(/\son(click|change|error|load|submit|input)\s*=/i.test(document), false);
+  assert.equal(/<[a-z]+[^>]*\sstyle\s*=/i.test(document), false, 'aucun style en ligne');
+  assert.equal(/<script(?![^>]*(src=|type="application\/json"))/i.test(document), false, 'aucun script executable inline');
+  assert.ok(document.includes(`src="${STUDIO_CLIENT_ROUTE}"`), 'le comportement vit dans un fichier a part');
+});
+
+test('le preremplissage ne peut pas s echapper de sa balise', () => {
+  const document = renderStudioDocument({
+    prefill: { caption: '</script><img src=x onerror=alert(1)>', cta: '"><script>alert(2)</script>' },
+    draftId: '"><script>alert(3)</script>',
+  });
+  assert.equal(document.includes('</script><img'), false, 'la balise ne doit pas pouvoir etre fermee');
+  assert.equal(/<img[^>]*onerror/i.test(document), false);
+  assert.equal(document.includes('<script>alert('), false);
+  assert.ok(document.includes('\\u003c'), 'les chevrons du preremplissage sont neutralises');
+});
+
+test('la page n est pas indexable et declare son echelle mobile', () => {
+  const document = renderStudioDocument();
+  assert.ok(document.includes('noindex,nofollow,noarchive'));
+  assert.ok(document.includes('viewport-fit=cover'));
+  assert.ok(document.includes('width=device-width,initial-scale=1'));
+  assert.equal(/maximum-scale|user-scalable=no/.test(document), false, 'le zoom ne doit jamais etre bloque');
+});
+
+/* ---------------- Ecran Publier : responsive ---------------- */
+
+test('toutes les cibles tactiles du Studio tiennent 44 px', () => {
+  for (const rule of ['.st-btn', '.st-back', '.st-input,.st-textarea,.st-select', '.st-optional summary']) {
+    const pattern = new RegExp(`${rule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\{[^}]*min-height:(4[4-9]|[5-9]\\d)px`);
+    assert.ok(pattern.test(STUDIO_CSS), `cible tactile trop petite : ${rule}`);
+  }
+  assert.ok(/\.st-btn\{[^}]*min-width:44px/.test(STUDIO_CSS));
+});
+
+test('marges de securite prises en compte sur les quatre bords utiles', () => {
+  for (const inset of ['safe-area-inset-top', 'safe-area-inset-bottom', 'safe-area-inset-left', 'safe-area-inset-right']) {
+    assert.ok(STUDIO_CSS.includes(`env(${inset})`), `marge de securite absente : ${inset}`);
+  }
+  assert.ok(/\.st-actions\{[^}]*padding-bottom:calc\(10px \+ env\(safe-area-inset-bottom\)\)/.test(STUDIO_CSS),
+    'la barre d actions doit rester au-dessus de la barre systeme');
+});
+
+test('aucun debordement horizontal, quelle que soit la longueur du contenu', () => {
+  assert.ok(/\.st-page\{[^}]*overflow-x:hidden/.test(STUDIO_CSS));
+  assert.ok(/\.st-page\{[^}]*max-width:100%/.test(STUDIO_CSS));
+  assert.ok(STUDIO_CSS.includes('overflow-wrap:anywhere'), 'une legende sans espace ne doit pas elargir la page');
+  assert.ok(STUDIO_CSS.includes('word-break:break-word'));
+  assert.ok(STUDIO_CSS.includes('min-width:0'), 'les grilles doivent pouvoir se retrecir');
+  assert.ok(/\.st-page img,\.st-page video\{max-width:100%/.test(STUDIO_CSS));
+});
+
+test('grille fluide de 360 a 1280 px, sans point de rupture inutile', () => {
+  for (const breakpoint of ['412px', '768px', '1280px']) {
+    assert.ok(STUDIO_CSS.includes(`@media(min-width:${breakpoint})`), `point de rupture manquant : ${breakpoint}`);
+  }
+  // 360, 390 et 430 px sont couverts par la mise en page de base : une seule
+  // colonne fluide, sans largeur fixe.
+  // Les bornes `min-width` (points de rupture) et `max-width` (confort de
+  // lecture) sont legitimes ; une largeur fixe ne l est jamais.
+  assert.equal(/[^-]width:\s*\d{3,}px/.test(STUDIO_CSS), false, 'aucune largeur fixe en pixels');
+});
+
+test('mouvement reduit respecte et focus toujours visible', () => {
+  assert.ok(STUDIO_CSS.includes('@media(prefers-reduced-motion:reduce)'));
+  assert.ok(STUDIO_CSS.includes(':focus-visible'));
+  assert.ok(STUDIO_CSS.includes('touch-action:manipulation'), 'pas de double-tap zoom sur les boutons');
+});
+
+test('la saisie ne declenche pas le zoom automatique sur mobile', () => {
+  assert.ok(/\.st-input,\.st-textarea,\.st-select\{[^}]*font-size:16px/.test(STUDIO_CSS),
+    'un champ sous 16 px provoque un zoom force sur iOS et un rendu tasse sur Android');
+});
+
+/* ---------------- Comportement client ---------------- */
+
+test('le script client n execute aucun code construit dynamiquement', () => {
+  assert.equal(/\beval\s*\(/.test(STUDIO_CLIENT_JS), false);
+  assert.equal(/new Function\s*\(/.test(STUDIO_CLIENT_JS), false);
+  assert.equal(/innerHTML|outerHTML|insertAdjacentHTML|document\.write/.test(STUDIO_CLIENT_JS), false,
+    'le DOM est construit, jamais ecrit en HTML');
+  assert.ok(STUDIO_CLIENT_JS.includes('textContent'), 'les donnees passent par textContent');
+});
+
+test('le script client ne parle qu a sa propre origine', () => {
+  assert.equal(/https?:\/\//.test(STUDIO_CLIENT_JS), false, 'aucune origine externe');
+  assert.ok(STUDIO_CLIENT_JS.includes("var API = '/api/social-intelligence/v5/'"), 'chemins relatifs uniquement');
+  assert.ok(STUDIO_CLIENT_JS.includes("credentials: 'same-origin'"));
+  assert.ok(STUDIO_CLIENT_JS.includes("x-sowhat-csrf"), 'toute ecriture porte le jeton CSRF');
+});
+
+test('chaque erreur technique connue a une traduction lisible', () => {
+  const codes = [
+    'media_invalid', 'media_too_large', 'media_signature_mismatch', 'media_storage_failed',
+    'csrf_invalid', 'csrf_expired', 'unauthorized',
+    'meta_not_configured', 'meta_token_expired',
+    'safe_gate_closed', 'publish_media_url_not_configured',
+    'studio_schedule_in_past', 'studio_validation_failed', 'network',
+  ];
+  for (const code of codes) {
+    assert.ok(new RegExp(`${code}:\\s*'`).test(STUDIO_CLIENT_JS), `code sans traduction : ${code}`);
+  }
+  assert.ok(STUDIO_CLIENT_JS.includes('La session a expire. Rechargez la page.'));
+  assert.ok(STUDIO_CLIENT_JS.includes('Instagram n est pas encore connecte.'));
+  assert.ok(STUDIO_CLIENT_JS.includes('Le stockage media n est pas encore configure pour la publication.'));
+  assert.ok(STUDIO_CLIENT_JS.includes('La connexion Instagram doit etre renouvelee.'));
+});
+
+test('aucun code technique ni trace d exception n atteint l ecran', () => {
+  assert.equal(/\.stack\b/.test(STUDIO_CLIENT_JS), false, 'aucune pile d appel affichee');
+  // Les messages affiches passent tous par humanError, qui retombe sur une
+  // phrase generique plutot que sur un code brut.
+  assert.ok(STUDIO_CLIENT_JS.includes('function humanError'));
+  assert.ok(STUDIO_CLIENT_JS.includes('return MESSAGES.unknown'));
+});
+
+test('publier est impossible tant que le media n est pas pret', () => {
+  assert.ok(STUDIO_CLIENT_JS.includes('Boolean(state.media)'));
+  assert.ok(STUDIO_CLIENT_JS.includes('!state.uploading'));
+  assert.ok(STUDIO_CLIENT_JS.includes('!state.busy'), 'un second clic ne peut pas partir pendant le premier');
+  assert.ok(STUDIO_CLIENT_JS.includes('nodes.publish.disabled = !ready'));
+});
+
+test('l apercu du fichier reste local tant qu il n est pas envoye', () => {
+  assert.ok(STUDIO_CLIENT_JS.includes('URL.createObjectURL'));
+  assert.ok(STUDIO_CLIENT_JS.includes('URL.revokeObjectURL'), 'la memoire est rendue au navigateur');
+});
+
+test('la progression affichee est mesuree, jamais simulee', () => {
+  assert.ok(STUDIO_CLIENT_JS.includes('request.upload.onprogress'));
+  assert.ok(STUDIO_CLIENT_JS.includes('event.lengthComputable'));
+  assert.equal(/setInterval|setTimeout\s*\([^)]*progress/i.test(STUDIO_CLIENT_JS), false,
+    'aucune barre qui avance toute seule');
+});
+
+test('le chemin du script et celui de l ecran sont coherents', () => {
+  assert.equal(STUDIO_ROUTE, '/social-intelligence/v5/studio');
+  assert.equal(STUDIO_CLIENT_ROUTE, '/social-intelligence/v5/studio/app.js');
 });
 
 /* ---------------- Execution ---------------- */

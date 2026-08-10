@@ -258,7 +258,7 @@ export const STUDIO_CSS = `
 }
 @media(min-width:1280px){
   .st-main{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);align-items:start}
-  .st-col-preview{position:sticky;top:84px}
+  .st-col-preview{position:sticky;top:84px;display:grid;gap:16px;align-content:start}
 }
 @media(prefers-reduced-motion:reduce){
   .st-page *{animation:none!important;transition:none!important}
@@ -381,7 +381,7 @@ function scheduleCard() {
 }
 
 function previewCard() {
-  return `<section class="st-card st-col-preview">
+  return `<section class="st-card">
     <h2><span class="st-step" aria-hidden="true">4</span>Apercu Instagram</h2>
     <p class="st-hint">Voila exactement ce qui sera publie.</p>
     <div class="st-preview">
@@ -453,9 +453,11 @@ export function renderStudioDocument(options = {}) {
     ${mediaCard()}
     ${formatCard()}
     ${textCard()}
+  </div>
+  <div class="st-col-preview">
+    ${previewCard()}
     ${scheduleCard()}
   </div>
-  ${previewCard()}
 </main>
 
 ${actionsBar()}
