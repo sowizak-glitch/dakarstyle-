@@ -167,12 +167,12 @@ export const STUDIO_CSS = `
 .st-two{display:grid;gap:12px}
 
 /* --- Choix du format --- */
-.st-formats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.st-formats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .st-format{position:relative;min-width:0}
 .st-format input{position:absolute;opacity:0;width:1px;height:1px}
 .st-format span{
   display:grid;gap:2px;min-height:64px;align-content:center;
-  padding:10px 14px;border-radius:14px;
+  padding:10px 8px;border-radius:14px;
   border:1px solid var(--line2);background:var(--panel2);
   color:var(--soft);font-size:14px;cursor:pointer;
 }
@@ -197,7 +197,7 @@ export const STUDIO_CSS = `
   background:#000;display:grid;place-items:center;
   aspect-ratio:1/1;overflow:hidden;
 }
-.st-ig[data-format="REEL"] .st-ig-media{aspect-ratio:9/16}
+.st-ig[data-format="REEL"] .st-ig-media,.st-ig[data-format="STORY"] .st-ig-media{aspect-ratio:9/16}
 .st-ig-media img,.st-ig-media video{width:100%;height:100%;object-fit:cover}
 .st-ig-empty{color:var(--muted);font-size:13px;padding:24px;text-align:center}
 .st-ig-icons{display:flex;gap:14px;padding:10px 12px 4px;color:var(--soft);font-size:18px}
@@ -309,7 +309,7 @@ function mediaCard() {
 function formatCard() {
   return `<section class="st-card">
     <h2><span class="st-step" aria-hidden="true">2</span>Format</h2>
-    <p class="st-hint">Le format doit correspondre a votre fichier : une photo pour une publication classique, une video pour un Reel.</p>
+    <p class="st-hint">Choisissez Photo, Reel ou Story. Une Story accepte une photo ou une video et utilise un apercu vertical 9:16.</p>
     <div class="st-formats" role="radiogroup" aria-label="Format de publication">
       <label class="st-format">
         <input type="radio" name="st-format" value="IMAGE" id="st-format-image" checked>
@@ -317,7 +317,11 @@ function formatCard() {
       </label>
       <label class="st-format">
         <input type="radio" name="st-format" value="REEL" id="st-format-reel">
-        <span>Reel / Video<small>Format vertical</small></span>
+        <span>Reel<small>Video verticale</small></span>
+      </label>
+      <label class="st-format">
+        <input type="radio" name="st-format" value="STORY" id="st-format-story">
+        <span>Story<small>Photo ou video 9:16</small></span>
       </label>
     </div>
   </section>`;
