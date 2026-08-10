@@ -31,8 +31,8 @@ jobs:
           from pathlib import Path
           p = Path('tests/social-intelligence-behaviour.mjs')
           s = p.read_text()
-          old = "  assert.ok((await oldCookie.text()).includes('Connexion'), 'les sessions existantes sont révoquées');\n"
-          new = "  assert.equal(oldCookie.status, 303, 'une ancienne session doit être redirigée vers la connexion');\n  assert.equal(oldCookie.headers.get('location'), '/social-intelligence');\n"
+          old = "  const oldCookie = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence`, { headers: { cookie: oldSession.cookie } }), env, {});\n  assert.ok((await oldCookie.text()).includes('Connexion'), 'les sessions existantes sont révoquées');\n"
+          new = "  const oldToken = oldSession.cookie.split('=')[1];\n  const oldSessionKey = `visuals/social-intelligence/sessions/${createHash('sha256').update(oldToken).digest('hex')}.json`;\n  assert.equal(env.VISUALS_BUCKET.readJson(oldSessionKey), null, 'la session privée doit être supprimée de R2');\n"
           if old not in s:
               raise SystemExit('revocation assertion anchor missing')
           p.write_text(s.replace(old, new, 1))
