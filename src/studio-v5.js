@@ -54,7 +54,7 @@ export const ALLOWED_TRANSITIONS = Object.freeze({
 export const MAX_CAPTION_LENGTH = 2200;
 export const MAX_HASHTAGS = 30;
 
-const CONTROL_CHARS = new RegExp('[\\u0000-\\u001F\\u007F]', 'g');
+const CONTROL_CHARS = new RegExp('[\\u0000-\\u0009\\u000B-\\u001F\\u007F]', 'g');
 
 function studioError(code, detail, extra = {}) {
   const error = new Error(code);
@@ -64,14 +64,33 @@ function studioError(code, detail, extra = {}) {
   return error;
 }
 
+/**
+ * Nettoyage d une legende. Les sauts de ligne sont PRESERVES : une legende
+ * Instagram est un texte multiligne, et les ecraser changerait ce que
+ * l operateur a ecrit. Tous les autres caracteres de controle sont retires.
+ */
 function cleanText(value, max) {
-  return String(value ?? '').replace(CONTROL_CHARS, ' ').replace(/[ \t]+/g, ' ').trim().slice(0, max);
+  return String(value ?? '')
+    .replace(/\r\n?/g, '\n')
+    .replace(CONTROL_CHARS, ' ')
+    .replace(/[ \t]+/g, ' ')
+    .split('\n')
+    .map((line) => line.trim())
+    .join('\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .slice(0, max);
+}
+
+/** Champ court : une seule ligne, quoi qu il arrive. */
+function cleanLine(value, max) {
+  return cleanText(value, max).replace(/\n+/g, ' ').replace(/[ ]+/g, ' ').trim();
 }
 
 export function normalizeHashtags(value) {
   const list = Array.isArray(value) ? value : String(value ?? '').split(/[\s,]+/);
   const cleaned = list
-    .map((tag) => cleanText(tag, 60).toLowerCase())
+    .map((tag) => cleanLine(tag, 60).toLowerCase())
     .filter(Boolean)
     .map((tag) => (tag.startsWith('#') ? tag : `#${tag}`))
     .filter((tag) => /^#[\p{L}\p{N}_]{2,40}$/u.test(tag));
@@ -84,7 +103,7 @@ export function normalizeHashtags(value) {
 
 export function newDraftId(now = Date.now(), suffix = '') {
   const stamp = new Date(now).toISOString().replace(/[-:.TZ]/g, '').slice(0, 14);
-  const tail = cleanText(suffix, 8).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
+  const tail = cleanLine(suffix, 8).replace(/[^A-Za-z0-9]/g, '').toUpperCase();
   return `DRAFT-${stamp}${tail ? `-${tail}` : ''}`;
 }
 
@@ -98,17 +117,17 @@ export function createDraft(input = {}, options = {}) {
   return {
     draft_id: String(input.draft_id || newDraftId(now, input.id_suffix)),
     state: STUDIO_STATE.DRAFT,
-    format: cleanText(input.format, 20).toUpperCase() || 'IMAGE',
+    format: cleanLine(input.format, 20).toUpperCase() || 'IMAGE',
     caption: cleanText(input.caption, MAX_CAPTION_LENGTH),
     hashtags: normalizeHashtags(input.hashtags),
-    cta: cleanText(input.cta, 60) || null,
+    cta: cleanLine(input.cta, 60) || null,
     media: input.media ? { ...input.media } : null,
-    product: cleanText(input.product, 60) || null,
-    collection: cleanText(input.collection, 60) || null,
-    campaign: cleanText(input.campaign, 60) || null,
-    objective: cleanText(input.objective, 120) || null,
-    angle: cleanText(input.angle, 200) || null,
-    hook: cleanText(input.hook, 200) || null,
+    product: cleanLine(input.product, 60) || null,
+    collection: cleanLine(input.collection, 60) || null,
+    campaign: cleanLine(input.campaign, 60) || null,
+    objective: cleanLine(input.objective, 120) || null,
+    angle: cleanLine(input.angle, 200) || null,
+    hook: cleanLine(input.hook, 200) || null,
     safe_approved: false,
     scheduled_for: null,
     source: input.source ? { ...input.source } : null,
@@ -207,7 +226,7 @@ export function transition(draft, to, options = {}) {
       at: timestamp,
       from,
       to,
-      reason: cleanText(options.reason, 200) || null,
+      reason: cleanLine(options.reason, 200) || null,
     }].slice(-40),
   };
 }
@@ -228,12 +247,12 @@ export function saveDraft(draft, patch = {}, options = {}) {
     ...draft,
     caption: patch.caption === undefined ? draft.caption : cleanText(patch.caption, MAX_CAPTION_LENGTH),
     hashtags: patch.hashtags === undefined ? draft.hashtags : normalizeHashtags(patch.hashtags),
-    cta: patch.cta === undefined ? draft.cta : (cleanText(patch.cta, 60) || null),
-    format: patch.format === undefined ? draft.format : (cleanText(patch.format, 20).toUpperCase() || draft.format),
+    cta: patch.cta === undefined ? draft.cta : (cleanLine(patch.cta, 60) || null),
+    format: patch.format === undefined ? draft.format : (cleanLine(patch.format, 20).toUpperCase() || draft.format),
     media: patch.media === undefined ? draft.media : (patch.media ? { ...patch.media } : null),
-    product: patch.product === undefined ? draft.product : (cleanText(patch.product, 60) || null),
-    collection: patch.collection === undefined ? draft.collection : (cleanText(patch.collection, 60) || null),
-    campaign: patch.campaign === undefined ? draft.campaign : (cleanText(patch.campaign, 60) || null),
+    product: patch.product === undefined ? draft.product : (cleanLine(patch.product, 60) || null),
+    collection: patch.collection === undefined ? draft.collection : (cleanLine(patch.collection, 60) || null),
+    campaign: patch.campaign === undefined ? draft.campaign : (cleanLine(patch.campaign, 60) || null),
     updated_at: new Date(now).toISOString(),
   };
   // Toute modification de fond retire l approbation SAFE : on n approuve pas
@@ -258,7 +277,7 @@ export function approveDraft(draft, options = {}) {
   return {
     ...draft,
     safe_approved: true,
-    approved_by: cleanText(options.approvedBy, 60) || 'operateur',
+    approved_by: cleanLine(options.approvedBy, 60) || 'operateur',
     approved_at: new Date(now).toISOString(),
     updated_at: new Date(now).toISOString(),
   };
@@ -360,7 +379,7 @@ export function markFailed(draft, failure, options = {}) {
     ...next,
     failure: {
       code: String(failure?.code || 'unknown'),
-      detail: cleanText(failure?.detail, 300),
+      detail: cleanLine(failure?.detail, 300),
       at: new Date(Number(options.now) || Date.now()).toISOString(),
       stage: String(failure?.stage || ''),
     },
