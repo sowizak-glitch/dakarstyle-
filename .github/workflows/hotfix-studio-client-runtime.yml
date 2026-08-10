@@ -1,0 +1,87 @@
+name: Hotfix Studio Browser Runtime
+
+on:
+  push:
+    branches:
+      - hotfix/studio-client-runtime-parse
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          package-manager-cache: false
+
+      - name: Reproduce browser-script parse status
+        run: |
+          node --input-type=module <<'NODE'
+          import { STUDIO_CLIENT_JS } from './src/studio-client-v5.js';
+          try {
+            new Function(STUDIO_CLIENT_JS);
+            console.log('PRE_FIX_RUNTIME_PARSE=VALID');
+          } catch (error) {
+            console.log('PRE_FIX_RUNTIME_PARSE=INVALID');
+            console.log('PARSE_ERROR=' + error.name + ': ' + error.message);
+          }
+          NODE
+
+      - name: Fix escaping and add permanent runtime test
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          source_path = Path('src/studio-client-v5.js')
+          source = source_path.read_text()
+          old = r"key.indexOf('\\') !== -1"
+          new = r"key.indexOf('\\\\') !== -1"
+          count = source.count(old)
+          if count != 1:
+              raise SystemExit(f'expected exactly one broken backslash guard, found {count}')
+          source_path.write_text(source.replace(old, new, 1))
+
+          test_path = Path('tests/ui-v5.mjs')
+          tests = test_path.read_text()
+          marker = "test('le script client n execute aucun code construit dynamiquement', () => {"
+          if marker not in tests:
+              raise SystemExit('runtime test insertion marker not found')
+          runtime_test = """test('le JavaScript reellement servi au navigateur est syntaxiquement valide', () => {\n  assert.doesNotThrow(() => new Function(STUDIO_CLIENT_JS));\n});\n\n"""
+          if "reellement servi au navigateur est syntaxiquement valide" not in tests:
+              tests = tests.replace(marker, runtime_test + marker, 1)
+          test_path.write_text(tests)
+          PY
+
+      - name: Compile exact browser payload
+        run: |
+          node --input-type=module <<'NODE'
+          import { STUDIO_CLIENT_JS } from './src/studio-client-v5.js';
+          new Function(STUDIO_CLIENT_JS);
+          console.log('POST_FIX_RUNTIME_PARSE=VALID');
+          NODE
+
+      - name: Full tests
+        run: npm test
+      - name: Security audit
+        run: node tests/security-audit-v5.mjs
+      - name: Cloudflare dry-run
+        run: npm run build:dry-run
+
+      - name: Commit validated fix
+        run: |
+          if git diff --quiet; then
+            echo 'No changes to commit'
+            exit 1
+          fi
+          git config user.name 'sowizak-glitch'
+          git config user.email 'sow.izak@gmail.com'
+          git add src/studio-client-v5.js tests/ui-v5.mjs
+          git commit -m 'fix: make Studio browser script executable'
+          git push origin HEAD:hotfix/studio-client-runtime-parse
