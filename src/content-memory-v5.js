@@ -60,9 +60,26 @@ function median(values) {
   return list.length % 2 ? list[middle] : (list[middle - 1] + list[middle]) / 2;
 }
 
-function round2(value) {
-  return value === null || value === undefined ? null : Math.round(value * 100) / 100;
+/**
+ * Arrondi d'affichage. Les taux utiles ici valent souvent quelques millemes :
+ * un arrondi a deux decimales ecraserait 0.015 sur 0.02 et fabriquerait un
+ * ecart de 25 % la ou il n y en a aucun. On garde donc quatre chiffres
+ * significatifs sous 1, deux decimales au-dessus.
+ *
+ * Cet arrondi ne sert QU A l affichage : deltas, references et comparaisons
+ * sont toujours calcules sur les valeurs brutes.
+ */
+export function displayRound(value) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+  if (value === 0) return 0;
+  const magnitude = Math.abs(value);
+  if (magnitude >= 1) return Math.round(value * 100) / 100;
+  const digits = Math.min(10, 2 - Math.floor(Math.log10(magnitude)));
+  const factor = 10 ** digits;
+  return Math.round(value * factor) / factor;
 }
+
+const round2 = displayRound;
 
 const CONTROL_CHARS = new RegExp('[\\u0000-\\u001F\\u007F]', 'g');
 
@@ -221,8 +238,12 @@ function statsFor(values, baseline) {
     return { sample_size: 0, median: null, baseline: round2(baseline), delta_pct: null, share_above_baseline: null, confidence: CONFIDENCE.NONE };
   }
   const groupMedian = median(clean);
-  const usable = baseline !== null && baseline !== 0;
-  const shareAbove = usable ? clean.filter((v) => v > baseline).length / clean.length : null;
+  const usable = baseline !== null && Number.isFinite(baseline) && baseline !== 0;
+  // Ex aequo comptes pour moitie : un groupe rigoureusement egal a sa
+  // reference ne doit pas paraitre systematiquement en dessous.
+  const shareAbove = usable
+    ? (clean.filter((v) => v > baseline).length + clean.filter((v) => v === baseline).length / 2) / clean.length
+    : null;
   const deltaPct = usable ? ((groupMedian - baseline) / baseline) * 100 : null;
   const confidence = deltaPct === null || shareAbove === null
     ? CONFIDENCE.NONE
@@ -258,10 +279,15 @@ export function buildContentMemory(records, options = {}) {
     .map((row) => ({ ...row, sowhat_score: metric(scores.get(row.instagram_media_id)) }))
     .sort((a, b) => Date.parse(a.published_at) - Date.parse(b.published_at));
 
+  // Les references sont conservees brutes pour tous les calculs. Elles ne sont
+  // arrondies qu au moment d etre exposees.
+  const rawBaselines = {};
   const baselines = {};
   for (const spec of TRACKED_METRICS) {
     const values = inWindow.map(spec.read).filter((v) => v !== null);
-    baselines[spec.key] = { median: round2(median(values)), sample_size: values.length };
+    const value = median(values);
+    rawBaselines[spec.key] = value;
+    baselines[spec.key] = { median: round2(value), sample_size: values.length };
   }
 
   const dimensions = {};
@@ -288,7 +314,7 @@ export function buildContentMemory(records, options = {}) {
     for (const [value, rows] of entries) {
       const metrics = {};
       for (const spec of TRACKED_METRICS) {
-        metrics[spec.key] = statsFor(rows.map(spec.read), baselines[spec.key].median);
+        metrics[spec.key] = statsFor(rows.map(spec.read), rawBaselines[spec.key]);
       }
       dimensions[dimension].values[value] = {
         sample_size: rows.length,
