@@ -59,6 +59,15 @@ export const STUDIO_CLIENT_JS = `'use strict';
     meta_unauthorized: 'La connexion Instagram doit etre renouvelee.',
     meta_permission_denied: 'Le compte Instagram ne donne pas les autorisations necessaires.',
     meta_rate_limited: 'Instagram limite temporairement les envois. Reessayez dans quelques minutes.',
+    meta_bad_request: 'Instagram a refuse la demande de publication.',
+    meta_not_found: 'Instagram ne retrouve pas la ressource demandee.',
+    meta_server_error: 'Instagram rencontre une erreur temporaire. Reessayez dans quelques minutes.',
+    meta_timeout: 'Instagram met trop de temps a repondre. Reessayez dans quelques minutes.',
+    meta_network_error: 'La communication avec Instagram a echoue. Reessayez.',
+    meta_invalid_endpoint: 'La configuration de l API Instagram est invalide.',
+    meta_invalid_flow: 'Le mode de connexion Instagram est invalide.',
+    meta_unsafe_redirect: 'Instagram a renvoye une redirection refusee par securite.',
+    meta_unknown_error: 'Instagram a renvoye une erreur inattendue.',
     safe_gate_closed: 'La publication est encore verrouillee. Approuvez le contenu, ou demandez l ouverture de la publication.',
     publish_media_url_not_configured: 'Le stockage media n est pas encore configure pour la publication.',
     publish_container_error: 'Instagram a refuse ce contenu. Verifiez le format du fichier.',
@@ -500,7 +509,15 @@ export const STUDIO_CLIENT_JS = `'use strict';
   }
 
   function showFailure(error) {
-    message(humanError(error.code, error.detail ? null : ''), 'danger');
+    var code = String(error && error.code || 'unknown');
+    var detail = String(error && error.detail || '').trim().slice(0, 300);
+    var known = Boolean(MESSAGES[code]);
+    var text = humanError(code);
+    // Les details Meta sont deja nettoyes cote serveur par redactSecrets.
+    // Les afficher est indispensable pour diagnostiquer un refus 400 reel.
+    if (detail && code.indexOf('meta_') === 0) text += ' — ' + detail;
+    else if (detail && !known) text = detail;
+    message(text, 'danger');
     if (error.errors && error.errors.length && nodes.message) {
       var list = document.createElement('ul');
       list.className = 'st-blockers';
