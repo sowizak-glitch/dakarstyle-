@@ -8,11 +8,39 @@ on:
       - 'src/social-intelligence-v3.js'
       - 'src/social-intelligence-ui-v4.js'
       - 'src/social-intelligence-memory-v4.js'
+      - 'src/instagram-client-v5.js'
+      - 'src/instagram-sync-v5.js'
+      - 'src/coach-v5.js'
+      - 'src/content-memory-v5.js'
+      - 'src/learning-v5.js'
+      - 'src/observability-v5.js'
+      - 'src/plan-v5.js'
+      - 'src/publishing-v5.js'
+      - 'src/scheduler-v5.js'
+      - 'src/security-v5.js'
+      - 'src/social-intelligence-ui-v5.js'
+      - 'src/social-intelligence-v5-routes.js'
+      - 'src/sowhat-score-v5.js'
+      - 'src/studio-v5.js'
       - 'src/router.js'
       - 'wrangler.jsonc'
       - 'package.json'
       - 'tests/social-intelligence-contract.mjs'
       - 'tests/social-intelligence-behaviour.mjs'
+      - 'tests/instagram-client-v5.mjs'
+      - 'tests/instagram-sync-v5.mjs'
+      - 'tests/coach-v5.mjs'
+      - 'tests/content-memory-v5.mjs'
+      - 'tests/learning-v5.mjs'
+      - 'tests/observability-v5.mjs'
+      - 'tests/plan-v5.mjs'
+      - 'tests/publishing-v5.mjs'
+      - 'tests/routes-v5.mjs'
+      - 'tests/scheduler-v5.mjs'
+      - 'tests/security-audit-v5.mjs'
+      - 'tests/sowhat-score-v5.mjs'
+      - 'tests/studio-v5.mjs'
+      - 'tests/ui-v5.mjs'
       - '.github/workflows/social-intelligence-quality.yml'
       - '.github/workflows/social-intelligence-deploy.yml'
   workflow_dispatch:
@@ -23,6 +51,7 @@ permissions:
 env:
   PRODUCTION_HEALTH_URL: https://dakarstyle.com/api/social-intelligence/health
   PRODUCTION_APP_URL: https://dakarstyle.com/social-intelligence
+  PRODUCTION_V5_URL: https://dakarstyle.com/social-intelligence/v5
 
 jobs:
   validate:
@@ -44,9 +73,28 @@ jobs:
           node --check src/social-intelligence-v3.js
           node --check src/social-intelligence-ui-v4.js
           node --check src/social-intelligence-memory-v4.js
+          node --check src/instagram-client-v5.js
+          node --check src/instagram-sync-v5.js
+          node --check src/coach-v5.js
+          node --check src/content-memory-v5.js
+          node --check src/learning-v5.js
+          node --check src/observability-v5.js
+          node --check src/plan-v5.js
+          node --check src/publishing-v5.js
+          node --check src/scheduler-v5.js
+          node --check src/security-v5.js
+          node --check src/social-intelligence-ui-v5.js
+          node --check src/social-intelligence-v5-routes.js
+          node --check src/sowhat-score-v5.js
+          node --check src/studio-v5.js
           node --check src/router.js
           node tests/social-intelligence-contract.mjs
           node tests/social-intelligence-behaviour.mjs
+          node tests/instagram-client-v5.mjs
+          node tests/instagram-sync-v5.mjs
+
+      - name: Full V5 test suite
+        run: npm test
 
       - name: Validate Cloudflare bundle
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-social-out
@@ -70,6 +118,20 @@ jobs:
       - name: Record Cloudflare Git integration mode
         if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
         run: echo 'Cloudflare Git integration is expected to publish main because repository deployment credentials are not available to this workflow.' >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke test V5 namespace (must refuse unauthenticated access)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Le seul comportement V5 verifiable sans secret est le refus. Un 200
+          # ici signifierait que le cockpit est ouvert : c est un echec.
+          status=$(curl --location --silent --show-error --output v5.txt --write-out '%{http_code}' --max-time 20 "$PRODUCTION_V5_URL" || true)
+          echo "V5 cockpit unauthenticated status: $status" >> "$GITHUB_STEP_SUMMARY"
+          case "$status" in
+            401|503) echo 'V5 namespace correctly refuses unauthenticated access.' ;;
+            200) echo 'V5 cockpit answered 200 without credentials.' >&2; exit 1 ;;
+            *) echo "Unexpected V5 status $status." >&2; exit 1 ;;
+          esac
 
       - name: Verify Social Intelligence production
         shell: bash

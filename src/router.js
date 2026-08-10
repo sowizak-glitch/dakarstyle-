@@ -4,6 +4,7 @@ import samabusinessSites from './samabusiness-site-proxy-v131.js';
 import samabusinessMedia from './samabusiness-media-review-v133.js';
 import samabusinessOwner from './samabusiness-owner-command-v14.js';
 import { handleSocialIntelligenceV3, runInstagramSync } from './social-intelligence-v3.js';
+import { handleSocialIntelligenceV5, isSocialIntelligenceV5Route } from './social-intelligence-v5-routes.js';
 
 const SENECOMPARE_HOSTS = new Set([
   'senecompare.dakarstyle.com',
@@ -88,6 +89,12 @@ function isCustomStorefront(url) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    // La V5 vit dans son propre espace de noms et passe AVANT la V4, sinon la
+    // V4 capterait ses chemins. Aucune route V4 n est modifiee pour autant.
+    if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceV5Route(url)) {
+      if (!socialIntelligenceSecurityReady(url, env)) return socialIntelligenceNotConfigured(url);
+      return handleSocialIntelligenceV5(request, env, ctx);
+    }
     if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceRoute(url)) {
       if (!socialIntelligenceSecurityReady(url, env)) return socialIntelligenceNotConfigured(url);
       return handleSocialIntelligenceV3(request, env, ctx);
