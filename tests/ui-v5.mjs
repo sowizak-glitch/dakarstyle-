@@ -398,6 +398,24 @@ test('la progression affichee est mesuree, jamais simulee', () => {
     'aucune barre qui avance toute seule');
 });
 
+test('un fichier depose n est jamais envoye deux fois', () => {
+  assert.ok(STUDIO_CLIENT_JS.includes('if (event.target === nodes.file) return;'),
+    'le depot natif sur le champ fichier declenche deja « change »');
+});
+
+test('apres publication, plus rien n est modifiable depuis l ecran', () => {
+  assert.ok(STUDIO_CLIENT_JS.includes('state.published = true'));
+  assert.ok(STUDIO_CLIENT_JS.includes('&& !state.published'));
+  assert.ok(STUDIO_CLIENT_JS.includes('state.busy || state.uploading || state.published'));
+});
+
+test('les colonnes espacent leurs cartes a toutes les tailles', () => {
+  assert.ok(/\.st-col\{[^}]*display:grid[^}]*gap:14px/.test(STUDIO_CSS), 'espacement de base');
+  assert.ok(/@media\(min-width:412px\)\{[^@]*\.st-col\{gap:16px\}/.test(STUDIO_CSS), 'espacement elargi');
+  assert.ok(/@media\(min-width:1280px\)\{[^@]*\.st-col-preview\{position:sticky/.test(STUDIO_CSS),
+    'l apercu ne devient collant qu en bureau');
+});
+
 test('le chemin du script et celui de l ecran sont coherents', () => {
   assert.equal(STUDIO_ROUTE, '/social-intelligence/v5/studio');
   assert.equal(STUDIO_CLIENT_ROUTE, '/social-intelligence/v5/studio/app.js');

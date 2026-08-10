@@ -91,6 +91,7 @@ export const STUDIO_CLIENT_JS = `'use strict';
 
   var state = {
     csrf: '',
+    published: false,
     media: null,
     draftId: document.body.getAttribute('data-draft-id') || '',
     uploading: false,
@@ -232,10 +233,12 @@ export const STUDIO_CLIENT_JS = `'use strict';
   function refreshActions() {
     var caption = nodes.caption ? nodes.caption.value.trim() : '';
     var ready = Boolean(state.media) && caption.length > 0
-      && caption.length <= MAX_CAPTION && !state.uploading && !state.busy;
+      && caption.length <= MAX_CAPTION && !state.uploading && !state.busy && !state.published;
     if (nodes.publish) nodes.publish.disabled = !ready;
     if (nodes.scheduleBtn) nodes.scheduleBtn.disabled = !ready;
-    if (nodes.save) nodes.save.disabled = state.busy || state.uploading;
+    // Un contenu publie ne se remodifie pas : le Studio le refuserait, autant
+    // que l ecran le dise avant le clic plutot qu apres.
+    if (nodes.save) nodes.save.disabled = state.busy || state.uploading || state.published;
   }
 
   function setBusy(value, label) {
@@ -478,9 +481,9 @@ export const STUDIO_CLIENT_JS = `'use strict';
         return call('studio/drafts/' + encodeURIComponent(state.draftId) + '/publish', { method: 'POST' });
       })
       .then(function () {
+        state.published = true;
         setBusy(false);
         message('Publie sur Instagram.', 'good');
-        if (nodes.publish) nodes.publish.disabled = true;
       }, function (error) {
         setBusy(false);
         showFailure(error);
@@ -536,6 +539,10 @@ export const STUDIO_CLIENT_JS = `'use strict';
         });
       });
       nodes.drop.addEventListener('drop', function (event) {
+        // Le champ fichier recouvre toute la zone : un depot atterrit sur lui
+        // et declenche deja « change ». Traiter aussi l evenement ici
+        // enverrait le meme fichier deux fois.
+        if (event.target === nodes.file) return;
         var files = event.dataTransfer && event.dataTransfer.files;
         if (files && files.length) handleFile(files[0]);
       });

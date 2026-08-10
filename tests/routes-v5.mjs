@@ -670,6 +670,64 @@ test('un prefill impossible n empeche pas d ouvrir l ecran', async () => {
   assert.ok(page.includes('Ajouter une photo ou une video'));
 });
 
+test('corriger une date puis reprogrammer : la reprise ne casse pas le brouillon', async () => {
+  const env = makeEnv();
+  const token = await issueCsrfToken(env, 'v5-admin', NOW);
+  const draft = await seedDraft(env, token);
+  await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/approve`, token, 'POST'));
+  await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/ready`, token, 'POST'));
+
+  // Erreur de saisie : date passee.
+  const refused = await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/schedule`, token, 'POST', {
+    scheduled_for: new Date(NOW - 1000).toISOString(),
+  }));
+  assert.equal(refused.status, 422);
+
+  // L operateur corrige et recommence le parcours complet.
+  await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/approve`, token, 'POST'));
+  const again = await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/ready`, token, 'POST'));
+  assert.equal(again.status, 200, 'un brouillon deja valide reste valide');
+
+  const scheduled = await (await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/schedule`, token, 'POST', {
+    scheduled_for: new Date(NOW + 7200000).toISOString(),
+  }))).json();
+  assert.equal(scheduled.draft.state, 'SCHEDULED');
+});
+
+test('changer d avis sur l heure : reprogrammation acceptee', async () => {
+  const env = makeEnv();
+  const token = await issueCsrfToken(env, 'v5-admin', NOW);
+  const draft = await seedDraft(env, token);
+  await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/approve`, token, 'POST'));
+  await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/ready`, token, 'POST'));
+  await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/schedule`, token, 'POST', {
+    scheduled_for: new Date(NOW + 3600000).toISOString(),
+  }));
+
+  const later = new Date(NOW + 10800000).toISOString();
+  const response = await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/schedule`, token, 'POST', {
+    scheduled_for: later,
+  }));
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.draft.state, 'SCHEDULED');
+  assert.equal(body.draft.scheduled_for, later);
+  assert.ok(body.draft.history.some((entry) => entry.reason === 'reprogrammation'),
+    'la reprogrammation passe par une transition declaree, et reste tracee');
+});
+
+test('un brouillon valide dont le media est retire ne reste pas « pret »', async () => {
+  const env = makeEnv();
+  const token = await issueCsrfToken(env, 'v5-admin', NOW);
+  const draft = await seedDraft(env, token);
+  await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/approve`, token, 'POST'));
+  await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/ready`, token, 'POST'));
+  await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}`, token, 'PATCH', { media: null }));
+
+  const response = await call(env, jsonReq(`${STUDIO_API_PREFIX}drafts/${draft.draft_id}/ready`, token, 'POST'));
+  assert.equal(response.status, 422, 'un contenu sans media ne peut plus etre declare pret');
+});
+
 /* ---------------- Execution ---------------- */
 
 let failures = 0;

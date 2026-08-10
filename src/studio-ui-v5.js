@@ -66,6 +66,7 @@ export const STUDIO_CSS = `
   padding-right:calc(16px + env(safe-area-inset-right));
   max-width:1180px;margin:0 auto;
 }
+.st-col{display:grid;gap:14px;align-content:start;min-width:0}
 .st-card{
   background:var(--panel);border:1px solid var(--line);border-radius:18px;
   padding:16px;min-width:0;
@@ -250,6 +251,7 @@ export const STUDIO_CSS = `
 
 @media(min-width:412px){
   .st-main{padding:20px;gap:16px}
+  .st-col{gap:16px}
   .st-actions{padding-left:calc(20px + env(safe-area-inset-left));padding-right:calc(20px + env(safe-area-inset-right))}
 }
 @media(min-width:768px){
@@ -258,7 +260,7 @@ export const STUDIO_CSS = `
 }
 @media(min-width:1280px){
   .st-main{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);align-items:start}
-  .st-col-preview{position:sticky;top:84px;display:grid;gap:16px;align-content:start}
+  .st-col-preview{position:sticky;top:84px}
 }
 @media(prefers-reduced-motion:reduce){
   .st-page *{animation:none!important;transition:none!important}
@@ -448,13 +450,13 @@ export function renderStudioDocument(options = {}) {
 </header>
 
 <main class="st-main">
-  <div>
+  <div class="st-col">
     <p class="st-msg" id="st-message" role="status" aria-live="polite" hidden></p>
     ${mediaCard()}
     ${formatCard()}
     ${textCard()}
   </div>
-  <div class="st-col-preview">
+  <div class="st-col st-col-preview">
     ${previewCard()}
     ${scheduleCard()}
   </div>

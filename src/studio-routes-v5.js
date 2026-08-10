@@ -14,7 +14,7 @@ import { checkSafeGate, SECURITY_ERROR } from './security-v5.js';
 import {
   STUDIO_ERROR, STUDIO_STATE,
   approveDraft, cancelSchedule, createDraft, markReady, previewDraft,
-  readDraft, readDraftIndex, saveDraft, scheduleDraft, writeDraft,
+  readDraft, readDraftIndex, saveDraft, scheduleDraft, transition, validateDraft, writeDraft,
 } from './studio-v5.js';
 import { publishAndPersist } from './scheduler-v5.js';
 import { prefillDraftFromPlanDay } from './plan-v5.js';
@@ -134,6 +134,19 @@ async function handleDraftAction(action, draft, request, env, context) {
   }
 
   if (action === 'ready') {
+    // Deja valide : l intention est satisfaite. Refuser ici casserait toute
+    // reprise apres une erreur de saisie, alors que rien n a change d etat.
+    // Le contenu est quand meme revalide : un media retire entre-temps ne
+    // doit pas rester tapi dans un brouillon marque valide.
+    if (draft.state === STUDIO_STATE.READY) {
+      const validation = validateDraft(draft);
+      if (!validation.valid) {
+        return ko(422, STUDIO_ERROR.VALIDATION_FAILED, {
+          detail: validation.errors.join(' ; '), errors: validation.errors,
+        });
+      }
+      return ok(draftView(draft));
+    }
     const ready = markReady(draft, { now });
     await writeDraft(env, ready);
     return ok(draftView(ready));
@@ -141,7 +154,12 @@ async function handleDraftAction(action, draft, request, env, context) {
 
   if (action === 'schedule') {
     const body = await readJsonBody(request);
-    const scheduled = scheduleDraft(draft, body.scheduled_for, { now });
+    // Reprogrammation : on repasse par READY, une transition deja declaree.
+    // Aucune transition nouvelle n est inventee pour l occasion.
+    const base = draft.state === STUDIO_STATE.SCHEDULED
+      ? transition(draft, STUDIO_STATE.READY, { now, reason: 'reprogrammation' })
+      : draft;
+    const scheduled = scheduleDraft(base, body.scheduled_for, { now });
     await writeDraft(env, scheduled);
     return ok(draftView(scheduled));
   }
