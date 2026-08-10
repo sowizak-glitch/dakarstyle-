@@ -1,0 +1,114 @@
+name: Run isolated SOWHAT V5 final import
+
+on:
+  push:
+    branches:
+      - agent/v5-import-runner-final-20260810
+    paths:
+      - '.github/workflows/run-v5-final-import.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout runner branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Reconstruct and verify final patch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          api="https://api.github.com/repos/${GITHUB_REPOSITORY}/issues/51/comments?per_page=100"
+          curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "$api" > /tmp/comments.json
+
+          declare -A expected_len=(
+            [00]=18000 [01]=18000 [02]=18000 [03]=18000
+            [04]=18000 [05]=18000 [06]=13644
+          )
+          declare -A expected_sha=(
+            [00]=bcea5338f8737bb52298cb94ad42f5ed7a68c93daf29f64ae79ac5fce9a43004
+            [01]=842935c5b54db33a4b0df1c35c82d37bb2ed2f7f1cdee4242e243e00d30653d7
+            [02]=de32d0e2057145e835f1cacc2427e7f28a02e9e65991abe4129e63c1dba04505
+            [03]=9df07a44798f34ed072e6fbf1fa6471950785929fed21bb5a594a75f5ed6a85f
+            [04]=05758f63948278218e01ac5c3734b207631edf693c279c8aeb856033c2abe4d8
+            [05]=d515a1404d71adaf58825f6c52492040a2e89d6ab8b412ac2153b8a3295ab028
+            [06]=72acef6939cbe4de623de16c2098d2ead3ad91302f634d00bfee4f22a5d2d6ac
+          )
+          declare -A last_char=(
+            [00]=L [01]=b [02]=K [03]=D [04]=H [05]=l
+          )
+
+          : > /tmp/v5.patch.bz2.b64
+          bad=0
+          for part in 00 01 02 03 04 05 06; do
+            prefix="V5PATCH2-BZ2-${part}:"
+            jq -r --arg prefix "$prefix" \
+              '[.[] | select(.body | startswith($prefix)) | .body | sub("^V5PATCH2-BZ2-[0-9][0-9]:";"")][-1] // empty' \
+              /tmp/comments.json | tr -d '\n\r ' > "/tmp/chunk-${part}"
+
+            actual_len=$(wc -c < "/tmp/chunk-${part}" | tr -d ' ')
+            if [ "$part" != "06" ] && [ "$actual_len" = "17999" ]; then
+              printf '%s' "${last_char[$part]}" >> "/tmp/chunk-${part}"
+            fi
+
+            actual_len=$(wc -c < "/tmp/chunk-${part}" | tr -d ' ')
+            actual_sha=$(sha256sum "/tmp/chunk-${part}" | cut -d' ' -f1)
+            echo "chunk ${part}: len=${actual_len} sha=${actual_sha}"
+            if [ "$actual_len" != "${expected_len[$part]}" ] || [ "$actual_sha" != "${expected_sha[$part]}" ]; then
+              bad=1
+            fi
+            cat "/tmp/chunk-${part}" >> /tmp/v5.patch.bz2.b64
+          done
+          test "$bad" = "0"
+
+          test "$(wc -c < /tmp/v5.patch.bz2.b64 | tr -d ' ')" = "121644"
+          test "$(sha256sum /tmp/v5.patch.bz2.b64 | cut -d' ' -f1)" = "99ef816e4aba48cf62e3b1ed399d5beff45436485d620f04ee2e03231d500310"
+          base64 -d /tmp/v5.patch.bz2.b64 | bzip2 -d > /tmp/v5.patch
+          test "$(sha256sum /tmp/v5.patch | cut -d' ' -f1)" = "64e0406f0652b6c5803cb8241446336228396a42ead55d1463fa242a127f374a"
+          count=$(grep -c '^From [0-9a-f]\{40\} Mon Sep 17 00:00:00 2001$' /tmp/v5.patch)
+          test "$count" = "17"
+          grep -q 'Subject: \[PATCH 17/17\]' /tmp/v5.patch
+
+      - name: Apply exact 17-commit series on verified base
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SOWHAT V5 GitHub Import"
+          git config user.email "noreply@github.com"
+          git checkout --detach da65da8f829c0e26d82f071a80622e399fb5366e
+          git am --committer-date-is-author-date /tmp/v5.patch
+          test "$(git rev-list --count da65da8f829c0e26d82f071a80622e399fb5366e..HEAD)" = "17"
+          test -z "$(git status --porcelain)"
+          echo "FINAL_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Full repository tests
+        run: npm test
+
+      - name: Security audit
+        run: node tests/security-audit-v5.mjs
+
+      - name: Cloudflare dry-run
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-v5-final-import
+
+      - name: Atomically replace V5 target branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push \
+            --force-with-lease=refs/heads/agent/sowhat-control-v5-instagram-engine:c9aef4173fe53b5a0f2fda807270a6d32e076565 \
+            origin HEAD:refs/heads/agent/sowhat-control-v5-instagram-engine
+          echo "Imported final V5 history at ${FINAL_SHA}" >> "$GITHUB_STEP_SUMMARY"
