@@ -36,25 +36,20 @@ jobs:
         shell: bash
         run: |
           set +e
+          failed=0
           {
             echo '=== git diff --check ==='
-            git diff --check
-            s1=$?
+            git diff --check || failed=1
             echo '=== npm test ==='
-            npm test
-            s2=$?
+            npm test || failed=1
             echo '=== security audit ==='
-            node tests/security-audit-v5.mjs
-            s3=$?
+            node tests/security-audit-v5.mjs || failed=1
             echo '=== Cloudflare dry run ==='
-            npm run build:dry-run
-            s4=$?
-            echo "STATUS diff=$s1 test=$s2 security=$s3 dryrun=$s4"
-            if [ "$s1" -ne 0 ] || [ "$s2" -ne 0 ] || [ "$s3" -ne 0 ] || [ "$s4" -ne 0 ]; then exit 1; fi
+            npm run build:dry-run || failed=1
+            echo "STATUS failed=$failed"
           } > STUDIO_VALIDATION.log 2>&1
-          status=$?
           cat STUDIO_VALIDATION.log
-          if [ "$status" -ne 0 ]; then
+          if [ "$failed" -ne 0 ]; then
             git config user.name 'sowizak-glitch'
             git config user.email 'sow.izak@gmail.com'
             git add -f STUDIO_VALIDATION.log
