@@ -4,6 +4,8 @@
  */
 
 import assert from 'node:assert/strict';
+import { prefillDraftFromRecommendation } from '../src/coach-v5.js';
+import { prefillDraftFromPlanDay } from '../src/plan-v5.js';
 import {
   ALLOWED_MEDIA_TYPES, MEDIA_KEY_PREFIX, SECURITY_ERROR,
   businessIdempotencyKey, checkSafeGate, completeIdempotencyKey, constantTimeEqual,
@@ -351,6 +353,110 @@ test('file d attente : seulement le programme et l en cours, trie par echeance',
   assert.equal(queue[0].draft_id, 'DRAFT-B');
   assert.equal(queue[0].due, true, 'la premiere echeance est depassee');
   assert.equal(queue[1].due, false);
+});
+
+/* ---------------- Prefill : le plan et le Coach nourrissent le Studio ---------------- */
+
+const RECOMMENDATION = (overrides = {}) => ({
+  id: 'RECO-1',
+  mode: 'appliquer',
+  dimension: 'format',
+  value: 'REEL',
+  metric: 'reach',
+  conclusion: 'format = REEL est associe a une portee superieure de 32 % a la reference.',
+  next_action: 'Augmenter la part de REEL dans le plan des sept prochains jours.',
+  metrics: { delta_pct: 32 },
+  sample_size: 11,
+  confidence: 'moyenne',
+  limits: ['Correlation observee, pas une relation de cause a effet demontree.'],
+  ...overrides,
+});
+
+const BRIEFING = (recommendations) => ({
+  kind: 'COACH_BRIEFING', status: 'ok', generated_at: '2026-07-01T00:00:00.000Z',
+  recommendations,
+});
+
+test('prefill Coach : le brouillon nait en DRAFT, sans media et sans approbation', () => {
+  const draft = prefillDraftFromRecommendation(BRIEFING([RECOMMENDATION()]), 'RECO-1');
+  assert.equal(draft.state, 'DRAFT');
+  assert.equal(draft.safe_approved, false, 'une recommandation ne peut jamais approuver');
+  assert.equal(draft.media, null, 'le visuel reste un choix humain');
+  assert.equal(draft.format, 'REEL');
+  assert.equal(draft.source.origin, 'coach_recommandation');
+  assert.equal(draft.source.recommendation_id, 'RECO-1');
+});
+
+test('prefill Coach : chaque dimension alimente le bon champ', () => {
+  const cases = [
+    ['product', 'Ensemble Dakar', 'product'],
+    ['collection', 'Wear the Culture', 'collection'],
+    ['campaign', 'CDM 2026', 'campaign'],
+    ['cta', 'Commandez en message prive', 'cta'],
+    ['hook_type', 'question', 'hook'],
+  ];
+  for (const [dimension, value, field] of cases) {
+    const draft = prefillDraftFromRecommendation(BRIEFING([RECOMMENDATION({ dimension, value })]), 'RECO-1');
+    assert.equal(draft[field], value, `${dimension} doit remplir ${field}`);
+  }
+  const tagged = prefillDraftFromRecommendation(BRIEFING([RECOMMENDATION({ dimension: 'tag', value: 'dakarstyle' })]), 'RECO-1');
+  assert.deepEqual(tagged.hashtags, ['#dakarstyle']);
+});
+
+test('prefill Coach : une recommandation negative ne prerempli pas ce qu elle deconseille', () => {
+  const negative = RECOMMENDATION({
+    dimension: 'format', value: 'IMAGE', metrics: { delta_pct: -28 },
+    next_action: 'Reduire la part de IMAGE au profit d un format mieux note.',
+  });
+  const draft = prefillDraftFromRecommendation(BRIEFING([negative]), 'RECO-1');
+  assert.equal(draft.format, 'IMAGE', 'le format par defaut reste celui du Studio');
+  assert.equal(draft.source.direction, 'a_eviter');
+  assert.ok(draft.angle.includes('Reduire'), 'l action conseillee est transmise telle quelle');
+});
+
+test('prefill Coach : la legende est une trame explicitement a reecrire', () => {
+  const draft = prefillDraftFromRecommendation(BRIEFING([RECOMMENDATION()]), 'RECO-1');
+  assert.ok(draft.caption.includes('A REECRIRE'), 'aucune legende n est presentee comme prete');
+  assert.ok(draft.caption.includes(RECOMMENDATION().next_action));
+});
+
+test('prefill Coach : recommandation absente ou briefing vide refuses', () => {
+  assert.throws(
+    () => prefillDraftFromRecommendation(BRIEFING([RECOMMENDATION()]), 'RECO-INEXISTANTE'),
+    (error) => error.code === 'coach_recommendation_not_found',
+  );
+  assert.throws(
+    () => prefillDraftFromRecommendation({ recommendations: [] }, null),
+    (error) => error.code === 'coach_recommendation_not_found',
+  );
+});
+
+test('prefill Coach : le creneau conseille reste une suggestion, jamais une programmation', () => {
+  const draft = prefillDraftFromRecommendation(
+    BRIEFING([RECOMMENDATION({ dimension: 'hour_slot', value: '19h' })]), 'RECO-1',
+  );
+  assert.equal(draft.scheduled_for, null, 'programmer reste un geste explicite');
+  assert.deepEqual(draft.source.suggested_slot, { dimension: 'hour_slot', value: '19h' });
+});
+
+test('prefill Plan et prefill Coach produisent des brouillons de meme nature', () => {
+  const plan = {
+    generated_at: '2026-07-01T00:00:00.000Z',
+    days: [{
+      day_index: 1, date: '2026-07-02', time: '19:00', format: 'REEL',
+      caption_draft: 'Trame du jour', hashtags: ['#dakarstyle'], cta: 'Commandez',
+      product: 'Ensemble', collection: null, objective: 'notoriete', angle: 'angle', hook: 'accroche',
+      confidence: 'faible', justification: {},
+    }],
+  };
+  const fromPlan = prefillDraftFromPlanDay(plan, 1);
+  const fromCoach = prefillDraftFromRecommendation(BRIEFING([RECOMMENDATION()]), 'RECO-1');
+  for (const draft of [fromPlan, fromCoach]) {
+    assert.equal(draft.state, 'DRAFT');
+    assert.equal(draft.safe_approved, false);
+    assert.equal(draft.media, null);
+    assert.equal(draft.instagram_media_id, null);
+  }
 });
 
 /* ---------------- Execution ---------------- */

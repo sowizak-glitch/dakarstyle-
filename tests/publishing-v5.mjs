@@ -4,6 +4,7 @@
  */
 
 import assert from 'node:assert/strict';
+import { handleMediaUpload, isV5PublicMediaPath, newMediaKey, serveV5Media } from '../src/media-upload-v5.js';
 import { META_ERROR, MetaApiError } from '../src/instagram-client-v5.js';
 import { MEDIA_KEY_PREFIX, readIdempotencyRecord } from '../src/security-v5.js';
 import {
@@ -331,6 +332,62 @@ test('la cle d idempotence consigne l identifiant Meta confirme', async () => {
   const record = await readIdempotencyRecord(env, result.idempotency_key);
   assert.equal(record.result.instagram_media_id, '17999');
   assert.equal(record.result.stage, PUBLISH_STAGE.CONFIRMATION);
+});
+
+/* ---------------- Le media televerse est bien celui que Meta ira chercher ---------------- */
+
+test('la cle produite par le televersement compose une URL Meta valide', () => {
+  const key = newMediaKey('image/jpeg');
+  const url = mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: 'https://dakarstyle.com' }, key);
+  assert.equal(url, `https://dakarstyle.com/${key}`);
+  assert.ok(url.startsWith('https://'), 'Meta exige https');
+  assert.ok(isV5PublicMediaPath(new URL(url).pathname), 'l URL doit tomber sur la route publique V5');
+});
+
+test('le chemin public sert reellement l objet que le televersement a ecrit', async () => {
+  const store = new Map();
+  const bucket = {
+    async put(key, body, meta) { store.set(key, { body, meta }); return { key }; },
+    async get(key) {
+      if (!store.has(key)) return null;
+      const entry = store.get(key);
+      return { body: entry.body, size: 64, httpEtag: '"e"', httpMetadata: entry.meta?.httpMetadata || {} };
+    },
+  };
+  const bytes = new Uint8Array(64);
+  bytes.set([0xFF, 0xD8, 0xFF, 0xE0]);
+  const form = new FormData();
+  form.append('file', new File([bytes], 'a.jpg', { type: 'image/jpeg' }), 'a.jpg');
+  const uploaded = await handleMediaUpload(
+    new Request('https://dakarstyle.com/x', { method: 'POST', body: form }),
+    { VISUALS_BUCKET: bucket },
+  );
+  assert.equal(uploaded.ok, true, uploaded.error);
+
+  const url = mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: 'https://dakarstyle.com' }, uploaded.media.r2_key);
+  const served = await serveV5Media(new Request(url), { VISUALS_BUCKET: bucket });
+  assert.equal(served.status, 200, 'Meta doit pouvoir telecharger le fichier');
+  assert.equal(served.headers.get('content-type'), 'image/jpeg');
+});
+
+test('base media absente : refus en pre-vol, avant tout appel Meta', () => {
+  for (const base of [undefined, '', '   ']) {
+    assert.throws(
+      () => mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: base }, `${MEDIA_KEY_PREFIX}a.jpg`),
+      (error) => error.code === PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED,
+      String(base),
+    );
+  }
+});
+
+test('base media non https ou avec port : refusee', () => {
+  for (const base of ['http://dakarstyle.com', 'https://dakarstyle.com:8443', 'pas-une-url']) {
+    assert.throws(
+      () => mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: base }, `${MEDIA_KEY_PREFIX}a.jpg`),
+      (error) => error.code === PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED,
+      base,
+    );
+  }
 });
 
 /* ---------------- Execution ---------------- */
