@@ -166,6 +166,17 @@ export const STUDIO_CLIENT_JS = `'use strict';
     while (node && node.firstChild) node.removeChild(node.firstChild);
   }
 
+  // Le type du fichier est la source de verite. Une photo ne peut jamais
+  // partir comme Reel et une video ne peut jamais partir comme image.
+  function setFormatForKind(kind) {
+    var image = el('st-format-image');
+    var reel = el('st-format-reel');
+    var video = String(kind || '').toUpperCase() === 'VIDEO';
+    if (image) image.checked = !video;
+    if (reel) reel.checked = video;
+    if (nodes.ig) nodes.ig.setAttribute('data-format', video ? 'REEL' : 'IMAGE');
+  }
+
   /* -------------------- Apercu Instagram -------------------- */
 
   function renderPreview() {
@@ -219,6 +230,28 @@ export const STUDIO_CLIENT_JS = `'use strict';
     if (isVideo) { mini.muted = true; mini.playsInline = true; mini.controls = false; }
     else { mini.alt = ''; }
     if (nodes.igMedia) nodes.igMedia.appendChild(mini);
+
+    // Fallback Android/PWA : le data URL reste uniquement dans le DOM.
+    if (!isVideo) {
+      var fallbackStarted = false;
+      var fallback = function () {
+        if (fallbackStarted || typeof FileReader === 'undefined') return;
+        fallbackStarted = true;
+        var reader = new FileReader();
+        reader.onload = function () {
+          var local = typeof reader.result === 'string' ? reader.result : '';
+          if (!local) return;
+          main.src = local;
+          mini.src = local;
+        };
+        reader.onerror = function () {
+          message('Apercu indisponible, mais le fichier reste pret a etre envoye.', 'warn');
+        };
+        reader.readAsDataURL(file);
+      };
+      main.addEventListener('error', fallback, { once: true });
+      mini.addEventListener('error', fallback, { once: true });
+    }
 
     if (nodes.name) nodes.name.textContent = file.name || 'fichier sans nom';
     if (nodes.line) {
@@ -333,17 +366,8 @@ export const STUDIO_CLIENT_JS = `'use strict';
 
     message('', 'neutral');
     state.media = null;
+    setFormatForKind(spec.kind);
     renderMediaPreview(file);
-
-    // Le format suit le fichier : proposer un Reel pour une video evite
-    // l erreur la plus frequente, sans jamais l imposer.
-    if (spec.kind === 'VIDEO') {
-      var reel = el('st-format-reel');
-      if (reel && !reel.checked) { reel.checked = true; }
-    } else {
-      var image = el('st-format-image');
-      if (image && !image.checked) { image.checked = true; }
-    }
 
     state.uploading = true;
     refreshActions();
@@ -354,6 +378,7 @@ export const STUDIO_CLIENT_JS = `'use strict';
 
     upload(file).then(function (data) {
       state.media = data.media;
+      setFormatForKind(state.media && state.media.kind);
       state.uploading = false;
       show(nodes.progress, false);
       mediaState('Media pret', 'good');
@@ -381,8 +406,12 @@ export const STUDIO_CLIENT_JS = `'use strict';
   /* -------------------- Enregistrement et publication -------------------- */
 
   function draftPayload() {
+    var mediaFormat = state.media
+      ? (String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE')
+      : currentFormat();
+    if (state.media) setFormatForKind(state.media.kind);
     return {
-      format: currentFormat(),
+      format: mediaFormat,
       caption: nodes.caption ? nodes.caption.value : '',
       hashtags: normalizeHashtags(nodes.hashtags ? nodes.hashtags.value : ''),
       cta: nodes.cta ? nodes.cta.value : '',
@@ -504,7 +533,11 @@ export const STUDIO_CLIENT_JS = `'use strict';
     if (nodes.product && draft.product) nodes.product.value = draft.product;
     if (nodes.collection && draft.collection) nodes.collection.value = draft.collection;
     if (nodes.campaign && draft.campaign) nodes.campaign.value = draft.campaign;
-    if (draft.media) { state.media = draft.media; mediaState('Media pret', 'good'); }
+    if (draft.media) {
+      state.media = draft.media;
+      setFormatForKind(draft.media.kind);
+      mediaState('Media pret', 'good');
+    }
     renderPreview();
   }
 
@@ -554,7 +587,10 @@ export const STUDIO_CLIENT_JS = `'use strict';
       if (nodes.cta) nodes.cta.addEventListener(name, renderPreview);
     });
     var formats = document.querySelectorAll('input[name="st-format"]');
-    for (var i = 0; i < formats.length; i += 1) formats[i].addEventListener('change', renderPreview);
+    for (var i = 0; i < formats.length; i += 1) formats[i].addEventListener('change', function () {
+      if (state.media) setFormatForKind(state.media.kind);
+      renderPreview();
+    });
 
     if (nodes.save) nodes.save.addEventListener('click', onSave);
     if (nodes.scheduleBtn) nodes.scheduleBtn.addEventListener('click', onSchedule);

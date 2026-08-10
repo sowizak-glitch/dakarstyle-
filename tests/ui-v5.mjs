@@ -391,6 +391,21 @@ test('l apercu du fichier reste local tant qu il n est pas envoye', () => {
   assert.ok(STUDIO_CLIENT_JS.includes('URL.revokeObjectURL'), 'la memoire est rendue au navigateur');
 });
 
+
+test('le format du brouillon suit toujours le type reel du media', () => {
+  assert.ok(STUDIO_CLIENT_JS.includes('function setFormatForKind(kind)'));
+  assert.ok(STUDIO_CLIENT_JS.includes("String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE'"));
+  assert.ok(STUDIO_CLIENT_JS.includes('if (state.media) setFormatForKind(state.media.kind)'));
+});
+
+test('une image dispose d un fallback local si blob echoue sur Android', () => {
+  assert.ok(STUDIO_CLIENT_JS.includes("typeof FileReader === 'undefined'"));
+  assert.ok(STUDIO_CLIENT_JS.includes('reader.readAsDataURL(file)'));
+  assert.ok(STUDIO_CLIENT_JS.includes("main.addEventListener('error', fallback"));
+  assert.ok(STUDIO_CLIENT_JS.includes("mini.addEventListener('error', fallback"));
+  assert.equal(STUDIO_CLIENT_JS.includes("form.append('file', reader.result"), false, 'le data URL ne doit jamais partir au serveur');
+});
+
 test('la progression affichee est mesuree, jamais simulee', () => {
   assert.ok(STUDIO_CLIENT_JS.includes('request.upload.onprogress'));
   assert.ok(STUDIO_CLIENT_JS.includes('event.lengthComputable'));
