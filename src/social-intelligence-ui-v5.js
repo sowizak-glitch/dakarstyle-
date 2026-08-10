@@ -14,6 +14,13 @@
 
 import { DESIGN_TOKENS, escapeHtml } from './social-intelligence-ui-v4.js';
 
+/**
+ * Entree principale du cockpit. « Publier » est la seule action que
+ * l operateur cherche en arrivant : elle est en haut, pleine largeur, et
+ * n exige aucune lecture prealable du reste de l ecran.
+ */
+export const STUDIO_LINK = '/social-intelligence/v5/studio';
+
 /** Etats d affichage possibles du cockpit. */
 export const UI_STATE = Object.freeze({
   LOADING: 'loading',
@@ -121,6 +128,16 @@ export const COCKPIT_CSS = `
   overflow-wrap:anywhere;
 }
 .v5-empty{color:var(--muted);font-size:13px;font-style:italic}
+.v5-publish{
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  min-height:56px;width:100%;margin:0 0 14px;padding:14px 18px;
+  border-radius:16px;border:1px solid var(--gold);
+  background:var(--gold);color:#1a1408;
+  font-size:17px;font-weight:600;letter-spacing:.02em;
+  text-decoration:none;text-align:center;touch-action:manipulation;
+}
+.v5-publish:focus-visible{outline:2px solid var(--gold2);outline-offset:3px}
+.v5-publish-note{margin:-8px 0 14px;color:var(--muted);font-size:13px;text-align:center}
 .v5-skeleton{height:14px;border-radius:6px;background:var(--panel2);border:1px solid var(--line)}
 @media(min-width:412px){
   .v5-cockpit{padding:20px;padding-left:calc(20px + env(safe-area-inset-left));padding-right:calc(20px + env(safe-area-inset-right))}
@@ -238,6 +255,8 @@ export function renderCockpit(cockpit, options = {}) {
     <h2>SOWHAT Control V5</h2>
     ${renderBadge(state)}
   </div>
+  <a class="v5-publish" href="${escapeHtml(STUDIO_LINK)}">Publier une photo ou une video</a>
+  <p class="v5-publish-note">Choisissez un fichier, ecrivez la legende, publiez ou programmez.</p>
   <div class="v5-grid">
     <article class="v5-card">
       <h3>Instagram</h3>

@@ -135,6 +135,84 @@ async function recordRun(env, run) {
 /* Traitement d une echeance                                           */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Publication d un brouillon, puis application du resultat a la machine a
+ * etats du Studio. C est la SEULE implementation de cette sequence : le
+ * scheduler et la publication immediate depuis le Studio l appellent tous les
+ * deux. Dupliquer cette logique reviendrait a entretenir deux machines a
+ * etats qui divergeraient au premier correctif applique a une seule.
+ *
+ * Le brouillon transmis doit etre en READY ou SCHEDULED : `beginPublishing`
+ * le verifie, ainsi que le portail SAFE et la validite du contenu.
+ */
+export async function publishAndPersist(env, client, draft, options = {}) {
+  const now = options.now || (() => Date.now());
+  const onEvent = typeof options.onEvent === 'function' ? options.onEvent : () => {};
+  const draftId = draft?.draft_id;
+
+  // 5. Media revalide juste avant l envoi : un media accepte hier peut avoir
+  // ete remplace depuis.
+  const media = validateMedia(draft?.media || {});
+  if (!media.valid) {
+    const failed = markFailed(draft, {
+      code: SCHEDULER_ERROR.MEDIA_INVALID, detail: media.errors.join(' ; '), stage: 'preflight',
+    }, { now: now() });
+    await writeDraft(env, failed);
+    return { draft_id: draftId, outcome: 'failed', reason: SCHEDULER_ERROR.MEDIA_INVALID, detail: media.errors, draft: failed };
+  }
+
+  // 6. Publication. Le passage en PUBLISHING est ecrit AVANT l appel Meta :
+  // une interruption laisse une trace visible, pas un etat silencieux.
+  let publishing;
+  try {
+    publishing = beginPublishing(env, draft, { now: now(), jobId: options.jobId || `PUB-${now().toString(36).toUpperCase()}` });
+  } catch (error) {
+    const failed = markFailed(draft, { code: error.code, detail: error.detail || error.message, stage: 'preflight' }, { now: now() });
+    await writeDraft(env, failed);
+    return { draft_id: draftId, outcome: 'failed', reason: error.code, detail: error.detail || error.message, draft: failed };
+  }
+  await writeDraft(env, publishing);
+
+  const result = await publishDraft(env, client, draft, {
+    ...options.publishOptions,
+    now,
+    jobId: publishing.publication_job_id,
+    onEvent,
+  });
+
+  // 7 et 8. Confirmation puis stockage du resultat.
+  if (result.status === PUBLISH_STATUS.PUBLISHED || result.status === PUBLISH_STATUS.ALREADY_PUBLISHED) {
+    const published = markPublished(publishing, result.instagram_media_id, { now: now() });
+    const stored = {
+      ...published,
+      permalink: result.permalink || null,
+      idempotency_key: result.idempotency_key || published.idempotency_key,
+    };
+    await writeDraft(env, stored);
+    return { draft_id: draftId, outcome: result.status, instagram_media_id: result.instagram_media_id, permalink: stored.permalink, draft: stored };
+  }
+
+  const failed = markFailed(publishing, {
+    code: result.error_code || 'publish_failed',
+    detail: result.detail || '',
+    stage: result.stage || 'publish',
+  }, { now: now() });
+  const stored = {
+    ...failed,
+    requires_manual_check: result.status === PUBLISH_STATUS.REQUIRES_MANUAL_CHECK,
+    creation_id: result.creation_id || null,
+  };
+  await writeDraft(env, stored);
+  return {
+    draft_id: draftId,
+    outcome: result.status,
+    reason: result.error_code,
+    detail: result.detail || '',
+    requires_manual_check: result.status === PUBLISH_STATUS.REQUIRES_MANUAL_CHECK,
+    draft: stored,
+  };
+}
+
 async function processDue(env, client, draftId, context) {
   const { now, onEvent, publishOptions, runId } = context;
 
@@ -149,63 +227,12 @@ async function processDue(env, client, draftId, context) {
     return { draft_id: draftId, outcome: 'skipped', reason: SCHEDULER_ERROR.NOT_DUE, scheduled_for: draft.scheduled_for };
   }
 
-  // 5. Media revalide juste avant l envoi : un media accepte hier peut avoir
-  // ete remplace depuis.
-  const media = validateMedia(draft.media || {});
-  if (!media.valid) {
-    const failed = markFailed(draft, {
-      code: SCHEDULER_ERROR.MEDIA_INVALID, detail: media.errors.join(' ; '), stage: 'preflight',
-    }, { now: now() });
-    await writeDraft(env, failed);
-    return { draft_id: draftId, outcome: 'failed', reason: SCHEDULER_ERROR.MEDIA_INVALID, detail: media.errors };
-  }
-
-  // 6. Publication. Le passage en PUBLISHING est ecrit AVANT l appel Meta :
-  // une interruption laisse une trace visible, pas un etat silencieux.
-  let publishing;
-  try {
-    publishing = beginPublishing(env, draft, { now: now(), jobId: `${runId}-${draftId}` });
-  } catch (error) {
-    const failed = markFailed(draft, { code: error.code, detail: error.detail || error.message, stage: 'preflight' }, { now: now() });
-    await writeDraft(env, failed);
-    return { draft_id: draftId, outcome: 'failed', reason: error.code };
-  }
-  await writeDraft(env, publishing);
-
-  const result = await publishDraft(env, client, draft, {
-    ...publishOptions,
-    now,
-    jobId: publishing.publication_job_id,
-    onEvent,
+  const outcome = await publishAndPersist(env, client, draft, {
+    now, onEvent, publishOptions, jobId: `${runId}-${draftId}`,
   });
-
-  // 7 et 8. Confirmation puis stockage du resultat.
-  if (result.status === PUBLISH_STATUS.PUBLISHED || result.status === PUBLISH_STATUS.ALREADY_PUBLISHED) {
-    const published = markPublished(publishing, result.instagram_media_id, { now: now() });
-    await writeDraft(env, {
-      ...published,
-      permalink: result.permalink || null,
-      idempotency_key: result.idempotency_key || published.idempotency_key,
-    });
-    return { draft_id: draftId, outcome: result.status, instagram_media_id: result.instagram_media_id };
-  }
-
-  const failed = markFailed(publishing, {
-    code: result.error_code || 'publish_failed',
-    detail: result.detail || '',
-    stage: result.stage || 'publish',
-  }, { now: now() });
-  await writeDraft(env, {
-    ...failed,
-    requires_manual_check: result.status === PUBLISH_STATUS.REQUIRES_MANUAL_CHECK,
-    creation_id: result.creation_id || null,
-  });
-  return {
-    draft_id: draftId,
-    outcome: result.status,
-    reason: result.error_code,
-    requires_manual_check: result.status === PUBLISH_STATUS.REQUIRES_MANUAL_CHECK,
-  };
+  // Le brouillon complet n interesse pas le compte rendu d execution.
+  const { draft: _stored, ...report } = outcome;
+  return report;
 }
 
 /* ------------------------------------------------------------------ */

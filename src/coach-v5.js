@@ -14,6 +14,7 @@
  */
 
 import { CONFIDENCE, INSIGHT_KIND } from './content-memory-v5.js';
+import { createDraft } from './studio-v5.js';
 
 /** Une correlation faible ne donne pas un ordre, elle donne un test. */
 export const RECOMMENDATION_MODE = Object.freeze({
@@ -187,6 +188,98 @@ function selectCorrelations(correlations, limit) {
       || (Math.abs(b.delta_pct) - Math.abs(a.delta_pct))
       || `${a.dimension}:${a.value}`.localeCompare(`${b.dimension}:${b.value}`))
     .slice(0, limit);
+}
+
+/* ------------------------------------------------------------------ */
+/* Prefill du Studio                                                   */
+/* ------------------------------------------------------------------ */
+
+/** Formats acceptes par le Studio, tels qu ils sortent des dimensions Meta. */
+const FORMAT_FROM_VALUE = {
+  REEL: 'REEL', REELS: 'REEL', VIDEO: 'VIDEO', IMAGE: 'IMAGE',
+  CAROUSEL: 'CAROUSEL', CAROUSEL_ALBUM: 'CAROUSEL', FEED: 'IMAGE',
+};
+
+function scaffoldCaption(recommendation) {
+  const lines = [
+    recommendation.conclusion,
+    '',
+    'A REECRIRE : cette trame vient d une correlation observee, pas d une legende redigee.',
+    recommendation.next_action,
+  ];
+  return lines.filter((line) => line !== undefined && line !== null).join('\n');
+}
+
+/**
+ * « Creer a partir de cette recommandation » : transforme une recommandation
+ * du Coach en brouillon Studio.
+ *
+ * Une recommandation NEGATIVE (« eviter ce creneau », « reduire ce format »)
+ * ne prefigure aucune valeur : preremplir le champ avec ce qu il faut eviter
+ * produirait exactement le contenu que le Coach deconseille. Dans ce cas seuls
+ * le contexte et l action sont transmis, et l operateur choisit.
+ *
+ * Comme pour le plan, le brouillon nait en DRAFT, sans media et sans
+ * approbation : le Coach ne peut donc jamais declencher une publication.
+ */
+export function prefillDraftFromRecommendation(briefing, recommendationId, options = {}) {
+  const list = Array.isArray(briefing?.recommendations) ? briefing.recommendations : [];
+  const wanted = String(recommendationId || '').trim();
+  const recommendation = wanted
+    ? list.find((item) => item.id === wanted)
+    : list[0];
+
+  if (!recommendation) {
+    const error = new Error('coach_recommendation_not_found');
+    error.code = 'coach_recommendation_not_found';
+    throw error;
+  }
+
+  const positive = Number(recommendation.metrics?.delta_pct ?? 0) >= 0;
+  const dimension = String(recommendation.dimension || '');
+  const value = String(recommendation.value ?? '');
+  const applied = positive ? value : '';
+
+  const input = {
+    caption: scaffoldCaption(recommendation),
+    objective: recommendation.conclusion,
+    angle: recommendation.next_action,
+    id_suffix: recommendation.id?.replace(/[^A-Za-z0-9]/g, '') || 'COACH',
+    source: {
+      origin: 'coach_recommandation',
+      recommendation_id: recommendation.id,
+      mode: recommendation.mode,
+      dimension,
+      value,
+      direction: positive ? 'a_reproduire' : 'a_eviter',
+      confidence: recommendation.confidence,
+      sample_size: recommendation.sample_size,
+      metrics: recommendation.metrics || null,
+      next_action: recommendation.next_action,
+      limits: recommendation.limits || [],
+      briefing_generated_at: briefing?.generated_at || null,
+    },
+  };
+
+  if (applied) {
+    if (dimension === 'format' || dimension === 'media_type') {
+      input.format = FORMAT_FROM_VALUE[applied.toUpperCase()] || 'IMAGE';
+    }
+    if (dimension === 'product') input.product = applied;
+    if (dimension === 'collection') input.collection = applied;
+    if (dimension === 'campaign') input.campaign = applied;
+    if (dimension === 'cta') input.cta = applied;
+    if (dimension === 'hook_type') input.hook = applied;
+    if (dimension === 'tag') input.hashtags = [applied];
+  }
+
+  // Creneau conseille : transmis comme suggestion de programmation, jamais
+  // applique tout seul. Programmer reste un geste explicite.
+  if (positive && (dimension === 'hour_slot' || dimension === 'weekday')) {
+    input.source.suggested_slot = { dimension, value: applied };
+  }
+
+  return createDraft(input, { now: options.now });
 }
 
 /* ------------------------------------------------------------------ */
