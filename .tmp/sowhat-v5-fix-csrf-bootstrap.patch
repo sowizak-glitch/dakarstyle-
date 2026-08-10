@@ -1,0 +1,409 @@
+From 19b11bc3d42aaa8e2ec73e73dfa4b4455e18e396 Mon Sep 17 00:00:00 2001
+From: SOWHAT Agent <agent@sowhat.local>
+Date: Mon, 10 Aug 2026 17:04:14 +0100
+Subject: [PATCH] fix(v5): amorcer le secret CSRF quand la configuration n en
+ fournit aucun
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+En production, SOCIAL_INTELLIGENCE_CSRF_SECRET est absent : security-v5.js
+refusait donc d emettre le moindre jeton, et le Studio mobile echouait des
+la selection d une photo avec « La securite du cockpit n est pas encore
+configuree ».
+
+resolveCsrfSecret() garde la configuration explicite comme premier choix.
+A defaut, il amorce UNE SEULE FOIS un secret tire de crypto.getRandomValues,
+range dans un objet prive du bucket, hors du prefixe des medias publics :
+la route de lecture publique ne sert que ce prefixe et ne peut donc pas le
+divulguer.
+
+L amorcage passe par une ecriture conditionnelle et ne fait jamais confiance
+a son propre resultat : seul ce qui est relu fait foi. Deux initialisations
+simultanees convergent donc vers le meme secret, et un stockage qui n ecrit
+pas vraiment est detecte au lieu de produire un secret volatil qui
+invaliderait les jetons a chaque requete.
+
+Sans bucket, sans relecture concordante : refus. Aucune protection retiree,
+la liaison a la session, l expiration et le controle d origine sont inchanges.
+---
+ src/security-v5.js          | 112 +++++++++++++++++++++++++++++++++---
+ tests/routes-v5.mjs         |  90 +++++++++++++++++++++++++++++
+ tests/security-audit-v5.mjs |  13 +++++
+ tests/studio-v5.mjs         |  92 ++++++++++++++++++++++++++++-
+ 4 files changed, 298 insertions(+), 9 deletions(-)
+
+diff --git a/src/security-v5.js b/src/security-v5.js
+index 984e8a3..5d0da76 100755
+--- a/src/security-v5.js
++++ b/src/security-v5.js
+@@ -65,6 +65,103 @@ export function assertSafeGate(env, subject) {
+ 
+ const CSRF_MAX_AGE_MS = 2 * 60 * 60 * 1000;
+ 
++/** Longueur minimale d un secret CSRF exploitable. */
++export const CSRF_SECRET_MIN_LENGTH = 32;
++
++/**
++ * Emplacement prive du secret amorce. Il est volontairement HORS du prefixe
++ * `MEDIA_KEY_PREFIX` : la route publique des medias ne sert que ce prefixe,
++ * ce fichier ne peut donc jamais etre servi a personne.
++ */
++export const CSRF_SECRET_KEY = 'visuals/social-intelligence/v5/csrf-secret.json';
++
++/** Un secret par bucket, garde en memoire de l isolat pour eviter une lecture par requete. */
++const secretCache = new WeakMap();
++
++function csrfNotConfigured(detail) {
++  const error = new Error(SECURITY_ERROR.CSRF_NOT_CONFIGURED);
++  error.code = SECURITY_ERROR.CSRF_NOT_CONFIGURED;
++  error.detail = String(detail || '');
++  return error;
++}
++
++function randomSecret() {
++  const bytes = new Uint8Array(48);
++  crypto.getRandomValues(bytes);
++  let binary = '';
++  for (const byte of bytes) binary += String.fromCharCode(byte);
++  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
++}
++
++async function readStoredSecret(bucket) {
++  try {
++    const object = await bucket.get(CSRF_SECRET_KEY);
++    if (!object) return '';
++    const parsed = JSON.parse(await object.text());
++    const value = String(parsed?.secret || '');
++    return value.length >= CSRF_SECRET_MIN_LENGTH ? value : '';
++  } catch {
++    return '';
++  }
++}
++
++/**
++ * Secret de signature des jetons CSRF.
++ *
++ * Ordre, sans repli silencieux :
++ *   1. `SOCIAL_INTELLIGENCE_CSRF_SECRET` s il est configure et assez long ;
++ *   2. sinon un secret amorce UNE SEULE FOIS cote serveur, tire de
++ *      `crypto.getRandomValues` et range dans un objet prive du bucket.
++ *
++ * L amorcage passe par une ecriture conditionnelle. Deux initialisations
++ * simultanees ne peuvent donc pas produire deux secrets differents : la
++ * seconde perd la course, relit, et adopte celui de la premiere. Sans bucket,
++ * sans ecriture conditionnelle ou sans relecture concordante, on REFUSE :
++ * un CSRF signe par un secret qui change a chaque requete ne protege rien.
++ */
++export async function resolveCsrfSecret(env) {
++  const configured = String(env?.SOCIAL_INTELLIGENCE_CSRF_SECRET || '').trim();
++  if (configured.length >= CSRF_SECRET_MIN_LENGTH) return configured;
++
++  const bucket = env?.VISUALS_BUCKET;
++  if (!bucket || typeof bucket.get !== 'function' || typeof bucket.put !== 'function') {
++    throw csrfNotConfigured('aucun secret configure et aucun stockage pour en amorcer un');
++  }
++
++  const cached = secretCache.get(bucket);
++  if (cached) return cached;
++
++  const existing = await readStoredSecret(bucket);
++  if (existing) {
++    secretCache.set(bucket, existing);
++    return existing;
++  }
++
++  const candidate = randomSecret();
++  try {
++    await bucket.put(CSRF_SECRET_KEY, JSON.stringify({
++      secret: candidate,
++      created_at: new Date().toISOString(),
++      origin: 'bootstrap',
++    }), {
++      onlyIf: { etagDoesNotMatch: '*' },
++      httpMetadata: { contentType: 'application/json; charset=utf-8', cacheControl: 'no-store' },
++    });
++  } catch {
++    // L ecriture a peut-etre echoue parce qu une autre execution a gagne :
++    // la relecture ci-dessous tranche.
++  }
++
++  // On ne fait jamais confiance au resultat de l ecriture : seul ce qui est
++  // REELLEMENT stocke fait foi. C est ce qui rend deux amorcages simultanes
++  // inoffenifs, et ce qui detecte un stockage qui n ecrit pas vraiment.
++  const stored = await readStoredSecret(bucket);
++  if (!stored) throw csrfNotConfigured('secret amorce non relu apres ecriture');
++
++  secretCache.set(bucket, stored);
++  return stored;
++}
++
+ function toBase64Url(bytes) {
+   let binary = '';
+   for (const byte of bytes) binary += String.fromCharCode(byte);
+@@ -96,19 +193,20 @@ export function constantTimeEqual(a, b) {
+  * le rejouer depuis une autre session ne sert a rien.
+  */
+ export async function issueCsrfToken(env, sessionId, now = Date.now()) {
+-  const secret = String(env?.SOCIAL_INTELLIGENCE_CSRF_SECRET || '').trim();
+-  if (secret.length < 32) {
+-    const error = new Error(SECURITY_ERROR.CSRF_NOT_CONFIGURED);
+-    error.code = SECURITY_ERROR.CSRF_NOT_CONFIGURED;
+-    throw error;
+-  }
++  const secret = await resolveCsrfSecret(env);
++  if (secret.length < 32) throw csrfNotConfigured('secret trop court');
+   const issuedAt = String(now);
+   const signature = await hmac(secret, `${sessionId}.${issuedAt}`);
+   return `${issuedAt}.${signature}`;
+ }
+ 
+ export async function verifyCsrfToken(env, sessionId, token, now = Date.now(), maxAgeMs = CSRF_MAX_AGE_MS) {
+-  const secret = String(env?.SOCIAL_INTELLIGENCE_CSRF_SECRET || '').trim();
++  let secret;
++  try {
++    secret = await resolveCsrfSecret(env);
++  } catch {
++    return { valid: false, code: SECURITY_ERROR.CSRF_NOT_CONFIGURED };
++  }
+   if (secret.length < 32) return { valid: false, code: SECURITY_ERROR.CSRF_NOT_CONFIGURED };
+ 
+   const raw = String(token ?? '');
+diff --git a/tests/routes-v5.mjs b/tests/routes-v5.mjs
+index eaf0243..70f28dc 100755
+--- a/tests/routes-v5.mjs
++++ b/tests/routes-v5.mjs
+@@ -728,6 +728,96 @@ test('un brouillon valide dont le media est retire ne reste pas « pret »', asy
+   assert.equal(response.status, 422, 'un contenu sans media ne peut plus etre declare pret');
+ });
+ 
++/* ---------------- Secret CSRF amorce : le cas reel de production ---------------- */
++
++async function sessionEnv() {
++  // Exactement la configuration de production : aucun SOCIAL_INTELLIGENCE_CSRF_SECRET.
++  const env = makeEnv({ SOCIAL_INTELLIGENCE_CSRF_SECRET: undefined });
++  const token = 'jeton-de-session-navigateur-suffisamment-long-123';
++  const digest = await (async () => {
++    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
++    return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
++  })();
++  env.VISUALS_BUCKET.s.set(
++    `visuals/social-intelligence/sessions/${digest}.json`,
++    JSON.stringify({ expires_at: Date.now() + 3600000, csrf: 'x' }),
++  );
++  return { env, cookie: `__Host-sowhat_si=${token}` };
++}
++
++test('sans secret configure, la session navigateur obtient un vrai jeton CSRF', async () => {
++  const { env, cookie } = await sessionEnv();
++  const response = await call(env, req(`${V5_API_PREFIX}csrf`, { auth: false, headers: { cookie } }));
++  assert.equal(response.status, 200, 'plus de csrf_not_configured');
++  const body = await response.json();
++  assert.ok(body.csrf_token, 'un jeton exploitable doit etre renvoye');
++  assert.ok(body.csrf_token.includes('.'));
++  // Le secret lui-meme ne sort jamais.
++  const stored = JSON.parse(env.VISUALS_BUCKET.s.get('visuals/social-intelligence/v5/csrf-secret.json')).secret;
++  assert.equal(JSON.stringify(body).includes(stored), false, 'le secret ne doit jamais atteindre le navigateur');
++});
++
++test('le jeton amorce ouvre reellement le televersement', async () => {
++  const { env, cookie } = await sessionEnv();
++  const { csrf_token: token } = await (await call(env, req(`${V5_API_PREFIX}csrf`, { auth: false, headers: { cookie } }))).json();
++
++  const upload = new Request(`https://dakarstyle.com${V5_API_PREFIX}media/upload`, {
++    method: 'POST',
++    headers: new Headers({ cookie, 'x-sowhat-csrf': token, origin: 'https://dakarstyle.com' }),
++    body: multipart(JPEG_BYTES, 'look.jpg', 'image/jpeg'),
++  });
++  const response = await call(env, upload);
++  assert.equal(response.status, 201, 'la barriere CSRF doit etre franchie');
++  const body = await response.json();
++  assert.equal(body.ok, true);
++  assert.ok(body.media.r2_key.startsWith(MEDIA_KEY_PREFIX));
++});
++
++test('meme avec un jeton valide, une origine etrangere reste refusee', async () => {
++  const { env, cookie } = await sessionEnv();
++  const { csrf_token: token } = await (await call(env, req(`${V5_API_PREFIX}csrf`, { auth: false, headers: { cookie } }))).json();
++
++  const upload = new Request(`https://dakarstyle.com${V5_API_PREFIX}media/upload`, {
++    method: 'POST',
++    headers: new Headers({ cookie, 'x-sowhat-csrf': token, origin: 'https://site-malveillant.example' }),
++    body: multipart(JPEG_BYTES, 'look.jpg', 'image/jpeg'),
++  });
++  const response = await call(env, upload);
++  assert.equal(response.status, 403);
++  assert.equal((await response.json()).error, 'csrf_invalid');
++  assert.equal(env.VISUALS_BUCKET.s.has('x'), false);
++});
++
++test('un jeton emis pour une autre session navigateur ne passe pas', async () => {
++  const first = await sessionEnv();
++  const { csrf_token: token } = await (await call(first.env, req(`${V5_API_PREFIX}csrf`, { auth: false, headers: { cookie: first.cookie } }))).json();
++
++  // Deuxieme session, meme stockage donc meme secret amorce.
++  const other = 'un-autre-jeton-de-session-navigateur-tout-aussi-long';
++  const digest = await (async () => {
++    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(other));
++    return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
++  })();
++  first.env.VISUALS_BUCKET.s.set(
++    `visuals/social-intelligence/sessions/${digest}.json`,
++    JSON.stringify({ expires_at: Date.now() + 3600000, csrf: 'x' }),
++  );
++
++  const response = await call(first.env, new Request(`https://dakarstyle.com${STUDIO_API_PREFIX}drafts`, {
++    method: 'POST',
++    headers: new Headers({ cookie: `__Host-sowhat_si=${other}`, 'x-sowhat-csrf': token, 'content-type': 'application/json' }),
++    body: '{}',
++  }));
++  assert.equal(response.status, 403, 'un jeton n est valable que pour la session qui l a demande');
++});
++
++test('sans stockage, le cockpit refuse au lieu d improviser un secret', async () => {
++  const env = { SOCIAL_INTELLIGENCE_ADMIN_KEY_SHA256: ADMIN_HASH };
++  const response = await call(env, req(`${V5_API_PREFIX}csrf`));
++  assert.equal(response.status, 503);
++  assert.equal((await response.json()).error, 'csrf_not_configured');
++});
++
+ /* ---------------- Execution ---------------- */
+ 
+ let failures = 0;
+diff --git a/tests/security-audit-v5.mjs b/tests/security-audit-v5.mjs
+index 0d0daa8..b5fe69d 100755
+--- a/tests/security-audit-v5.mjs
++++ b/tests/security-audit-v5.mjs
+@@ -120,6 +120,19 @@ test('CSRF exige un secret suffisant, sans mode degrade', () => {
+   assert.ok(security.includes('constantTimeEqual'), 'comparaison a duree constante obligatoire');
+ });
+ 
++test('le secret CSRF amorce est aleatoire, stable et hors de portee publique', () => {
++  const security = sources['security-v5.js'];
++  assert.ok(security.includes('crypto.getRandomValues'), 'tirage cryptographique obligatoire');
++  assert.ok(security.includes("onlyIf: { etagDoesNotMatch: '*' }"), 'amorcage par ecriture conditionnelle');
++  assert.ok(security.includes('const stored = await readStoredSecret(bucket)'),
++    'seul ce qui est reellement stocke fait foi');
++  // Le secret ne vit pas sous le prefixe des medias : la route publique ne
++  // sert que ce prefixe, elle ne peut donc pas le divulguer.
++  assert.equal(security.includes(`${'CSRF_SECRET_KEY'} = \`${'$'}{MEDIA_KEY_PREFIX}\``), false);
++  assert.ok(/CSRF_SECRET_KEY = 'visuals\/social-intelligence\/v5\/csrf-secret\.json'/.test(security));
++  assert.equal(security.includes('Math.random'), false, 'aucun aleatoire non cryptographique');
++});
++
+ test('l idempotence refuse plutot que de supposer l exclusion mutuelle', () => {
+   const security = sources['security-v5.js'];
+   assert.ok(security.includes("etagDoesNotMatch: '*'"), 'ecriture conditionnelle');
+diff --git a/tests/studio-v5.mjs b/tests/studio-v5.mjs
+index 926792d..a6ef5c7 100755
+--- a/tests/studio-v5.mjs
++++ b/tests/studio-v5.mjs
+@@ -9,8 +9,8 @@ import { prefillDraftFromPlanDay } from '../src/plan-v5.js';
+ import {
+   ALLOWED_MEDIA_TYPES, MEDIA_KEY_PREFIX, SECURITY_ERROR,
+   businessIdempotencyKey, checkSafeGate, completeIdempotencyKey, constantTimeEqual,
+-  issueCsrfToken, readIdempotencyRecord, reserveIdempotencyKey, sanitizeFilename,
+-  validateMedia, verifyCsrfToken,
++  CSRF_SECRET_KEY, issueCsrfToken, readIdempotencyRecord, reserveIdempotencyKey,
++  resolveCsrfSecret, sanitizeFilename, validateMedia, verifyCsrfToken,
+ } from '../src/security-v5.js';
+ import {
+   ALLOWED_TRANSITIONS, MAX_CAPTION_LENGTH, STUDIO_ERROR, STUDIO_STATE,
+@@ -459,6 +459,94 @@ test('prefill Plan et prefill Coach produisent des brouillons de meme nature', (
+   }
+ });
+ 
++/* ---------------- Secret CSRF : configure ou amorce ---------------- */
++
++test('secret configure : utilise tel quel, sans rien ecrire dans le stockage', async () => {
++  const bucket = new Bucket();
++  const env = { SOCIAL_INTELLIGENCE_CSRF_SECRET: SECRET, VISUALS_BUCKET: bucket };
++  assert.equal(await resolveCsrfSecret(env), SECRET);
++  assert.equal(bucket.puts, 0, 'un secret configure n a pas besoin d etre amorce');
++  assert.equal(bucket.s.has(CSRF_SECRET_KEY), false);
++});
++
++test('secret absent : un secret aleatoire est amorce une fois dans le stockage', async () => {
++  const bucket = new Bucket();
++  const env = { VISUALS_BUCKET: bucket };
++  const secret = await resolveCsrfSecret(env);
++  assert.ok(secret.length >= 32, 'le secret amorce doit etre assez long');
++  assert.equal(bucket.json(CSRF_SECRET_KEY).secret, secret);
++  // Le chemin est prive : il ne tombe pas sous le prefixe des medias publics.
++  assert.equal(CSRF_SECRET_KEY.startsWith(MEDIA_KEY_PREFIX), false);
++
++  // Le jeton emis avec ce secret est verifiable : la barriere fonctionne.
++  const token = await issueCsrfToken(env, 'session:abc', NOW);
++  assert.equal((await verifyCsrfToken(env, 'session:abc', token, NOW)).valid, true);
++});
++
++test('secret amorce : reutilise, jamais regenere', async () => {
++  const bucket = new Bucket();
++  const first = await resolveCsrfSecret({ VISUALS_BUCKET: bucket });
++  // Un autre env, meme bucket : le secret doit venir du stockage, pas d un tirage.
++  const second = await resolveCsrfSecret({ VISUALS_BUCKET: bucket });
++  assert.equal(second, first);
++
++  // Un jeton emis avant reste valide apres : le secret n a pas bouge.
++  const token = await issueCsrfToken({ VISUALS_BUCKET: bucket }, 'session:abc', NOW);
++  assert.equal((await verifyCsrfToken({ VISUALS_BUCKET: bucket }, 'session:abc', token, NOW)).valid, true);
++  assert.equal(bucket.puts, 1, 'une seule ecriture, quel que soit le nombre d appels');
++});
++
++test('deux amorcages simultanes convergent vers le meme secret', async () => {
++  const bucket = new Bucket();
++  // Deux env distincts : le cache memoire ne peut pas masquer la course.
++  const [a, b] = await Promise.all([
++    resolveCsrfSecret({ VISUALS_BUCKET: bucket }),
++    resolveCsrfSecret({ VISUALS_BUCKET: bucket }),
++  ]);
++  assert.equal(a, b, 'le perdant de la course adopte le secret du gagnant');
++  assert.equal(bucket.json(CSRF_SECRET_KEY).secret, a);
++});
++
++test('un jeton amorce ne vaut que pour sa session', async () => {
++  const bucket = new Bucket();
++  const env = { VISUALS_BUCKET: bucket };
++  const token = await issueCsrfToken(env, 'session:legitime', NOW);
++  assert.equal((await verifyCsrfToken(env, 'session:autre', token, NOW)).valid, false);
++  assert.equal((await verifyCsrfToken(env, 'session:autre', token, NOW)).code, SECURITY_ERROR.CSRF_INVALID);
++});
++
++test('un jeton amorce expire comme les autres', async () => {
++  const env = { VISUALS_BUCKET: new Bucket() };
++  const token = await issueCsrfToken(env, 'session:abc', NOW);
++  const late = await verifyCsrfToken(env, 'session:abc', token, NOW + 3 * 60 * 60 * 1000);
++  assert.equal(late.valid, false);
++  assert.equal(late.code, SECURITY_ERROR.CSRF_EXPIRED);
++});
++
++test('sans stockage : refus net, aucun secret improvise', async () => {
++  for (const env of [{}, { VISUALS_BUCKET: null }, { VISUALS_BUCKET: {} }]) {
++    await assert.rejects(
++      () => resolveCsrfSecret(env),
++      (error) => error.code === SECURITY_ERROR.CSRF_NOT_CONFIGURED,
++    );
++    await assert.rejects(
++      () => issueCsrfToken(env, 'session:abc', NOW),
++      (error) => error.code === SECURITY_ERROR.CSRF_NOT_CONFIGURED,
++    );
++    const check = await verifyCsrfToken(env, 'session:abc', 'x.y', NOW);
++    assert.equal(check.valid, false);
++    assert.equal(check.code, SECURITY_ERROR.CSRF_NOT_CONFIGURED);
++  }
++});
++
++test('stockage qui n ecrit rien : refus plutot qu un secret volatil', async () => {
++  const bucket = { async get() { return null; }, async put() { return { key: 'x' }; } };
++  await assert.rejects(
++    () => resolveCsrfSecret({ VISUALS_BUCKET: bucket }),
++    (error) => error.code === SECURITY_ERROR.CSRF_NOT_CONFIGURED,
++  );
++});
++
+ /* ---------------- Execution ---------------- */
+ 
+ let failures = 0;
+-- 
+2.34.1
+
