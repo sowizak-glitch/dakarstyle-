@@ -83,17 +83,26 @@ jobs:
           test "$count" = "17"
           grep -q 'Subject: \[PATCH 17/17\]' /tmp/v5.patch
 
-      - name: Apply exact 17-commit series on verified base
+      - name: Apply 17 commits and remove workflow-only delta for token-limited push
         shell: bash
         run: |
           set -euo pipefail
+          BASE=da65da8f829c0e26d82f071a80622e399fb5366e
           git config user.name "SOWHAT V5 GitHub Import"
           git config user.email "noreply@github.com"
-          git checkout --detach da65da8f829c0e26d82f071a80622e399fb5366e
+          git checkout --detach "$BASE"
           git am --committer-date-is-author-date /tmp/v5.patch
-          test "$(git rev-list --count da65da8f829c0e26d82f071a80622e399fb5366e..HEAD)" = "17"
+          test "$(git rev-list --count "$BASE"..HEAD)" = "17"
+
+          FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch -f --tree-filter \
+            "git checkout $BASE -- .github/workflows/social-intelligence-deploy.yml .github/workflows/social-intelligence-quality.yml" \
+            -- "$BASE"..HEAD
+
+          test "$(git rev-list --count "$BASE"..HEAD)" = "17"
+          test -z "$(git diff --name-only "$BASE"..HEAD -- .github/workflows/social-intelligence-deploy.yml .github/workflows/social-intelligence-quality.yml)"
           test -z "$(git status --porcelain)"
-          echo "FINAL_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "FILTERED_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "FILTERED_PARENT_SHA=$(git rev-parse HEAD^)" >> "$GITHUB_ENV"
 
       - name: Full repository tests
         run: npm test
@@ -104,11 +113,11 @@ jobs:
       - name: Cloudflare dry-run
         run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-v5-final-import
 
-      - name: Atomically replace V5 target branch
+      - name: Atomically replace V5 target branch with 17-commit code history
         shell: bash
         run: |
           set -euo pipefail
           git push \
             --force-with-lease=refs/heads/agent/sowhat-control-v5-instagram-engine:c9aef4173fe53b5a0f2fda807270a6d32e076565 \
             origin HEAD:refs/heads/agent/sowhat-control-v5-instagram-engine
-          echo "Imported final V5 history at ${FINAL_SHA}" >> "$GITHUB_STEP_SUMMARY"
+          echo "Pushed filtered V5 history at ${FILTERED_SHA}; workflow deltas are intentionally restored next through the authorized GitHub connector." >> "$GITHUB_STEP_SUMMARY"
