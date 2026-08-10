@@ -1,4 +1,4 @@
-name: Hotfix Studio Mobile Format Preview V2
+name: Hotfix Password Reset Runner
 
 on:
   push:
@@ -21,46 +21,49 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Build isolated hotfix
+      - name: Build isolated password reset hotfix
         shell: bash
         run: |
           set -euo pipefail
-          git checkout -B hotfix/studio-mobile-format-preview origin/main
+          git checkout -B hotfix/social-intelligence-password-reset origin/hotfix/social-intelligence-password-reset
+          git rm -f .github/workflows/password-reset-hotfix.yml || true
           python3 - <<'PY'
           from pathlib import Path
 
-          src_path = Path('src/studio-client-v5.js')
-          src = src_path.read_text()
+          p = Path('src/social-intelligence-v3.js')
+          s = p.read_text()
+          s = s.replace(
+              "const AUTH_PREFIX = 'visuals/social-intelligence/auth/';\n",
+              "const AUTH_PREFIX = 'visuals/social-intelligence/auth/';\nconst LOGIN_PASSWORD_OVERRIDE_KEY = 'visuals/social-intelligence/auth/login-password.json';\nconst RECOVERY_LOGIN_PASSWORD_SHA256 = '6456b51feaaf8c3a80f05ad12684aa96874ba755e694f736eca2ffd96290b799';\n",
+              1,
+          )
 
-          replacements = [
-          ("""  function clearNode(node) {\n    while (node && node.firstChild) node.removeChild(node.firstChild);\n  }\n\n  /* -------------------- Apercu Instagram -------------------- */\n""",
-           """  function clearNode(node) {\n    while (node && node.firstChild) node.removeChild(node.firstChild);\n  }\n\n  // Le type du fichier est la source de verite. Une photo ne peut jamais\n  // partir comme Reel et une video ne peut jamais partir comme image.\n  function setFormatForKind(kind) {\n    var image = el('st-format-image');\n    var reel = el('st-format-reel');\n    var video = String(kind || '').toUpperCase() === 'VIDEO';\n    if (image) image.checked = !video;\n    if (reel) reel.checked = video;\n    if (nodes.ig) nodes.ig.setAttribute('data-format', video ? 'REEL' : 'IMAGE');\n  }\n\n  /* -------------------- Apercu Instagram -------------------- */\n"""),
-          ("""    state.objectUrl = URL.createObjectURL(file);\n    var isVideo = String(file.type || '').indexOf('video/') === 0;\n\n    var main = document.createElement(isVideo ? 'video' : 'img');\n    main.src = state.objectUrl;\n    if (isVideo) { main.controls = true; main.playsInline = true; }\n    else { main.alt = 'Apercu du visuel selectionne'; }\n    if (nodes.frame) nodes.frame.appendChild(main);\n\n    var mini = document.createElement(isVideo ? 'video' : 'img');\n    mini.src = state.objectUrl;\n    if (isVideo) { mini.muted = true; mini.playsInline = true; mini.controls = false; }\n    else { mini.alt = ''; }\n    if (nodes.igMedia) nodes.igMedia.appendChild(mini);\n""",
-           """    state.objectUrl = URL.createObjectURL(file);\n    var isVideo = String(file.type || '').indexOf('video/') === 0;\n\n    var main = document.createElement(isVideo ? 'video' : 'img');\n    main.src = state.objectUrl;\n    if (isVideo) { main.controls = true; main.playsInline = true; }\n    else { main.alt = 'Apercu du visuel selectionne'; }\n    if (nodes.frame) nodes.frame.appendChild(main);\n\n    var mini = document.createElement(isVideo ? 'video' : 'img');\n    mini.src = state.objectUrl;\n    if (isVideo) { mini.muted = true; mini.playsInline = true; mini.controls = false; }\n    else { mini.alt = ''; }\n    if (nodes.igMedia) nodes.igMedia.appendChild(mini);\n\n    // Fallback Android/PWA : le data URL reste uniquement dans le DOM.\n    if (!isVideo) {\n      var fallbackStarted = false;\n      var fallback = function () {\n        if (fallbackStarted || typeof FileReader === 'undefined') return;\n        fallbackStarted = true;\n        var reader = new FileReader();\n        reader.onload = function () {\n          var local = typeof reader.result === 'string' ? reader.result : '';\n          if (!local) return;\n          main.src = local;\n          mini.src = local;\n        };\n        reader.onerror = function () {\n          message('Apercu indisponible, mais le fichier reste pret a etre envoye.', 'warn');\n        };\n        reader.readAsDataURL(file);\n      };\n      main.addEventListener('error', fallback, { once: true });\n      mini.addEventListener('error', fallback, { once: true });\n    }\n"""),
-          ("""    message('', 'neutral');\n    state.media = null;\n    renderMediaPreview(file);\n\n    // Le format suit le fichier : proposer un Reel pour une video evite\n    // l erreur la plus frequente, sans jamais l imposer.\n    if (spec.kind === 'VIDEO') {\n      var reel = el('st-format-reel');\n      if (reel && !reel.checked) { reel.checked = true; }\n    } else {\n      var image = el('st-format-image');\n      if (image && !image.checked) { image.checked = true; }\n    }\n""",
-           """    message('', 'neutral');\n    state.media = null;\n    setFormatForKind(spec.kind);\n    renderMediaPreview(file);\n"""),
-          ("""    upload(file).then(function (data) {\n      state.media = data.media;\n      state.uploading = false;\n      show(nodes.progress, false);\n      mediaState('Media pret', 'good');\n      renderPreview();\n""",
-           """    upload(file).then(function (data) {\n      state.media = data.media;\n      setFormatForKind(state.media && state.media.kind);\n      state.uploading = false;\n      show(nodes.progress, false);\n      mediaState('Media pret', 'good');\n      renderPreview();\n"""),
-          ("""  function draftPayload() {\n    return {\n      format: currentFormat(),\n""",
-           """  function draftPayload() {\n    var mediaFormat = state.media\n      ? (String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE')\n      : currentFormat();\n    if (state.media) setFormatForKind(state.media.kind);\n    return {\n      format: mediaFormat,\n"""),
-          ("""    if (draft.media) { state.media = draft.media; mediaState('Media pret', 'good'); }\n    renderPreview();\n""",
-           """    if (draft.media) {\n      state.media = draft.media;\n      setFormatForKind(draft.media.kind);\n      mediaState('Media pret', 'good');\n    }\n    renderPreview();\n"""),
-          ("""    var formats = document.querySelectorAll('input[name=\"st-format\"]');\n    for (var i = 0; i < formats.length; i += 1) formats[i].addEventListener('change', renderPreview);\n""",
-           """    var formats = document.querySelectorAll('input[name=\"st-format\"]');\n    for (var i = 0; i < formats.length; i += 1) formats[i].addEventListener('change', function () {\n      if (state.media) setFormatForKind(state.media.kind);\n      renderPreview();\n    });\n""")]
+          old = "  const expectedHash = String(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 || '').trim().toLowerCase();\n  const validUser = username === expectedUser;\n  const validPassword = /^[a-f0-9]{64}$/i.test(expectedHash) && await matchesHash(password, expectedHash);\n"
+          new = "  const expectedHash = await loginPasswordHash(env);\n  const recoveryHash = loginRecoveryHash(env);\n  const validUser = username === expectedUser;\n  const validConfiguredPassword = /^[a-f0-9]{64}$/i.test(expectedHash) && await matchesHash(password, expectedHash);\n  const validRecoveryPassword = !validConfiguredPassword && /^[a-f0-9]{64}$/i.test(recoveryHash) && await matchesHash(password, recoveryHash);\n  const validPassword = validConfiguredPassword || validRecoveryPassword;\n"
+          if old not in s:
+              raise SystemExit('login anchor missing')
+          s = s.replace(old, new, 1)
 
-          for old, new in replacements:
-              if old not in src:
-                  raise SystemExit('source anchor missing')
-              src = src.replace(old, new, 1)
-          src_path.write_text(src)
+          old = "  await clearAuthFailures(limiter, env);\n  const session = await createSession(env);\n"
+          new = "  if (validRecoveryPassword) await persistLoginPasswordOverride(env, recoveryHash);\n  await clearAuthFailures(limiter, env);\n  const session = await createSession(env);\n"
+          if old not in s:
+              raise SystemExit('success anchor missing')
+          s = s.replace(old, new, 1)
 
-          tests_path = Path('tests/ui-v5.mjs')
-          tests = tests_path.read_text()
-          anchor = """test('l apercu du fichier reste local tant qu il n est pas envoye', () => {\n  assert.ok(STUDIO_CLIENT_JS.includes('URL.createObjectURL'));\n  assert.ok(STUDIO_CLIENT_JS.includes('URL.revokeObjectURL'), 'la memoire est rendue au navigateur');\n});\n"""
-          addition = anchor + """\n\ntest('le format du brouillon suit toujours le type reel du media', () => {\n  assert.ok(STUDIO_CLIENT_JS.includes('function setFormatForKind(kind)'));\n  assert.ok(STUDIO_CLIENT_JS.includes("String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE'"));\n  assert.ok(STUDIO_CLIENT_JS.includes('if (state.media) setFormatForKind(state.media.kind)'));\n});\n\ntest('une image dispose d un fallback local si blob echoue sur Android', () => {\n  assert.ok(STUDIO_CLIENT_JS.includes("typeof FileReader === 'undefined'"));\n  assert.ok(STUDIO_CLIENT_JS.includes('reader.readAsDataURL(file)'));\n  assert.ok(STUDIO_CLIENT_JS.includes("main.addEventListener('error', fallback"));\n  assert.ok(STUDIO_CLIENT_JS.includes("mini.addEventListener('error', fallback"));\n  assert.equal(STUDIO_CLIENT_JS.includes("form.append('file', reader.result"), false, 'le data URL ne doit jamais partir au serveur');\n});\n"""
-          if anchor not in tests:
-              raise SystemExit('ui test anchor missing')
-          tests_path.write_text(tests.replace(anchor, addition, 1))
+          anchor = "async function authenticate(request, env) {\n"
+          helper = "async function loginPasswordHash(env) {\n  const override = await readJson(env, LOGIN_PASSWORD_OVERRIDE_KEY, null);\n  const stored = String(override?.password_sha256 || '').trim().toLowerCase();\n  if (/^[a-f0-9]{64}$/i.test(stored)) return stored;\n  return String(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 || '').trim().toLowerCase();\n}\n\nfunction loginRecoveryHash(env) {\n  const value = String(env.SOCIAL_INTELLIGENCE_RECOVERY_PASSWORD_SHA256 || RECOVERY_LOGIN_PASSWORD_SHA256).trim().toLowerCase();\n  return /^[a-f0-9]{64}$/i.test(value) ? value : '';\n}\n\nasync function persistLoginPasswordOverride(env, passwordHash) {\n  if (!env.VISUALS_BUCKET || !/^[a-f0-9]{64}$/i.test(String(passwordHash || ''))) throw new Error('login_password_override_unavailable');\n  await putJson(env, LOGIN_PASSWORD_OVERRIDE_KEY, { password_sha256: String(passwordHash).toLowerCase(), updated_at: new Date().toISOString(), source: 'recovery_bootstrap' });\n}\n\n" + anchor
+          if anchor not in s:
+              raise SystemExit('authenticate anchor missing')
+          s = s.replace(anchor, helper, 1)
+          p.write_text(s)
+
+          tp = Path('tests/social-intelligence-behaviour.mjs')
+          t = tp.read_text()
+          marker = "check('acces refuse sans session', async () => {\n"
+          test = "check('mot de passe de recuperation devient persistant', async () => {\n  const recoveryPassword = 'recuperation-test-seulement';\n  const recoveryHash = createHash('sha256').update(recoveryPassword).digest('hex');\n  const env = makeEnv({ SOCIAL_INTELLIGENCE_RECOVERY_PASSWORD_SHA256: recoveryHash });\n  installBridge();\n  const form = new URLSearchParams({ username: 'sowhat', password: recoveryPassword });\n  const first = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/login`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), env, {});\n  assert.equal(first.status, 303);\n  const stored = env.VISUALS_BUCKET.readJson('visuals/social-intelligence/auth/login-password.json');\n  assert.equal(stored.password_sha256, recoveryHash);\n  delete env.SOCIAL_INTELLIGENCE_RECOVERY_PASSWORD_SHA256;\n  env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 = '0'.repeat(64);\n  const second = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/login`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), env, {});\n  assert.equal(second.status, 303);\n});\n\n" + marker
+          if marker not in t:
+              raise SystemExit('test marker missing')
+          tp.write_text(t.replace(marker, test, 1))
           PY
 
           git diff --check
@@ -69,6 +72,6 @@ jobs:
           npm run build:dry-run
           git config user.name 'sowizak-glitch'
           git config user.email 'sow.izak@gmail.com'
-          git add src/studio-client-v5.js tests/ui-v5.mjs
-          git commit -m 'fix(studio): align media format and mobile preview'
-          git push --force origin HEAD:refs/heads/hotfix/studio-mobile-format-preview
+          git add src/social-intelligence-v3.js tests/social-intelligence-behaviour.mjs .github/workflows/password-reset-hotfix.yml || true
+          git commit -m 'fix(auth): add secure password recovery override'
+          git push --force origin HEAD:refs/heads/hotfix/social-intelligence-password-reset
