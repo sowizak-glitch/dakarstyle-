@@ -14,10 +14,10 @@ Regle de lecture : ce qui n'est pas ecrit ici comme verifie ne l'est pas.
 | Depot | `sowizak-glitch/dakarstyle-` |
 | Branche | `agent/sowhat-control-v5-instagram-engine` |
 | Base | `da65da8f829c0e26d82f071a80622e399fb5366e` |
-| Commits V5 depuis la base | 16 (3 repris de la session precedente, 13 ajoutes) |
-| Modules V5 | 14 fichiers `src/*-v5*.js` |
-| Suites de tests | 15 suites, 311 scenarios, tous verts |
-| Dry-run Cloudflare | OK — 491,74 KiB / gzip 136,66 KiB |
+| Commits V5 depuis la base | 21 (17 des sessions precedentes, 4 ajoutes) |
+| Modules V5 | 18 fichiers `src/*-v5*.js` |
+| Suites de tests | 16 suites, 431 scenarios, tous verts |
+| Dry-run Cloudflare | OK — 566,16 KiB / gzip 154,48 KiB |
 | Fichiers V4 modifies | `src/router.js` uniquement (3 lignes ajoutees) |
 | Deploiement | Aucun. La branche V5 n'est deployee par aucun workflow. |
 
@@ -71,14 +71,18 @@ explicitement, sans auto-detection.
 | `coach-v5.js` | recommandations adossees aux correlations | `coach-v5.mjs` | 13 |
 | `plan-v5.js` | plan 7 jours et prefill Studio | `plan-v5.mjs` | 15 |
 | `security-v5.js` | SAFE, CSRF, medias, idempotence | *(couvert par studio)* | — |
-| `studio-v5.js` | machine a etats des publications | `studio-v5.mjs` | 34 |
-| `publishing-v5.js` | pipeline Meta en quatre etapes | `publishing-v5.mjs` | 21 |
+| `studio-v5.js` | machine a etats des publications | `studio-v5.mjs` | 41 |
+| `publishing-v5.js` | pipeline Meta en quatre etapes | `publishing-v5.mjs` | 25 |
 | `scheduler-v5.js` | verrou, concurrence, sante du jeton | `scheduler-v5.mjs` | 17 |
 | `learning-v5.js` | checkpoints T+1h/6h/24h/72h | `learning-v5.mjs` | 17 |
 | `observability-v5.js` | journal structure, cockpit technique | `observability-v5.mjs` | 13 |
-| `social-intelligence-ui-v5.js` | cockpit, douze etats, responsive | `ui-v5.mjs` | 19 |
-| `social-intelligence-v5-routes.js` | espace de noms V5, autorisation, CSRF | `routes-v5.mjs` | 17 |
-| *(audit transverse)* | garanties non retirables | `security-audit-v5.mjs` | 21 |
+| `social-intelligence-ui-v5.js` | cockpit, douze etats, responsive | `ui-v5.mjs` | 43 |
+| `media-upload-v5.js` | televersement binaire, signature reelle, lecture publique | `media-upload-v5.mjs` | 39 |
+| `studio-routes-v5.js` | API HTTP du Studio, sans seconde machine a etats | `routes-v5.mjs` | *(couvert)* |
+| `studio-ui-v5.js` | ecran « Publier », mobile d abord | `ui-v5.mjs` | *(couvert)* |
+| `studio-client-v5.js` | comportement navigateur, servi a part de la page | `ui-v5.mjs` | *(couvert)* |
+| `social-intelligence-v5-routes.js` | espace de noms V5, autorisation, CSRF | `routes-v5.mjs` | 48 |
+| *(audit transverse)* | garanties non retirables | `security-audit-v5.mjs` | 36 |
 | *(socle V4)* | non-regression | `social-intelligence-*.mjs` | 21 + contrat |
 
 ---
@@ -133,6 +137,21 @@ Ces defauts ont ete trouves par les tests, pas supposes.
 5. **Modules inaccessibles.** Les modules V5 existaient sans routage : ils
    n'etaient atteignables par personne. Le dry-run est passe de 351 a 491 KiB
    apres branchement, ce qui le confirme.
+6. **Publication structurellement impossible.** Le Studio exigeait une cle R2
+   valide, mais aucun chemin ne permettait d'en creer une, et surtout : le
+   prefixe `visuals/social-intelligence/v5/media/` n'etait servi par **aucune
+   route publique**. Meme avec `SOWHAT_MEDIA_PUBLIC_BASE` correctement pose,
+   l'URL transmise a Meta aurait renvoye 404. Meta n'aurait donc jamais pu
+   telecharger un visuel. Les deux moities du chemin manquaient : l'entree
+   (televersement) et la sortie (lecture publique).
+7. **Interface inatteignable depuis un navigateur.** L'autorisation V5 exigeait
+   l'en-tete `x-sowhat-admin-key`. Un navigateur qui suit un lien ne peut pas
+   poser d'en-tete : l'ecran aurait existe sans que personne puisse l'ouvrir.
+   La V5 reconnait desormais la session que la V4 a deja creee — meme cookie,
+   meme stockage, meme duree de vie, meme niveau de privilege.
+8. **Session CSRF choisie par l'appelant.** Le jeton etait verifie contre un
+   identifiant de session lu dans un en-tete fourni par le client. L'identifiant
+   vient maintenant du porteur authentifie.
 
 ---
 
@@ -149,7 +168,7 @@ cote Cloudflare avant tout usage reel.
 | `INSTAGRAM_TOKEN_TRANSPORT` | optionnelle | defaut selon le flux |
 | `SOCIAL_INTELLIGENCE_CSRF_SECRET` | **absente** | toute ecriture V5 refusee (403) |
 | `SOWHAT_PUBLISH_ENABLED` | **absente** | portail SAFE ferme, aucune publication |
-| `SOWHAT_MEDIA_PUBLIC_BASE` | **absente** | publication refusee en pre-vol |
+| `SOWHAT_MEDIA_PUBLIC_BASE` | **absente** | publication refusee en pre-vol, message clair a l'ecran |
 | `SOCIAL_INTELLIGENCE_ADMIN_KEY_SHA256` | presente | — |
 | `VISUALS_BUCKET` | presente | — |
 
@@ -167,17 +186,22 @@ A declarer tel quel, sans arrondi :
   officielle mais n'a jamais parle a Meta.
 - **Le flux Meta reel n'est pas confirme.** Le defaut `instagram_login` decoule
   de l'architecture existante, pas d'un credential verifie.
-- **Le Studio n'a pas d'interface d'edition.** Le cockpit V5 est en lecture ; la
-  creation et la modification de brouillons passent par les modules, pas encore
-  par un ecran.
-- **Le televersement de media vers R2 n'est pas implemente.** La validation
-  existe, le chemin d'upload non.
+- **Aucune publication reelle n'a ete observee.** Le pipeline complet est
+  desormais atteignable de bout en bout, mais `SOWHAT_PUBLISH_ENABLED` reste
+  absent : rien n'est jamais parti vers un compte Instagram reel.
+- **Le rendu du Reel n'a pas ete verifie avec une vraie video verticale.**
+  L'apercu applique un cadre 9/16 ; aucun fichier reel n'a ete televerse depuis
+  un telephone.
 - **La rotation des jetons Meta n'est pas automatisee.** Un jeton expire bloque
   le scheduler, ce qui est le comportement voulu, mais impose une action
   manuelle.
 - **Le responsive n'a pas ete verifie dans un navigateur reel.** Les garanties
-  (44 px, marges de securite, absence de debordement, points de rupture) sont
-  verifiees par analyse du CSS produit, pas par capture d'ecran.
+  (44 px, marges de securite, absence de debordement, points de rupture, taille
+  de police des champs) sont verifiees par analyse du CSS produit, pas par
+  capture d'ecran sur un Samsung.
+- **Le lien « Publier » n'a pas ete ajoute a l'ecran V4.** Il est en tete du
+  cockpit V5. Toucher `social-intelligence-ui-v4.js` aurait fait courir un
+  risque de regression a une interface en production pour un gain cosmetique.
 
 ---
 
@@ -190,6 +214,47 @@ npm run build:dry-run        # dry-run Cloudflare
 node tests/security-audit-v5.mjs
 ```
 
-Ordre suggere pour la suite : upload media R2, puis ecran d'edition Studio, puis
-premiere publication reelle sous surveillance avec `SOWHAT_PUBLISH_ENABLED=true`
+Ordre suggere pour la suite : une seule publication reelle sous surveillance,
+avec `SOWHAT_PUBLISH_ENABLED=true`, `SOWHAT_MEDIA_PUBLIC_BASE=https://dakarstyle.com`
 et un seul contenu approuve.
+
+---
+
+## 9. Le parcours « Publier », de bout en bout
+
+```
+Cockpit V5  ->  Publier une photo ou une video
+                        |
+                        v
+   /social-intelligence/v5/studio
+                        |
+   1. selection du fichier (galerie, fichiers, appareil photo)
+   2. apercu local immediat (aucun octet envoye a ce stade)
+   3. POST multipart -> /api/social-intelligence/v5/media/upload
+        auth + CSRF -> type declare -> extension -> signature reelle
+        -> cle generee par le serveur -> ecriture VISUALS_BUCKET
+   4. legende, hashtags, CTA, produit, collection, campagne
+   5. apercu Instagram (carre ou vertical selon le format)
+   6. Enregistrer / Programmer / Publier maintenant
+                        |
+                        v
+   POST /studio/drafts/:id/{approve,ready,publish|schedule}
+                        |
+                        v
+   publishAndPersist  (la meme fonction que le scheduler)
+                        |
+                        v
+   mediaUrlFor()  ->  https://<base>/visuals/social-intelligence/v5/media/<uuid>.<ext>
+                        |
+                        v
+   Meta telecharge le fichier sur cette route publique, puis
+   conteneur -> status_code -> media_publish -> confirmation
+```
+
+**Ce que l'operateur ne voit jamais :** R2, `r2_key`, la moindre URL,
+`SOWHAT_MEDIA_PUBLIC_BASE`, du JSON, un code d'erreur technique.
+
+**Ce qui reste ferme malgre l'interface :** le portail SAFE, l'approbation
+humaine explicite, l'idempotence metier, la validation du media rejouee juste
+avant l'envoi. Aucune de ces protections n'a ete assouplie pour rendre l'ecran
+utilisable.
