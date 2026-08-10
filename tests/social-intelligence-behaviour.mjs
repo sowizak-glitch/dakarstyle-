@@ -175,6 +175,41 @@ check('session privee, CSRF et en-tetes de securite', async () => {
   assert.ok(!/ style="/.test(session.markup), 'aucun attribut style= en ligne ne doit subsister');
 });
 
+check('reset mot de passe a usage unique : genere, persiste, revoque et ne se rejoue pas', async () => {
+  const env = makeEnv();
+  installBridge();
+  const oldSession = await login(env);
+  const resetToken = 'jeton-reset-test-abcdefghijklmnopqrstuvwxyz-1234567890';
+  env.SOCIAL_INTELLIGENCE_PASSWORD_RESET_TOKEN_SHA256 = createHash('sha256').update(resetToken).digest('hex');
+
+  const bad = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/reset-password?token=incorrect-${resetToken}`), env, {});
+  assert.equal(bad.status, 404, 'un mauvais jeton ne révèle rien');
+
+  const reset = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/reset-password?token=${encodeURIComponent(resetToken)}`), env, {});
+  assert.equal(reset.status, 200, 'le jeton valide réinitialise une seule fois');
+  const resetHtml = await reset.text();
+  assert.ok(!resetHtml.includes(resetToken), 'le jeton ne doit jamais être reflété');
+  assert.ok(!resetHtml.includes('SWA-'), 'le nouveau mot de passe ne doit pas être affiché par l endpoint technique');
+
+  const seed = createHash('sha256').update(`sowhat-password-reset-v1|${resetToken}`).digest('hex');
+  const newPassword = `SWA-${seed.slice(0, 20)}!9`;
+  const stored = env.VISUALS_BUCKET.readJson('visuals/social-intelligence/auth/login-password.json');
+  assert.equal(stored.password_sha256, createHash('sha256').update(newPassword).digest('hex'));
+
+  const oldToken = oldSession.cookie.split('=')[1];
+  const oldSessionKey = `visuals/social-intelligence/sessions/${createHash('sha256').update(oldToken).digest('hex')}.json`;
+  assert.equal(env.VISUALS_BUCKET.readJson(oldSessionKey), null, 'la session privée doit être supprimée de R2');
+
+  const form = new URLSearchParams({ username: 'sowhat', password: newPassword });
+  const relogin = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/login`, {
+    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString(),
+  }), env, {});
+  assert.equal(relogin.status, 303, 'le nouveau mot de passe fonctionne');
+
+  const replay = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/reset-password?token=${encodeURIComponent(resetToken)}`), env, {});
+  assert.equal(replay.status, 410, 'le jeton est définitivement consommé');
+});
+
 check('acces refuse sans session', async () => {
   const env = makeEnv();
   installBridge();

@@ -43,6 +43,9 @@ const HISTORY_KEY = 'visuals/social-intelligence/history.json';
 const PUBLICATION_HISTORY_KEY = 'visuals/social-intelligence/publications.json';
 const SESSION_PREFIX = 'visuals/social-intelligence/sessions/';
 const AUTH_PREFIX = 'visuals/social-intelligence/auth/';
+const LOGIN_PASSWORD_OVERRIDE_KEY = 'visuals/social-intelligence/auth/login-password.json';
+const PASSWORD_RESET_STATE_KEY = 'visuals/social-intelligence/auth/password-reset-v1.json';
+const PASSWORD_RESET_TOKEN_SHA256 = '8d82b41e9a81a10984674974e7388f96957c563ff4ba4d53397789b5816eabdc';
 const IDEMPOTENCY_PREFIX = 'visuals/social-intelligence/idempotency/';
 const MEDIA_PREFIX = 'visuals/media/';
 const MANIFEST_PREFIX = 'visuals/manifest/';
@@ -88,6 +91,7 @@ export async function handleSocialIntelligenceV3(request, env, ctx) {
   if (url.pathname === '/social-intelligence/sw.js') return serviceWorkerResponse();
   if (url.pathname === '/social-intelligence/icon.svg') return iconResponse();
   if (url.pathname === '/social-intelligence/login') return handleLogin(request, env);
+  if (url.pathname === '/social-intelligence/reset-password') return handleOneTimePasswordReset(request, env);
   if (url.pathname === '/social-intelligence/logout') return handleLogout(request, env);
   if (url.pathname === '/social-intelligence' || url.pathname === '/social-intelligence/') {
     return handleApp(request, env);
@@ -175,7 +179,7 @@ async function handleLogin(request, env) {
   const username = cleanText(form.get('username'), 80).toLowerCase();
   const password = String(form.get('password') || '');
   const expectedUser = cleanText(env.SOCIAL_INTELLIGENCE_LOGIN_USER || 'sowhat', 80).toLowerCase();
-  const expectedHash = String(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 || '').trim().toLowerCase();
+  const expectedHash = await loginPasswordHash(env);
   const validUser = username === expectedUser;
   const validPassword = /^[a-f0-9]{64}$/i.test(expectedHash) && await matchesHash(password, expectedHash);
 
@@ -187,6 +191,66 @@ async function handleLogin(request, env) {
   await clearAuthFailures(limiter, env);
   const session = await createSession(env);
   return redirect('/social-intelligence', sessionCookie(session.token));
+}
+
+async function handleOneTimePasswordReset(request, env) {
+  if (request.method !== 'GET') return methodNotAllowed();
+  if (!env.VISUALS_BUCKET) {
+    return html(renderSystemMessage('Réinitialisation indisponible', 'Le stockage privé est indisponible.', randomToken(16)), 503);
+  }
+
+  const url = new URL(request.url);
+  const token = String(url.searchParams.get('token') || '');
+  const expected = String(env.SOCIAL_INTELLIGENCE_PASSWORD_RESET_TOKEN_SHA256 || PASSWORD_RESET_TOKEN_SHA256).trim().toLowerCase();
+  if (token.length < 32 || !/^[a-f0-9]{64}$/i.test(expected) || !(await matchesHash(token, expected))) {
+    return new Response('Not Found', { status: 404, headers: privateHeaders('text/plain; charset=utf-8', '') });
+  }
+
+  const existing = await readJson(env, PASSWORD_RESET_STATE_KEY, null);
+  if (existing?.status === 'completed') {
+    return html(renderSystemMessage('Lien déjà utilisé', 'Ce lien de réinitialisation a déjà été consommé.', randomToken(16)), 410);
+  }
+
+  const claimed = await putJsonIfAbsent(env, PASSWORD_RESET_STATE_KEY, {
+    status: 'in_flight',
+    started_at: Date.now(),
+  }, false);
+  if (!claimed) {
+    const current = await readJson(env, PASSWORD_RESET_STATE_KEY, null);
+    const message = current?.status === 'completed' ? 'Ce lien de réinitialisation a déjà été consommé.' : 'Une réinitialisation est déjà en cours.';
+    return html(renderSystemMessage('Lien indisponible', message, randomToken(16)), 409);
+  }
+
+  try {
+    const seed = await sha256Text(`sowhat-password-reset-v1|${token}`);
+    const generatedPassword = `SWA-${seed.slice(0, 20)}!9`;
+    const passwordHash = await sha256Text(generatedPassword);
+    await putJson(env, LOGIN_PASSWORD_OVERRIDE_KEY, {
+      password_sha256: passwordHash,
+      updated_at: new Date().toISOString(),
+      source: 'one_time_reset',
+    });
+    await revokeAllSessions(env);
+    await putJson(env, PASSWORD_RESET_STATE_KEY, {
+      status: 'completed',
+      completed_at: Date.now(),
+    });
+    return html(renderSystemMessage('Mot de passe réinitialisé', 'Le nouvel accès est prêt. Vous pouvez fermer cette page et vous reconnecter.', randomToken(16)), 200);
+  } catch {
+    try { await env.VISUALS_BUCKET.delete(PASSWORD_RESET_STATE_KEY); } catch { /* best effort */ }
+    return html(renderSystemMessage('Réinitialisation échouée', 'Aucun changement fiable n’a été enregistré. Réessayez.', randomToken(16)), 503);
+  }
+}
+
+async function revokeAllSessions(env) {
+  if (!env.VISUALS_BUCKET || typeof env.VISUALS_BUCKET.list !== 'function') return;
+  let cursor = undefined;
+  do {
+    const page = await env.VISUALS_BUCKET.list({ prefix: SESSION_PREFIX, limit: 1000, ...(cursor ? { cursor } : {}) });
+    const objects = Array.isArray(page?.objects) ? page.objects : [];
+    await Promise.all(objects.map((object) => env.VISUALS_BUCKET.delete(String(object?.key || ''))));
+    cursor = page?.truncated ? page.cursor : undefined;
+  } while (cursor);
 }
 
 async function handleLogout(request, env) {
@@ -749,6 +813,13 @@ async function rememberPublicationInMemory(env, data) {
 /* ------------------------------------------------------------------ */
 /* Session, authentification, cryptographie                            */
 /* ------------------------------------------------------------------ */
+
+async function loginPasswordHash(env) {
+  const override = await readJson(env, LOGIN_PASSWORD_OVERRIDE_KEY, null);
+  const stored = String(override?.password_sha256 || '').trim().toLowerCase();
+  if (/^[a-f0-9]{64}$/i.test(stored)) return stored;
+  return String(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 || '').trim().toLowerCase();
+}
 
 async function authenticate(request, env) {
   if (!env.VISUALS_BUCKET) return { ok: false };
