@@ -1,0 +1,275 @@
+name: Studio Story Finalizer
+
+on:
+  push:
+    branches: [agent/sowhat-control-v5-story-final]
+    paths:
+      - '.github/workflows/studio-story-finalizer.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Apply production Studio fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path, old, new, label):
+              p = Path(path)
+              s = p.read_text()
+              if old not in s:
+                  raise SystemExit(f'{label}: anchor missing in {path}')
+              p.write_text(s.replace(old, new, 1))
+
+          # 1) Studio UI: add Story as a first-class publishing format and 9:16 preview.
+          replace_once(
+              'src/studio-ui-v5.js',
+              '.st-formats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}',
+              '.st-formats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}',
+              'formats grid',
+          )
+          replace_once(
+              'src/studio-ui-v5.js',
+              '  padding:10px 14px;border-radius:14px;\n',
+              '  padding:10px 8px;border-radius:14px;\n',
+              'format padding',
+          )
+          replace_once(
+              'src/studio-ui-v5.js',
+              '.st-ig[data-format="REEL"] .st-ig-media{aspect-ratio:9/16}\n',
+              '.st-ig[data-format="REEL"] .st-ig-media,.st-ig[data-format="STORY"] .st-ig-media{aspect-ratio:9/16}\n',
+              'story preview ratio',
+          )
+          replace_once(
+              'src/studio-ui-v5.js',
+              '    <p class="st-hint">Le format doit correspondre a votre fichier : une photo pour une publication classique, une video pour un Reel.</p>\n',
+              '    <p class="st-hint">Choisissez Photo, Reel ou Story. Une Story accepte une photo ou une video et utilise un apercu vertical 9:16.</p>\n',
+              'format hint',
+          )
+          replace_once(
+              'src/studio-ui-v5.js',
+              '''      <label class="st-format">\n        <input type="radio" name="st-format" value="REEL" id="st-format-reel">\n        <span>Reel / Video<small>Format vertical</small></span>\n      </label>\n''',
+              '''      <label class="st-format">\n        <input type="radio" name="st-format" value="REEL" id="st-format-reel">\n        <span>Reel<small>Video verticale</small></span>\n      </label>\n      <label class="st-format">\n        <input type="radio" name="st-format" value="STORY" id="st-format-story">\n        <span>Story<small>Photo ou video 9:16</small></span>\n      </label>\n''',
+              'story selector',
+          )
+
+          # 2) Studio browser client: keep Story selected, guarantee Android preview,
+          #    and render an already-uploaded draft from its same-origin public media path.
+          replace_once(
+              'src/studio-client-v5.js',
+              '''  function setFormatForKind(kind) {\n    var image = el('st-format-image');\n    var reel = el('st-format-reel');\n    var video = String(kind || '').toUpperCase() === 'VIDEO';\n    if (image) image.checked = !video;\n    if (reel) reel.checked = video;\n    if (nodes.ig) nodes.ig.setAttribute('data-format', video ? 'REEL' : 'IMAGE');\n  }\n''',
+              '''  function setFormatForKind(kind) {\n    var image = el('st-format-image');\n    var reel = el('st-format-reel');\n    var video = String(kind || '').toUpperCase() === 'VIDEO';\n    if (image) image.checked = !video;\n    if (reel) reel.checked = video;\n    if (nodes.ig) nodes.ig.setAttribute('data-format', video ? 'REEL' : 'IMAGE');\n  }\n\n  function setDefaultFormatForKind(kind) {\n    if (currentFormat() === 'STORY') {\n      if (nodes.ig) nodes.ig.setAttribute('data-format', 'STORY');\n      return;\n    }\n    setFormatForKind(kind);\n  }\n\n  function formatMatchesMedia(format, kind) {\n    var video = String(kind || '').toUpperCase() === 'VIDEO';\n    if (format === 'STORY') return true;\n    return video ? format === 'REEL' : format === 'IMAGE';\n  }\n\n  function publicMediaPath(media) {\n    var key = String(media && media.r2_key || '');\n    var prefix = 'visuals/social-intelligence/v5/media/';\n    if (key.indexOf(prefix) !== 0 || key.indexOf('..') !== -1 || key.indexOf('\\\\') !== -1 || key.indexOf('//') !== -1) return '';\n    return '/' + key.split('/').map(encodeURIComponent).join('/');\n  }\n''',
+              'client format helpers',
+          )
+          replace_once(
+              'src/studio-client-v5.js',
+              '''      main.addEventListener('error', fallback, { once: true });\n      mini.addEventListener('error', fallback, { once: true });\n''',
+              '''      main.addEventListener('error', fallback, { once: true });\n      mini.addEventListener('error', fallback, { once: true });\n      // Android peut signaler l echec du blob avant que l evenement ne soit\n      // observe. Demarrer aussi le repli de facon proactive garantit un apercu.\n      fallback();\n''',
+              'proactive preview fallback',
+          )
+          replace_once(
+              'src/studio-client-v5.js',
+              '  /* -------------------- Boutons -------------------- */\n',
+              '''  function renderStoredMediaPreview(media) {\n    clearNode(nodes.frame);\n    clearNode(nodes.igMedia);\n    var src = publicMediaPath(media);\n    if (!media || !src) { renderMediaPreview(null); return; }\n\n    var isVideo = String(media.kind || '').toUpperCase() === 'VIDEO'\n      || String(media.content_type || '').indexOf('video/') === 0;\n    var main = document.createElement(isVideo ? 'video' : 'img');\n    var mini = document.createElement(isVideo ? 'video' : 'img');\n    main.src = src; mini.src = src;\n    if (isVideo) {\n      main.controls = true; main.playsInline = true;\n      mini.muted = true; mini.playsInline = true; mini.controls = false;\n    } else {\n      main.alt = 'Apercu du visuel selectionne'; mini.alt = '';\n    }\n    var failed = function () {\n      message('Le fichier est enregistre, mais son apercu doit etre recharge. Rechargez la page avant de publier.', 'warn');\n    };\n    main.addEventListener('error', failed, { once: true });\n    mini.addEventListener('error', failed, { once: true });\n    if (nodes.frame) nodes.frame.appendChild(main);\n    if (nodes.igMedia) nodes.igMedia.appendChild(mini);\n    if (nodes.name) nodes.name.textContent = media.filename || 'media enregistre';\n    if (nodes.line) nodes.line.textContent = (isVideo ? 'video MP4' : 'photo') + ' — ' + humanSize(media.size_bytes);\n    show(nodes.media, true);\n  }\n\n  /* -------------------- Boutons -------------------- */\n''',
+              'stored preview renderer',
+          )
+          replace_once(
+              'src/studio-client-v5.js',
+              '    setFormatForKind(spec.kind);\n',
+              '    setDefaultFormatForKind(spec.kind);\n',
+              'initial file format',
+          )
+          replace_once(
+              'src/studio-client-v5.js',
+              '      setFormatForKind(state.media && state.media.kind);\n',
+              '      setDefaultFormatForKind(state.media && state.media.kind);\n',
+              'uploaded file format',
+          )
+          replace_once(
+              'src/studio-client-v5.js',
+              '''    var mediaFormat = state.media\n      ? (String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE')\n      : currentFormat();\n    if (state.media) setFormatForKind(state.media.kind);\n''',
+              '''    var selectedFormat = currentFormat();\n    var mediaFormat = selectedFormat === 'STORY'\n      ? 'STORY'\n      : (state.media\n        ? (String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE')\n        : selectedFormat);\n    if (state.media && selectedFormat !== 'STORY') setFormatForKind(state.media.kind);\n''',
+              'draft payload story',
+          )
+          replace_once(
+              'src/studio-client-v5.js',
+              '''    if (draft.format) {\n      var target = draft.format === 'REEL' || draft.format === 'VIDEO' ? el('st-format-reel') : el('st-format-image');\n      if (target) target.checked = true;\n    }\n''',
+              '''    if (draft.format) {\n      var target = draft.format === 'STORY'\n        ? el('st-format-story')\n        : (draft.format === 'REEL' || draft.format === 'VIDEO' ? el('st-format-reel') : el('st-format-image'));\n      if (target) target.checked = true;\n    }\n''',
+              'prefill story format',
+          )
+          replace_once(
+              'src/studio-client-v5.js',
+              '''    if (draft.media) {\n      state.media = draft.media;\n      setFormatForKind(draft.media.kind);\n      mediaState('Media pret', 'good');\n    }\n''',
+              '''    if (draft.media) {\n      state.media = draft.media;\n      if (draft.format !== 'STORY') setFormatForKind(draft.media.kind);\n      renderStoredMediaPreview(draft.media);\n      mediaState('Media pret', 'good');\n    }\n''',
+              'prefill stored media',
+          )
+          replace_once(
+              'src/studio-client-v5.js',
+              '''    for (var i = 0; i < formats.length; i += 1) formats[i].addEventListener('change', function () {\n      if (state.media) setFormatForKind(state.media.kind);\n      renderPreview();\n    });\n''',
+              '''    for (var i = 0; i < formats.length; i += 1) formats[i].addEventListener('change', function () {\n      if (state.media && !formatMatchesMedia(currentFormat(), state.media.kind)) {\n        setFormatForKind(state.media.kind);\n        message('Le format a ete ajuste au type du fichier.', 'warn');\n      }\n      renderPreview();\n    });\n''',
+              'format switch compatibility',
+          )
+
+          # 3) Studio model: STORY is valid for both image and video; unknown formats fail closed.
+          replace_once(
+              'src/studio-v5.js',
+              'export const MAX_HASHTAGS = 30;\n',
+              "export const MAX_HASHTAGS = 30;\nexport const SUPPORTED_FORMATS = Object.freeze(['IMAGE', 'REEL', 'STORY', 'VIDEO', 'CAROUSEL']);\n",
+              'supported formats export',
+          )
+          replace_once(
+              'src/studio-v5.js',
+              '''  if (draft.hashtags && draft.hashtags.length > MAX_HASHTAGS) {\n    errors.push(`trop de hashtags : ${draft.hashtags.length}, maximum ${MAX_HASHTAGS}`);\n  }\n\n  if (!draft.media) errors.push('media absent');\n''',
+              '''  if (draft.hashtags && draft.hashtags.length > MAX_HASHTAGS) {\n    errors.push(`trop de hashtags : ${draft.hashtags.length}, maximum ${MAX_HASHTAGS}`);\n  }\n  const format = String(draft.format || '').toUpperCase();\n  if (!SUPPORTED_FORMATS.includes(format)) errors.push(`format de publication refuse : ${format || 'absent'}`);\n\n  if (!draft.media) errors.push('media absent');\n''',
+              'validate format allowlist',
+          )
+          replace_once(
+              'src/studio-v5.js',
+              '''    else if (draft.format === 'REEL' && media.normalized.kind !== 'VIDEO') {\n      errors.push('un Reel exige un media video');\n    } else if ((draft.format === 'IMAGE' || draft.format === 'CAROUSEL') && media.normalized.kind !== 'IMAGE') {\n      errors.push(`le format ${draft.format} exige un media image`);\n    }\n''',
+              '''    else if ((format === 'REEL' || format === 'VIDEO') && media.normalized.kind !== 'VIDEO') {\n      errors.push(`le format ${format} exige un media video`);\n    } else if ((format === 'IMAGE' || format === 'CAROUSEL') && media.normalized.kind !== 'IMAGE') {\n      errors.push(`le format ${format} exige un media image`);\n    }\n''',
+              'story media validation',
+          )
+
+          # 4) Publishing: official Stories container + final confirmation without assuming permalink.
+          replace_once(
+              'src/publishing-v5.js',
+              '''export function containerFieldsFor(draft, mediaUrl, caption) {\n  const format = String(draft?.format || '').toUpperCase();\n  if (format === 'REEL') {\n''',
+              '''export function containerFieldsFor(draft, mediaUrl, caption) {\n  const format = String(draft?.format || '').toUpperCase();\n  if (format === 'STORY') {\n    const kind = String(draft?.media?.kind || '').toUpperCase();\n    return kind === 'VIDEO'\n      ? { media_type: 'STORIES', video_url: mediaUrl }\n      : { media_type: 'STORIES', image_url: mediaUrl };\n  }\n  if (format === 'REEL') {\n''',
+              'story container fields',
+          )
+          replace_once(
+              'src/publishing-v5.js',
+              '''    draft_id: draft.draft_id,\n    instagram_user_id: userId,\n''',
+              '''    draft_id: draft.draft_id,\n    format: draft.format,\n    instagram_user_id: userId,\n''',
+              'idempotency format caller',
+          )
+          replace_once(
+              'src/publishing-v5.js',
+              "    confirmation = await client.request(mediaId, { fields: 'id,permalink,timestamp' });\n",
+              "    const fields = String(draft?.format || '').toUpperCase() === 'STORY'\n      ? 'id,timestamp,media_product_type'\n      : 'id,permalink,timestamp';\n    confirmation = await client.request(mediaId, { fields });\n",
+              'story confirmation fields',
+          )
+
+          # 5) Idempotency must distinguish Post/Reel/Story for the same media+caption.
+          replace_once(
+              'src/security-v5.js',
+              '''    String(parts?.draft_id ?? ''),\n    String(parts?.instagram_user_id ?? ''),\n''',
+              '''    String(parts?.draft_id ?? ''),\n    String(parts?.format ?? ''),\n    String(parts?.instagram_user_id ?? ''),\n''',
+              'idempotency material format',
+          )
+
+          # 6) Tests: Story UI, model validation, publishing fields, idempotency, proactive Android fallback.
+          replace_once(
+              'tests/studio-v5.mjs',
+              "  ALLOWED_TRANSITIONS, MAX_CAPTION_LENGTH, STUDIO_ERROR, STUDIO_STATE,\n",
+              "  ALLOWED_TRANSITIONS, MAX_CAPTION_LENGTH, STUDIO_ERROR, STUDIO_STATE, SUPPORTED_FORMATS,\n",
+              'studio test import supported formats',
+          )
+          replace_once(
+              'tests/studio-v5.mjs',
+              "  const base = { draft_id: 'D1', instagram_user_id: '178414', scheduled_for: '2026-07-01T12:00:00Z', media_key: 'k', caption: 'texte' };\n",
+              "  const base = { draft_id: 'D1', format: 'IMAGE', instagram_user_id: '178414', scheduled_for: '2026-07-01T12:00:00Z', media_key: 'k', caption: 'texte' };\n",
+              'idempotency test format base',
+          )
+          replace_once(
+              'tests/studio-v5.mjs',
+              "  assert.notEqual(a, await businessIdempotencyKey({ ...base, scheduled_for: '2026-07-02T12:00:00Z' }));\n",
+              "  assert.notEqual(a, await businessIdempotencyKey({ ...base, scheduled_for: '2026-07-02T12:00:00Z' }));\n  assert.notEqual(a, await businessIdempotencyKey({ ...base, format: 'STORY' }), 'un Post et une Story sont deux intentions distinctes');\n",
+              'idempotency test format assertion',
+          )
+          replace_once(
+              'tests/studio-v5.mjs',
+              '''test('validation : coherence format et media', () => {\n  const reel = createDraft({ caption: 'x', format: 'REEL', media: goodMedia() }, { now: NOW });\n  assert.ok(validateDraft(reel).errors.some((e) => /Reel exige un media video/.test(e)));\n  const image = createDraft({\n    caption: 'x', format: 'IMAGE',\n    media: { r2_key: `${MEDIA_KEY_PREFIX}a.mp4`, content_type: 'video/mp4', size_bytes: 1000, filename: 'a.mp4' },\n  }, { now: NOW });\n  assert.ok(validateDraft(image).errors.some((e) => /exige un media image/.test(e)));\n});\n''',
+              '''test('validation : coherence format et media', () => {\n  const reel = createDraft({ caption: 'x', format: 'REEL', media: goodMedia() }, { now: NOW });\n  assert.ok(validateDraft(reel).errors.some((e) => /REEL exige un media video/.test(e)));\n  const videoMedia = { r2_key: `${MEDIA_KEY_PREFIX}a.mp4`, content_type: 'video/mp4', size_bytes: 1000, filename: 'a.mp4' };\n  const image = createDraft({ caption: 'x', format: 'IMAGE', media: videoMedia }, { now: NOW });\n  assert.ok(validateDraft(image).errors.some((e) => /exige un media image/.test(e)));\n  assert.equal(validateDraft(createDraft({ caption: 'x', format: 'STORY', media: goodMedia() }, { now: NOW })).valid, true);\n  assert.equal(validateDraft(createDraft({ caption: 'x', format: 'STORY', media: videoMedia }, { now: NOW })).valid, true);\n  assert.equal(validateDraft(createDraft({ caption: 'x', format: 'INVENTE', media: goodMedia() }, { now: NOW })).valid, false);\n  assert.ok(SUPPORTED_FORMATS.includes('STORY'));\n});\n''',
+              'studio story validation tests',
+          )
+
+          replace_once(
+              'tests/publishing-v5.mjs',
+              '''  assert.deepEqual(containerFieldsFor({ format: 'IMAGE' }, 'https://x/y.jpg', 'texte'), { image_url: 'https://x/y.jpg', caption: 'texte' });\n  assert.equal(containerFieldsFor({ format: 'CAROUSEL' }, 'https://x/y.jpg', 't').image_url, 'https://x/y.jpg');\n''',
+              '''  assert.deepEqual(containerFieldsFor({ format: 'IMAGE' }, 'https://x/y.jpg', 'texte'), { image_url: 'https://x/y.jpg', caption: 'texte' });\n  assert.deepEqual(containerFieldsFor({ format: 'STORY', media: { kind: 'IMAGE' } }, 'https://x/y.jpg', 'texte'), { media_type: 'STORIES', image_url: 'https://x/y.jpg' });\n  assert.deepEqual(containerFieldsFor({ format: 'STORY', media: { kind: 'VIDEO' } }, 'https://x/y.mp4', 'texte'), { media_type: 'STORIES', video_url: 'https://x/y.mp4' });\n  assert.equal(containerFieldsFor({ format: 'CAROUSEL' }, 'https://x/y.jpg', 't').image_url, 'https://x/y.jpg');\n''',
+              'publishing story fields tests',
+          )
+          replace_once(
+              'tests/publishing-v5.mjs',
+              "test('HTTP 200 a la creation du conteneur ne vaut pas publication', async () => {\n",
+              '''test('Story image : conteneur STORIES et confirmation adaptee', async () => {\n  const env = makeEnv();\n  const client = makeClient({});\n  const result = await publishDraft(env, client, readyDraft({ format: 'STORY' }), { ...noSleep, now: () => NOW });\n  assert.equal(result.status, PUBLISH_STATUS.PUBLISHED);\n  const creation = client.calls.find((call) => call.kind === 'POST' && call.path.endsWith('/media'));\n  assert.deepEqual(creation.fields, { media_type: 'STORIES', image_url: 'https://visuals.dakarstyle.com/visuals/social-intelligence/v5/media/2026/07/visuel.jpg' });\n  const confirmation = client.calls.find((call) => call.kind === 'GET' && call.path === '17999');\n  assert.equal(confirmation.params.fields, 'id,timestamp,media_product_type');\n});\n\ntest('HTTP 200 a la creation du conteneur ne vaut pas publication', async () => {\n''',
+              'story end-to-end publishing test',
+          )
+
+          replace_once(
+              'tests/ui-v5.mjs',
+              '''test('l apercu Instagram distingue la photo carree du Reel vertical', () => {\n  assert.ok(/\\.st-ig-media\\{[^}]*aspect-ratio:1\\/1/.test(STUDIO_CSS), 'photo carree');\n  assert.ok(/\\[data-format="REEL"\\] \\.st-ig-media\\{aspect-ratio:9\\/16\\}/.test(STUDIO_CSS), 'Reel vertical');\n  assert.ok(renderStudioDocument().includes('data-format="IMAGE"'));\n});\n''',
+              '''test('l apercu Instagram distingue la photo du Reel et de la Story', () => {\n  assert.ok(/\\.st-ig-media\\{[^}]*aspect-ratio:1\\/1/.test(STUDIO_CSS), 'photo carree');\n  assert.ok(STUDIO_CSS.includes('[data-format="REEL"] .st-ig-media,.st-ig[data-format="STORY"] .st-ig-media{aspect-ratio:9/16}'), 'Reel et Story verticaux');\n  const document = renderStudioDocument();\n  assert.ok(document.includes('data-format="IMAGE"'));\n  assert.ok(document.includes('id="st-format-story"'));\n  assert.ok(document.includes('value="STORY"'));\n});\n''',
+              'story UI preview test',
+          )
+          replace_once(
+              'tests/ui-v5.mjs',
+              '''test('le format du brouillon suit toujours le type reel du media', () => {\n  assert.ok(STUDIO_CLIENT_JS.includes('function setFormatForKind(kind)'));\n  assert.ok(STUDIO_CLIENT_JS.includes("String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE'"));\n  assert.ok(STUDIO_CLIENT_JS.includes('if (state.media) setFormatForKind(state.media.kind)'));\n});\n''',
+              '''test('le format du brouillon respecte Story et la nature du media', () => {\n  assert.ok(STUDIO_CLIENT_JS.includes('function setFormatForKind(kind)'));\n  assert.ok(STUDIO_CLIENT_JS.includes('function setDefaultFormatForKind(kind)'));\n  assert.ok(STUDIO_CLIENT_JS.includes("selectedFormat === 'STORY'"));\n  assert.ok(STUDIO_CLIENT_JS.includes('function formatMatchesMedia(format, kind)'));\n  assert.ok(STUDIO_CLIENT_JS.includes("if (format === 'STORY') return true"));\n});\n''',
+              'client Story format test',
+          )
+          replace_once(
+              'tests/ui-v5.mjs',
+              "  assert.ok(STUDIO_CLIENT_JS.includes(\"mini.addEventListener('error', fallback\"));\n",
+              "  assert.ok(STUDIO_CLIENT_JS.includes(\"mini.addEventListener('error', fallback\"));\n  assert.ok(STUDIO_CLIENT_JS.includes('fallback();'), 'le repli Android doit aussi demarrer proactivement');\n",
+              'android fallback test',
+          )
+          replace_once(
+              'tests/ui-v5.mjs',
+              "test('la progression affichee est mesuree, jamais simulee', () => {\n",
+              '''test('un brouillon deja enregistre retrouve son apercu sans URL utilisateur', () => {\n  assert.ok(STUDIO_CLIENT_JS.includes('function renderStoredMediaPreview(media)'));\n  assert.ok(STUDIO_CLIENT_JS.includes('function publicMediaPath(media)'));\n  assert.ok(STUDIO_CLIENT_JS.includes("return '/' + key.split('/').map(encodeURIComponent).join('/')"));\n  assert.equal(STUDIO_CLIENT_JS.includes('http://'), false);\n  assert.equal(STUDIO_CLIENT_JS.includes('https://'), false);\n});\n\ntest('la progression affichee est mesuree, jamais simulee', () => {\n''',
+              'stored media UI test',
+          )
+
+          # 7) Deployment must trigger when Studio source changes, not only when generic V5 files change.
+          replace_once(
+              '.github/workflows/social-intelligence-deploy.yml',
+              "      - 'src/studio-v5.js'\n",
+              "      - 'src/studio-v5.js'\n      - 'src/media-upload-v5.js'\n      - 'src/studio-routes-v5.js'\n      - 'src/studio-ui-v5.js'\n      - 'src/studio-client-v5.js'\n",
+              'deploy studio source paths',
+          )
+          replace_once(
+              '.github/workflows/social-intelligence-deploy.yml',
+              "      - 'tests/studio-v5.mjs'\n",
+              "      - 'tests/studio-v5.mjs'\n      - 'tests/media-upload-v5.mjs'\n",
+              'deploy studio test paths',
+          )
+          PY
+
+      - name: Validate everything before commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          npm test
+          node tests/security-audit-v5.mjs
+          npm run build:dry-run
+
+      - name: Commit validated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'sowizak-glitch'
+          git config user.email 'sow.izak@gmail.com'
+          git add src/security-v5.js src/studio-v5.js src/publishing-v5.js src/studio-ui-v5.js src/studio-client-v5.js tests/studio-v5.mjs tests/publishing-v5.mjs tests/ui-v5.mjs .github/workflows/social-intelligence-deploy.yml
+          git commit -m 'feat(studio): add Stories and harden media previews'
+          git push origin HEAD:agent/sowhat-control-v5-story-final
