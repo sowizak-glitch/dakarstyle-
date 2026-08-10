@@ -43,8 +43,11 @@ export const STUDIO_ERROR = Object.freeze({
  */
 export const ALLOWED_TRANSITIONS = Object.freeze({
   DRAFT: ['READY', 'CANCELLED'],
-  READY: ['DRAFT', 'SCHEDULED', 'PUBLISHING', 'CANCELLED'],
-  SCHEDULED: ['PUBLISHING', 'CANCELLED', 'READY'],
+  // READY et SCHEDULED peuvent echouer AVANT toute publication : media devenu
+  // invalide, portail SAFE referme entre-temps, jeton revoque. Cet echec doit
+  // etre visible et reprenable, pas silencieusement ignore.
+  READY: ['DRAFT', 'SCHEDULED', 'PUBLISHING', 'CANCELLED', 'FAILED'],
+  SCHEDULED: ['PUBLISHING', 'CANCELLED', 'READY', 'FAILED'],
   PUBLISHING: ['PUBLISHED', 'FAILED'],
   PUBLISHED: [],
   FAILED: ['READY', 'CANCELLED'],
