@@ -105,6 +105,64 @@ function isCustomStorefront(url) {
     && (url.pathname === '/' || url.pathname === '/index.html');
 }
 
+function directUploadPublishSection() {
+  return `<section class="view" data-view="publish">`
+    + `<div class="sectionHead"><div><h1>Publier</h1><p>Photo ou vidéo directe depuis votre téléphone ou ordinateur.</p></div></div>`
+    + `<div class="publishLayout">`
+    + `<article class="publishPanel"><h2>Nouveau Studio V5</h2>`
+    + `<div class="publishNotice"><b>Plus besoin de coller une URL.</b><br>`
+    + `Choisissez directement une photo JPEG/PNG ou une vidéo MP4 depuis votre galerie, vos fichiers ou votre ordinateur. `
+    + `Le stockage R2 et l’adresse technique nécessaire à Instagram sont gérés automatiquement en arrière-plan.</div>`
+    + `<a class="cta gold mt14" href="/social-intelligence/v5/studio">Ajouter une photo ou une vidéo</a>`
+    + `</article>`
+    + `<article class="publishPanel"><h2>Parcours simplifié</h2>`
+    + `<div class="connectionCard mt14"><h3>1 · Choisir le média</h3><p>Galerie, appareil photo ou fichier local.</p></div>`
+    + `<div class="connectionCard mt9"><h3>2 · Préparer</h3><p>Aperçu, légende, hashtags et programmation.</p></div>`
+    + `<div class="connectionCard mt9"><h3>3 · Publier</h3><p>Le Studio V5 conserve les contrôles SAFE et l’idempotence avant tout envoi réel.</p></div>`
+    + `</article>`
+    + `</div></section>`;
+}
+
+function upgradeLegacyPublishHtml(body) {
+  const source = String(body || '');
+  const marker = '<section class="view" data-view="publish">';
+  const start = source.indexOf(marker);
+  if (start < 0) return source;
+  const end = source.indexOf('</section>', start);
+  if (end < 0) return source;
+  return source.slice(0, start) + directUploadPublishSection() + source.slice(end + '</section>'.length);
+}
+
+async function upgradeLegacySocialIntelligenceResponse(request, url, response) {
+  if (url.pathname === '/social-intelligence/manifest.webmanifest' && response.status === 200) {
+    try {
+      const manifest = await response.json();
+      manifest.start_url = '/social-intelligence/v5/studio';
+      const headers = new Headers(response.headers);
+      headers.set('cache-control', 'no-store');
+      headers.delete('content-length');
+      return new Response(JSON.stringify(manifest), { status: 200, headers });
+    } catch {
+      return response;
+    }
+  }
+
+  if (request.method !== 'GET'
+    || (url.pathname !== '/social-intelligence' && url.pathname !== '/social-intelligence/')) {
+    return response;
+  }
+  if (response.status !== 200 || !String(response.headers.get('content-type') || '').includes('text/html')) {
+    return response;
+  }
+
+  const body = await response.text();
+  const upgraded = upgradeLegacyPublishHtml(body);
+  if (upgraded === body) return new Response(body, { status: response.status, headers: response.headers });
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  return new Response(upgraded, { status: response.status, headers });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -123,7 +181,8 @@ export default {
     }
     if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceRoute(url)) {
       if (!socialIntelligenceSecurityReady(url, env)) return socialIntelligenceNotConfigured(url);
-      return handleSocialIntelligenceV3(request, env, ctx);
+      const response = await handleSocialIntelligenceV3(request, env, ctx);
+      return upgradeLegacySocialIntelligenceResponse(request, url, response);
     }
     if (SENECOMPARE_HOSTS.has(url.hostname)) {
       return senecompare.fetch(request, env, ctx);
