@@ -1,4 +1,4 @@
-name: Hotfix Password Reset Runner
+name: Hotfix One-Time Password Reset Runner
 
 on:
   push:
@@ -21,53 +21,156 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
-      - name: Build isolated password reset hotfix
+      - name: Build isolated one-time reset
         shell: bash
         run: |
           set -euo pipefail
-          git checkout -B hotfix/social-intelligence-password-reset origin/hotfix/social-intelligence-password-reset
+          git checkout -B hotfix/social-intelligence-one-time-reset origin/main
           python3 - <<'PY'
           from pathlib import Path
 
           p = Path('src/social-intelligence-v3.js')
           s = p.read_text()
-          if 'RECOVERY_LOGIN_PASSWORD_SHA256' not in s:
-              s = s.replace(
-                  "const AUTH_PREFIX = 'visuals/social-intelligence/auth/';\n",
-                  "const AUTH_PREFIX = 'visuals/social-intelligence/auth/';\nconst LOGIN_PASSWORD_OVERRIDE_KEY = 'visuals/social-intelligence/auth/login-password.json';\nconst RECOVERY_LOGIN_PASSWORD_SHA256 = '6456b51feaaf8c3a80f05ad12684aa96874ba755e694f736eca2ffd96290b799';\n",
-                  1,
-              )
 
-          old = "  const expectedHash = String(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 || '').trim().toLowerCase();\n  const validUser = username === expectedUser;\n  const validPassword = /^[a-f0-9]{64}$/i.test(expectedHash) && await matchesHash(password, expectedHash);\n"
-          new = "  const expectedHash = await loginPasswordHash(env);\n  const recoveryHash = loginRecoveryHash(env);\n  const validUser = username === expectedUser;\n  const validConfiguredPassword = /^[a-f0-9]{64}$/i.test(expectedHash) && await matchesHash(password, expectedHash);\n  const validRecoveryPassword = !validConfiguredPassword && /^[a-f0-9]{64}$/i.test(recoveryHash) && await matchesHash(password, recoveryHash);\n  const validPassword = validConfiguredPassword || validRecoveryPassword;\n"
-          if 'const validRecoveryPassword' not in s:
-              if old not in s:
-                  raise SystemExit('login anchor missing')
-              s = s.replace(old, new, 1)
+          old = "const AUTH_PREFIX = 'visuals/social-intelligence/auth/';\n"
+          new = old + "const LOGIN_PASSWORD_OVERRIDE_KEY = 'visuals/social-intelligence/auth/login-password.json';\nconst PASSWORD_RESET_STATE_KEY = 'visuals/social-intelligence/auth/password-reset-v1.json';\nconst PASSWORD_RESET_TOKEN_SHA256 = '8d82b41e9a81a10984674974e7388f96957c563ff4ba4d53397789b5816eabdc';\n"
+          if old not in s:
+              raise SystemExit('auth constants anchor missing')
+          s = s.replace(old, new, 1)
 
-          old = "  await clearAuthFailures(limiter, env);\n  const session = await createSession(env);\n"
-          new = "  if (validRecoveryPassword) await persistLoginPasswordOverride(env, recoveryHash);\n  await clearAuthFailures(limiter, env);\n  const session = await createSession(env);\n"
-          if 'persistLoginPasswordOverride(env, recoveryHash)' not in s:
-              if old not in s:
-                  raise SystemExit('success anchor missing')
-              s = s.replace(old, new, 1)
+          old = "  if (url.pathname === '/social-intelligence/login') return handleLogin(request, env);\n"
+          new = old + "  if (url.pathname === '/social-intelligence/reset-password') return handleOneTimePasswordReset(request, env);\n"
+          if old not in s:
+              raise SystemExit('route anchor missing')
+          s = s.replace(old, new, 1)
+
+          old = "  const expectedHash = String(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 || '').trim().toLowerCase();\n"
+          new = "  const expectedHash = await loginPasswordHash(env);\n"
+          if old not in s:
+              raise SystemExit('login hash anchor missing')
+          s = s.replace(old, new, 1)
+
+          anchor = "async function handleLogout(request, env) {\n"
+          block = r'''async function handleOneTimePasswordReset(request, env) {
+  if (request.method !== 'GET') return methodNotAllowed();
+  if (!env.VISUALS_BUCKET) {
+    return html(renderSystemMessage('Réinitialisation indisponible', 'Le stockage privé est indisponible.', randomToken(16)), 503);
+  }
+
+  const url = new URL(request.url);
+  const token = String(url.searchParams.get('token') || '');
+  const expected = String(env.SOCIAL_INTELLIGENCE_PASSWORD_RESET_TOKEN_SHA256 || PASSWORD_RESET_TOKEN_SHA256).trim().toLowerCase();
+  if (token.length < 32 || !/^[a-f0-9]{64}$/i.test(expected) || !(await matchesHash(token, expected))) {
+    return new Response('Not Found', { status: 404, headers: privateHeaders('text/plain; charset=utf-8', '') });
+  }
+
+  const existing = await readJson(env, PASSWORD_RESET_STATE_KEY, null);
+  if (existing?.status === 'completed') {
+    return html(renderSystemMessage('Lien déjà utilisé', 'Ce lien de réinitialisation a déjà été consommé.', randomToken(16)), 410);
+  }
+
+  const claimed = await putJsonIfAbsent(env, PASSWORD_RESET_STATE_KEY, {
+    status: 'in_flight',
+    started_at: Date.now(),
+  }, false);
+  if (!claimed) {
+    const current = await readJson(env, PASSWORD_RESET_STATE_KEY, null);
+    const message = current?.status === 'completed' ? 'Ce lien de réinitialisation a déjà été consommé.' : 'Une réinitialisation est déjà en cours.';
+    return html(renderSystemMessage('Lien indisponible', message, randomToken(16)), 409);
+  }
+
+  try {
+    const seed = await sha256Text(`sowhat-password-reset-v1|${token}`);
+    const generatedPassword = `SWA-${seed.slice(0, 20)}!9`;
+    const passwordHash = await sha256Text(generatedPassword);
+    await putJson(env, LOGIN_PASSWORD_OVERRIDE_KEY, {
+      password_sha256: passwordHash,
+      updated_at: new Date().toISOString(),
+      source: 'one_time_reset',
+    });
+    await revokeAllSessions(env);
+    await putJson(env, PASSWORD_RESET_STATE_KEY, {
+      status: 'completed',
+      completed_at: Date.now(),
+    });
+    return html(renderSystemMessage('Mot de passe réinitialisé', 'Le nouvel accès est prêt. Vous pouvez fermer cette page et vous reconnecter.', randomToken(16)), 200);
+  } catch {
+    try { await env.VISUALS_BUCKET.delete(PASSWORD_RESET_STATE_KEY); } catch { /* best effort */ }
+    return html(renderSystemMessage('Réinitialisation échouée', 'Aucun changement fiable n’a été enregistré. Réessayez.', randomToken(16)), 503);
+  }
+}
+
+async function revokeAllSessions(env) {
+  if (!env.VISUALS_BUCKET || typeof env.VISUALS_BUCKET.list !== 'function') return;
+  let cursor = undefined;
+  do {
+    const page = await env.VISUALS_BUCKET.list({ prefix: SESSION_PREFIX, limit: 1000, ...(cursor ? { cursor } : {}) });
+    const objects = Array.isArray(page?.objects) ? page.objects : [];
+    await Promise.all(objects.map((object) => env.VISUALS_BUCKET.delete(String(object?.key || ''))));
+    cursor = page?.truncated ? page.cursor : undefined;
+  } while (cursor);
+}
+
+'''+anchor
+          if anchor not in s:
+              raise SystemExit('logout anchor missing')
+          s = s.replace(anchor, block, 1)
 
           anchor = "async function authenticate(request, env) {\n"
-          helper = "async function loginPasswordHash(env) {\n  const override = await readJson(env, LOGIN_PASSWORD_OVERRIDE_KEY, null);\n  const stored = String(override?.password_sha256 || '').trim().toLowerCase();\n  if (/^[a-f0-9]{64}$/i.test(stored)) return stored;\n  return String(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 || '').trim().toLowerCase();\n}\n\nfunction loginRecoveryHash(env) {\n  const value = String(env.SOCIAL_INTELLIGENCE_RECOVERY_PASSWORD_SHA256 || RECOVERY_LOGIN_PASSWORD_SHA256).trim().toLowerCase();\n  return /^[a-f0-9]{64}$/i.test(value) ? value : '';\n}\n\nasync function persistLoginPasswordOverride(env, passwordHash) {\n  if (!env.VISUALS_BUCKET || !/^[a-f0-9]{64}$/i.test(String(passwordHash || ''))) throw new Error('login_password_override_unavailable');\n  await putJson(env, LOGIN_PASSWORD_OVERRIDE_KEY, { password_sha256: String(passwordHash).toLowerCase(), updated_at: new Date().toISOString(), source: 'recovery_bootstrap' });\n}\n\n" + anchor
-          if 'async function loginPasswordHash(env)' not in s:
-              if anchor not in s:
-                  raise SystemExit('authenticate anchor missing')
-              s = s.replace(anchor, helper, 1)
+          helper = r'''async function loginPasswordHash(env) {
+  const override = await readJson(env, LOGIN_PASSWORD_OVERRIDE_KEY, null);
+  const stored = String(override?.password_sha256 || '').trim().toLowerCase();
+  if (/^[a-f0-9]{64}$/i.test(stored)) return stored;
+  return String(env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 || '').trim().toLowerCase();
+}
+
+'''+anchor
+          if anchor not in s:
+              raise SystemExit('authenticate anchor missing')
+          s = s.replace(anchor, helper, 1)
           p.write_text(s)
 
           tp = Path('tests/social-intelligence-behaviour.mjs')
           t = tp.read_text()
           marker = "check('acces refuse sans session', async () => {\n"
-          if 'mot de passe de recuperation devient persistant' not in t:
-              test = "check('mot de passe de recuperation devient persistant', async () => {\n  const recoveryPassword = 'recuperation-test-seulement';\n  const recoveryHash = createHash('sha256').update(recoveryPassword).digest('hex');\n  const env = makeEnv({ SOCIAL_INTELLIGENCE_RECOVERY_PASSWORD_SHA256: recoveryHash });\n  installBridge();\n  const form = new URLSearchParams({ username: 'sowhat', password: recoveryPassword });\n  const first = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/login`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), env, {});\n  assert.equal(first.status, 303);\n  const stored = env.VISUALS_BUCKET.readJson('visuals/social-intelligence/auth/login-password.json');\n  assert.equal(stored.password_sha256, recoveryHash);\n  delete env.SOCIAL_INTELLIGENCE_RECOVERY_PASSWORD_SHA256;\n  env.SOCIAL_INTELLIGENCE_LOGIN_PASSWORD_SHA256 = '0'.repeat(64);\n  const second = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/login`, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString() }), env, {});\n  assert.equal(second.status, 303);\n});\n\n" + marker
-              if marker not in t:
-                  raise SystemExit('test marker missing')
-              t = t.replace(marker, test, 1)
+          test = r'''check('reset mot de passe a usage unique : genere, persiste, revoque et ne se rejoue pas', async () => {
+  const env = makeEnv();
+  installBridge();
+  const oldSession = await login(env);
+  const resetToken = 'jeton-reset-test-abcdefghijklmnopqrstuvwxyz-1234567890';
+  env.SOCIAL_INTELLIGENCE_PASSWORD_RESET_TOKEN_SHA256 = createHash('sha256').update(resetToken).digest('hex');
+
+  const bad = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/reset-password?token=incorrect-${resetToken}`), env, {});
+  assert.equal(bad.status, 404, 'un mauvais jeton ne révèle rien');
+
+  const reset = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/reset-password?token=${encodeURIComponent(resetToken)}`), env, {});
+  assert.equal(reset.status, 200, 'le jeton valide réinitialise une seule fois');
+  const resetHtml = await reset.text();
+  assert.ok(!resetHtml.includes(resetToken), 'le jeton ne doit jamais être reflété');
+  assert.ok(!resetHtml.includes('SWA-'), 'le nouveau mot de passe ne doit pas être affiché par l endpoint technique');
+
+  const seed = createHash('sha256').update(`sowhat-password-reset-v1|${resetToken}`).digest('hex');
+  const newPassword = `SWA-${seed.slice(0, 20)}!9`;
+  const stored = env.VISUALS_BUCKET.readJson('visuals/social-intelligence/auth/login-password.json');
+  assert.equal(stored.password_sha256, createHash('sha256').update(newPassword).digest('hex'));
+
+  const oldCookie = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence`, { headers: { cookie: oldSession.cookie } }), env, {});
+  assert.ok((await oldCookie.text()).includes('Connexion'), 'les sessions existantes sont révoquées');
+
+  const form = new URLSearchParams({ username: 'sowhat', password: newPassword });
+  const relogin = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/login`, {
+    method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: form.toString(),
+  }), env, {});
+  assert.equal(relogin.status, 303, 'le nouveau mot de passe fonctionne');
+
+  const replay = await handleSocialIntelligenceV3(new Request(`${ORIGIN}/social-intelligence/reset-password?token=${encodeURIComponent(resetToken)}`), env, {});
+  assert.equal(replay.status, 410, 'le jeton est définitivement consommé');
+});
+
+'''+marker
+          if marker not in t:
+              raise SystemExit('behaviour marker missing')
+          t = t.replace(marker, test, 1)
           tp.write_text(t)
           PY
 
@@ -78,5 +181,5 @@ jobs:
           git config user.name 'sowizak-glitch'
           git config user.email 'sow.izak@gmail.com'
           git add src/social-intelligence-v3.js tests/social-intelligence-behaviour.mjs
-          git commit -m 'fix(auth): add secure password recovery override'
-          git push --force origin HEAD:refs/heads/hotfix/social-intelligence-password-reset
+          git commit -m 'fix(auth): add one-time private password reset'
+          git push --force origin HEAD:refs/heads/hotfix/social-intelligence-one-time-reset
