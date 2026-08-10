@@ -119,19 +119,31 @@ jobs:
         if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
         run: echo 'Cloudflare Git integration is expected to publish main because repository deployment credentials are not available to this workflow.' >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Smoke test V5 namespace (must refuse unauthenticated access)
+      - name: Smoke test V5 browser login redirect
         shell: bash
         run: |
           set -euo pipefail
-          # Le seul comportement V5 verifiable sans secret est le refus. Un 200
-          # ici signifierait que le cockpit est ouvert : c est un echec.
-          status=$(curl --location --silent --show-error --output v5.txt --write-out '%{http_code}' --max-time 20 "$PRODUCTION_V5_URL" || true)
-          echo "V5 cockpit unauthenticated status: $status" >> "$GITHUB_STEP_SUMMARY"
-          case "$status" in
-            401|503) echo 'V5 namespace correctly refuses unauthenticated access.' ;;
-            200) echo 'V5 cockpit answered 200 without credentials.' >&2; exit 1 ;;
-            *) echo "Unexpected V5 status $status." >&2; exit 1 ;;
-          esac
+          for attempt in 1 2 3 4 5 6; do
+            status=$(curl --silent --show-error --dump-header v5.headers --output v5.txt --write-out '%{http_code}' --max-time 20 "$PRODUCTION_V5_URL" || true)
+            location=$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/\r$/, ""); print $2}' v5.headers | tail -1)
+            echo "V5 browser attempt $attempt -> status=$status location=$location" >> "$GITHUB_STEP_SUMMARY"
+
+            if { [ "$status" = '302' ] || [ "$status" = '303' ]; } \
+              && [ "$location" = '/social-intelligence' ]; then
+              echo 'V5 unauthenticated browser request redirects safely to the login cockpit.' >> "$GITHUB_STEP_SUMMARY"
+              exit 0
+            fi
+
+            if [ "$status" = '200' ]; then
+              echo 'V5 cockpit answered 200 without credentials.' >&2
+              exit 1
+            fi
+
+            sleep 20
+          done
+
+          echo 'V5 browser login redirect did not become ready in the verification window.' >&2
+          exit 1
 
       - name: Verify Social Intelligence production
         shell: bash
