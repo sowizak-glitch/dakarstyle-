@@ -120,6 +120,19 @@ test('CSRF exige un secret suffisant, sans mode degrade', () => {
   assert.ok(security.includes('constantTimeEqual'), 'comparaison a duree constante obligatoire');
 });
 
+test('le secret CSRF amorce est aleatoire, stable et hors de portee publique', () => {
+  const security = sources['security-v5.js'];
+  assert.ok(security.includes('crypto.getRandomValues'), 'tirage cryptographique obligatoire');
+  assert.ok(security.includes("onlyIf: { etagDoesNotMatch: '*' }"), 'amorcage par ecriture conditionnelle');
+  assert.ok(security.includes('const stored = await readStoredSecret(bucket)'),
+    'seul ce qui est reellement stocke fait foi');
+  // Le secret ne vit pas sous le prefixe des medias : la route publique ne
+  // sert que ce prefixe, elle ne peut donc pas le divulguer.
+  assert.equal(security.includes(`${'CSRF_SECRET_KEY'} = \`${'$'}{MEDIA_KEY_PREFIX}\``), false);
+  assert.ok(/CSRF_SECRET_KEY = 'visuals\/social-intelligence\/v5\/csrf-secret\.json'/.test(security));
+  assert.equal(security.includes('Math.random'), false, 'aucun aleatoire non cryptographique');
+});
+
 test('l idempotence refuse plutot que de supposer l exclusion mutuelle', () => {
   const security = sources['security-v5.js'];
   assert.ok(security.includes("etagDoesNotMatch: '*'"), 'ecriture conditionnelle');

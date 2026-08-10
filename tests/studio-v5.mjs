@@ -9,8 +9,8 @@ import { prefillDraftFromPlanDay } from '../src/plan-v5.js';
 import {
   ALLOWED_MEDIA_TYPES, MEDIA_KEY_PREFIX, SECURITY_ERROR,
   businessIdempotencyKey, checkSafeGate, completeIdempotencyKey, constantTimeEqual,
-  issueCsrfToken, readIdempotencyRecord, reserveIdempotencyKey, sanitizeFilename,
-  validateMedia, verifyCsrfToken,
+  CSRF_SECRET_KEY, issueCsrfToken, readIdempotencyRecord, reserveIdempotencyKey,
+  resolveCsrfSecret, sanitizeFilename, validateMedia, verifyCsrfToken,
 } from '../src/security-v5.js';
 import {
   ALLOWED_TRANSITIONS, MAX_CAPTION_LENGTH, STUDIO_ERROR, STUDIO_STATE,
@@ -457,6 +457,94 @@ test('prefill Plan et prefill Coach produisent des brouillons de meme nature', (
     assert.equal(draft.media, null);
     assert.equal(draft.instagram_media_id, null);
   }
+});
+
+/* ---------------- Secret CSRF : configure ou amorce ---------------- */
+
+test('secret configure : utilise tel quel, sans rien ecrire dans le stockage', async () => {
+  const bucket = new Bucket();
+  const env = { SOCIAL_INTELLIGENCE_CSRF_SECRET: SECRET, VISUALS_BUCKET: bucket };
+  assert.equal(await resolveCsrfSecret(env), SECRET);
+  assert.equal(bucket.puts, 0, 'un secret configure n a pas besoin d etre amorce');
+  assert.equal(bucket.s.has(CSRF_SECRET_KEY), false);
+});
+
+test('secret absent : un secret aleatoire est amorce une fois dans le stockage', async () => {
+  const bucket = new Bucket();
+  const env = { VISUALS_BUCKET: bucket };
+  const secret = await resolveCsrfSecret(env);
+  assert.ok(secret.length >= 32, 'le secret amorce doit etre assez long');
+  assert.equal(bucket.json(CSRF_SECRET_KEY).secret, secret);
+  // Le chemin est prive : il ne tombe pas sous le prefixe des medias publics.
+  assert.equal(CSRF_SECRET_KEY.startsWith(MEDIA_KEY_PREFIX), false);
+
+  // Le jeton emis avec ce secret est verifiable : la barriere fonctionne.
+  const token = await issueCsrfToken(env, 'session:abc', NOW);
+  assert.equal((await verifyCsrfToken(env, 'session:abc', token, NOW)).valid, true);
+});
+
+test('secret amorce : reutilise, jamais regenere', async () => {
+  const bucket = new Bucket();
+  const first = await resolveCsrfSecret({ VISUALS_BUCKET: bucket });
+  // Un autre env, meme bucket : le secret doit venir du stockage, pas d un tirage.
+  const second = await resolveCsrfSecret({ VISUALS_BUCKET: bucket });
+  assert.equal(second, first);
+
+  // Un jeton emis avant reste valide apres : le secret n a pas bouge.
+  const token = await issueCsrfToken({ VISUALS_BUCKET: bucket }, 'session:abc', NOW);
+  assert.equal((await verifyCsrfToken({ VISUALS_BUCKET: bucket }, 'session:abc', token, NOW)).valid, true);
+  assert.equal(bucket.puts, 1, 'une seule ecriture, quel que soit le nombre d appels');
+});
+
+test('deux amorcages simultanes convergent vers le meme secret', async () => {
+  const bucket = new Bucket();
+  // Deux env distincts : le cache memoire ne peut pas masquer la course.
+  const [a, b] = await Promise.all([
+    resolveCsrfSecret({ VISUALS_BUCKET: bucket }),
+    resolveCsrfSecret({ VISUALS_BUCKET: bucket }),
+  ]);
+  assert.equal(a, b, 'le perdant de la course adopte le secret du gagnant');
+  assert.equal(bucket.json(CSRF_SECRET_KEY).secret, a);
+});
+
+test('un jeton amorce ne vaut que pour sa session', async () => {
+  const bucket = new Bucket();
+  const env = { VISUALS_BUCKET: bucket };
+  const token = await issueCsrfToken(env, 'session:legitime', NOW);
+  assert.equal((await verifyCsrfToken(env, 'session:autre', token, NOW)).valid, false);
+  assert.equal((await verifyCsrfToken(env, 'session:autre', token, NOW)).code, SECURITY_ERROR.CSRF_INVALID);
+});
+
+test('un jeton amorce expire comme les autres', async () => {
+  const env = { VISUALS_BUCKET: new Bucket() };
+  const token = await issueCsrfToken(env, 'session:abc', NOW);
+  const late = await verifyCsrfToken(env, 'session:abc', token, NOW + 3 * 60 * 60 * 1000);
+  assert.equal(late.valid, false);
+  assert.equal(late.code, SECURITY_ERROR.CSRF_EXPIRED);
+});
+
+test('sans stockage : refus net, aucun secret improvise', async () => {
+  for (const env of [{}, { VISUALS_BUCKET: null }, { VISUALS_BUCKET: {} }]) {
+    await assert.rejects(
+      () => resolveCsrfSecret(env),
+      (error) => error.code === SECURITY_ERROR.CSRF_NOT_CONFIGURED,
+    );
+    await assert.rejects(
+      () => issueCsrfToken(env, 'session:abc', NOW),
+      (error) => error.code === SECURITY_ERROR.CSRF_NOT_CONFIGURED,
+    );
+    const check = await verifyCsrfToken(env, 'session:abc', 'x.y', NOW);
+    assert.equal(check.valid, false);
+    assert.equal(check.code, SECURITY_ERROR.CSRF_NOT_CONFIGURED);
+  }
+});
+
+test('stockage qui n ecrit rien : refus plutot qu un secret volatil', async () => {
+  const bucket = { async get() { return null; }, async put() { return { key: 'x' }; } };
+  await assert.rejects(
+    () => resolveCsrfSecret({ VISUALS_BUCKET: bucket }),
+    (error) => error.code === SECURITY_ERROR.CSRF_NOT_CONFIGURED,
+  );
 });
 
 /* ---------------- Execution ---------------- */

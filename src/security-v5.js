@@ -65,6 +65,103 @@ export function assertSafeGate(env, subject) {
 
 const CSRF_MAX_AGE_MS = 2 * 60 * 60 * 1000;
 
+/** Longueur minimale d un secret CSRF exploitable. */
+export const CSRF_SECRET_MIN_LENGTH = 32;
+
+/**
+ * Emplacement prive du secret amorce. Il est volontairement HORS du prefixe
+ * `MEDIA_KEY_PREFIX` : la route publique des medias ne sert que ce prefixe,
+ * ce fichier ne peut donc jamais etre servi a personne.
+ */
+export const CSRF_SECRET_KEY = 'visuals/social-intelligence/v5/csrf-secret.json';
+
+/** Un secret par bucket, garde en memoire de l isolat pour eviter une lecture par requete. */
+const secretCache = new WeakMap();
+
+function csrfNotConfigured(detail) {
+  const error = new Error(SECURITY_ERROR.CSRF_NOT_CONFIGURED);
+  error.code = SECURITY_ERROR.CSRF_NOT_CONFIGURED;
+  error.detail = String(detail || '');
+  return error;
+}
+
+function randomSecret() {
+  const bytes = new Uint8Array(48);
+  crypto.getRandomValues(bytes);
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function readStoredSecret(bucket) {
+  try {
+    const object = await bucket.get(CSRF_SECRET_KEY);
+    if (!object) return '';
+    const parsed = JSON.parse(await object.text());
+    const value = String(parsed?.secret || '');
+    return value.length >= CSRF_SECRET_MIN_LENGTH ? value : '';
+  } catch {
+    return '';
+  }
+}
+
+/**
+ * Secret de signature des jetons CSRF.
+ *
+ * Ordre, sans repli silencieux :
+ *   1. `SOCIAL_INTELLIGENCE_CSRF_SECRET` s il est configure et assez long ;
+ *   2. sinon un secret amorce UNE SEULE FOIS cote serveur, tire de
+ *      `crypto.getRandomValues` et range dans un objet prive du bucket.
+ *
+ * L amorcage passe par une ecriture conditionnelle. Deux initialisations
+ * simultanees ne peuvent donc pas produire deux secrets differents : la
+ * seconde perd la course, relit, et adopte celui de la premiere. Sans bucket,
+ * sans ecriture conditionnelle ou sans relecture concordante, on REFUSE :
+ * un CSRF signe par un secret qui change a chaque requete ne protege rien.
+ */
+export async function resolveCsrfSecret(env) {
+  const configured = String(env?.SOCIAL_INTELLIGENCE_CSRF_SECRET || '').trim();
+  if (configured.length >= CSRF_SECRET_MIN_LENGTH) return configured;
+
+  const bucket = env?.VISUALS_BUCKET;
+  if (!bucket || typeof bucket.get !== 'function' || typeof bucket.put !== 'function') {
+    throw csrfNotConfigured('aucun secret configure et aucun stockage pour en amorcer un');
+  }
+
+  const cached = secretCache.get(bucket);
+  if (cached) return cached;
+
+  const existing = await readStoredSecret(bucket);
+  if (existing) {
+    secretCache.set(bucket, existing);
+    return existing;
+  }
+
+  const candidate = randomSecret();
+  try {
+    await bucket.put(CSRF_SECRET_KEY, JSON.stringify({
+      secret: candidate,
+      created_at: new Date().toISOString(),
+      origin: 'bootstrap',
+    }), {
+      onlyIf: { etagDoesNotMatch: '*' },
+      httpMetadata: { contentType: 'application/json; charset=utf-8', cacheControl: 'no-store' },
+    });
+  } catch {
+    // L ecriture a peut-etre echoue parce qu une autre execution a gagne :
+    // la relecture ci-dessous tranche.
+  }
+
+  // On ne fait jamais confiance au resultat de l ecriture : seul ce qui est
+  // REELLEMENT stocke fait foi. C est ce qui rend deux amorcages simultanes
+  // inoffenifs, et ce qui detecte un stockage qui n ecrit pas vraiment.
+  const stored = await readStoredSecret(bucket);
+  if (!stored) throw csrfNotConfigured('secret amorce non relu apres ecriture');
+
+  secretCache.set(bucket, stored);
+  return stored;
+}
+
 function toBase64Url(bytes) {
   let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -96,19 +193,20 @@ export function constantTimeEqual(a, b) {
  * le rejouer depuis une autre session ne sert a rien.
  */
 export async function issueCsrfToken(env, sessionId, now = Date.now()) {
-  const secret = String(env?.SOCIAL_INTELLIGENCE_CSRF_SECRET || '').trim();
-  if (secret.length < 32) {
-    const error = new Error(SECURITY_ERROR.CSRF_NOT_CONFIGURED);
-    error.code = SECURITY_ERROR.CSRF_NOT_CONFIGURED;
-    throw error;
-  }
+  const secret = await resolveCsrfSecret(env);
+  if (secret.length < 32) throw csrfNotConfigured('secret trop court');
   const issuedAt = String(now);
   const signature = await hmac(secret, `${sessionId}.${issuedAt}`);
   return `${issuedAt}.${signature}`;
 }
 
 export async function verifyCsrfToken(env, sessionId, token, now = Date.now(), maxAgeMs = CSRF_MAX_AGE_MS) {
-  const secret = String(env?.SOCIAL_INTELLIGENCE_CSRF_SECRET || '').trim();
+  let secret;
+  try {
+    secret = await resolveCsrfSecret(env);
+  } catch {
+    return { valid: false, code: SECURITY_ERROR.CSRF_NOT_CONFIGURED };
+  }
   if (secret.length < 32) return { valid: false, code: SECURITY_ERROR.CSRF_NOT_CONFIGURED };
 
   const raw = String(token ?? '');

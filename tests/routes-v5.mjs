@@ -728,6 +728,96 @@ test('un brouillon valide dont le media est retire ne reste pas « pret »', asy
   assert.equal(response.status, 422, 'un contenu sans media ne peut plus etre declare pret');
 });
 
+/* ---------------- Secret CSRF amorce : le cas reel de production ---------------- */
+
+async function sessionEnv() {
+  // Exactement la configuration de production : aucun SOCIAL_INTELLIGENCE_CSRF_SECRET.
+  const env = makeEnv({ SOCIAL_INTELLIGENCE_CSRF_SECRET: undefined });
+  const token = 'jeton-de-session-navigateur-suffisamment-long-123';
+  const digest = await (async () => {
+    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(token));
+    return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  })();
+  env.VISUALS_BUCKET.s.set(
+    `visuals/social-intelligence/sessions/${digest}.json`,
+    JSON.stringify({ expires_at: Date.now() + 3600000, csrf: 'x' }),
+  );
+  return { env, cookie: `__Host-sowhat_si=${token}` };
+}
+
+test('sans secret configure, la session navigateur obtient un vrai jeton CSRF', async () => {
+  const { env, cookie } = await sessionEnv();
+  const response = await call(env, req(`${V5_API_PREFIX}csrf`, { auth: false, headers: { cookie } }));
+  assert.equal(response.status, 200, 'plus de csrf_not_configured');
+  const body = await response.json();
+  assert.ok(body.csrf_token, 'un jeton exploitable doit etre renvoye');
+  assert.ok(body.csrf_token.includes('.'));
+  // Le secret lui-meme ne sort jamais.
+  const stored = JSON.parse(env.VISUALS_BUCKET.s.get('visuals/social-intelligence/v5/csrf-secret.json')).secret;
+  assert.equal(JSON.stringify(body).includes(stored), false, 'le secret ne doit jamais atteindre le navigateur');
+});
+
+test('le jeton amorce ouvre reellement le televersement', async () => {
+  const { env, cookie } = await sessionEnv();
+  const { csrf_token: token } = await (await call(env, req(`${V5_API_PREFIX}csrf`, { auth: false, headers: { cookie } }))).json();
+
+  const upload = new Request(`https://dakarstyle.com${V5_API_PREFIX}media/upload`, {
+    method: 'POST',
+    headers: new Headers({ cookie, 'x-sowhat-csrf': token, origin: 'https://dakarstyle.com' }),
+    body: multipart(JPEG_BYTES, 'look.jpg', 'image/jpeg'),
+  });
+  const response = await call(env, upload);
+  assert.equal(response.status, 201, 'la barriere CSRF doit etre franchie');
+  const body = await response.json();
+  assert.equal(body.ok, true);
+  assert.ok(body.media.r2_key.startsWith(MEDIA_KEY_PREFIX));
+});
+
+test('meme avec un jeton valide, une origine etrangere reste refusee', async () => {
+  const { env, cookie } = await sessionEnv();
+  const { csrf_token: token } = await (await call(env, req(`${V5_API_PREFIX}csrf`, { auth: false, headers: { cookie } }))).json();
+
+  const upload = new Request(`https://dakarstyle.com${V5_API_PREFIX}media/upload`, {
+    method: 'POST',
+    headers: new Headers({ cookie, 'x-sowhat-csrf': token, origin: 'https://site-malveillant.example' }),
+    body: multipart(JPEG_BYTES, 'look.jpg', 'image/jpeg'),
+  });
+  const response = await call(env, upload);
+  assert.equal(response.status, 403);
+  assert.equal((await response.json()).error, 'csrf_invalid');
+  assert.equal(env.VISUALS_BUCKET.s.has('x'), false);
+});
+
+test('un jeton emis pour une autre session navigateur ne passe pas', async () => {
+  const first = await sessionEnv();
+  const { csrf_token: token } = await (await call(first.env, req(`${V5_API_PREFIX}csrf`, { auth: false, headers: { cookie: first.cookie } }))).json();
+
+  // Deuxieme session, meme stockage donc meme secret amorce.
+  const other = 'un-autre-jeton-de-session-navigateur-tout-aussi-long';
+  const digest = await (async () => {
+    const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(other));
+    return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  })();
+  first.env.VISUALS_BUCKET.s.set(
+    `visuals/social-intelligence/sessions/${digest}.json`,
+    JSON.stringify({ expires_at: Date.now() + 3600000, csrf: 'x' }),
+  );
+
+  const response = await call(first.env, new Request(`https://dakarstyle.com${STUDIO_API_PREFIX}drafts`, {
+    method: 'POST',
+    headers: new Headers({ cookie: `__Host-sowhat_si=${other}`, 'x-sowhat-csrf': token, 'content-type': 'application/json' }),
+    body: '{}',
+  }));
+  assert.equal(response.status, 403, 'un jeton n est valable que pour la session qui l a demande');
+});
+
+test('sans stockage, le cockpit refuse au lieu d improviser un secret', async () => {
+  const env = { SOCIAL_INTELLIGENCE_ADMIN_KEY_SHA256: ADMIN_HASH };
+  const response = await call(env, req(`${V5_API_PREFIX}csrf`));
+  assert.equal(response.status, 503);
+  assert.equal((await response.json()).error, 'csrf_not_configured');
+});
+
 /* ---------------- Execution ---------------- */
 
 let failures = 0;
