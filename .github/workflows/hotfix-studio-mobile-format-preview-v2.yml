@@ -1,0 +1,74 @@
+name: Hotfix Studio Mobile Format Preview V2
+
+on:
+  push:
+    paths:
+      - '.github/workflows/hotfix-studio-mobile-format-preview-v2.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Build isolated hotfix
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout -B hotfix/studio-mobile-format-preview origin/main
+          python3 - <<'PY'
+          from pathlib import Path
+
+          src_path = Path('src/studio-client-v5.js')
+          src = src_path.read_text()
+
+          replacements = [
+          ("""  function clearNode(node) {\n    while (node && node.firstChild) node.removeChild(node.firstChild);\n  }\n\n  /* -------------------- Apercu Instagram -------------------- */\n""",
+           """  function clearNode(node) {\n    while (node && node.firstChild) node.removeChild(node.firstChild);\n  }\n\n  // Le type du fichier est la source de verite. Une photo ne peut jamais\n  // partir comme Reel et une video ne peut jamais partir comme image.\n  function setFormatForKind(kind) {\n    var image = el('st-format-image');\n    var reel = el('st-format-reel');\n    var video = String(kind || '').toUpperCase() === 'VIDEO';\n    if (image) image.checked = !video;\n    if (reel) reel.checked = video;\n    if (nodes.ig) nodes.ig.setAttribute('data-format', video ? 'REEL' : 'IMAGE');\n  }\n\n  /* -------------------- Apercu Instagram -------------------- */\n"""),
+          ("""    state.objectUrl = URL.createObjectURL(file);\n    var isVideo = String(file.type || '').indexOf('video/') === 0;\n\n    var main = document.createElement(isVideo ? 'video' : 'img');\n    main.src = state.objectUrl;\n    if (isVideo) { main.controls = true; main.playsInline = true; }\n    else { main.alt = 'Apercu du visuel selectionne'; }\n    if (nodes.frame) nodes.frame.appendChild(main);\n\n    var mini = document.createElement(isVideo ? 'video' : 'img');\n    mini.src = state.objectUrl;\n    if (isVideo) { mini.muted = true; mini.playsInline = true; mini.controls = false; }\n    else { mini.alt = ''; }\n    if (nodes.igMedia) nodes.igMedia.appendChild(mini);\n""",
+           """    state.objectUrl = URL.createObjectURL(file);\n    var isVideo = String(file.type || '').indexOf('video/') === 0;\n\n    var main = document.createElement(isVideo ? 'video' : 'img');\n    main.src = state.objectUrl;\n    if (isVideo) { main.controls = true; main.playsInline = true; }\n    else { main.alt = 'Apercu du visuel selectionne'; }\n    if (nodes.frame) nodes.frame.appendChild(main);\n\n    var mini = document.createElement(isVideo ? 'video' : 'img');\n    mini.src = state.objectUrl;\n    if (isVideo) { mini.muted = true; mini.playsInline = true; mini.controls = false; }\n    else { mini.alt = ''; }\n    if (nodes.igMedia) nodes.igMedia.appendChild(mini);\n\n    // Fallback Android/PWA : le data URL reste uniquement dans le DOM.\n    if (!isVideo) {\n      var fallbackStarted = false;\n      var fallback = function () {\n        if (fallbackStarted || typeof FileReader === 'undefined') return;\n        fallbackStarted = true;\n        var reader = new FileReader();\n        reader.onload = function () {\n          var local = typeof reader.result === 'string' ? reader.result : '';\n          if (!local) return;\n          main.src = local;\n          mini.src = local;\n        };\n        reader.onerror = function () {\n          message('Apercu indisponible, mais le fichier reste pret a etre envoye.', 'warn');\n        };\n        reader.readAsDataURL(file);\n      };\n      main.addEventListener('error', fallback, { once: true });\n      mini.addEventListener('error', fallback, { once: true });\n    }\n"""),
+          ("""    message('', 'neutral');\n    state.media = null;\n    renderMediaPreview(file);\n\n    // Le format suit le fichier : proposer un Reel pour une video evite\n    // l erreur la plus frequente, sans jamais l imposer.\n    if (spec.kind === 'VIDEO') {\n      var reel = el('st-format-reel');\n      if (reel && !reel.checked) { reel.checked = true; }\n    } else {\n      var image = el('st-format-image');\n      if (image && !image.checked) { image.checked = true; }\n    }\n""",
+           """    message('', 'neutral');\n    state.media = null;\n    setFormatForKind(spec.kind);\n    renderMediaPreview(file);\n"""),
+          ("""    upload(file).then(function (data) {\n      state.media = data.media;\n      state.uploading = false;\n      show(nodes.progress, false);\n      mediaState('Media pret', 'good');\n      renderPreview();\n""",
+           """    upload(file).then(function (data) {\n      state.media = data.media;\n      setFormatForKind(state.media && state.media.kind);\n      state.uploading = false;\n      show(nodes.progress, false);\n      mediaState('Media pret', 'good');\n      renderPreview();\n"""),
+          ("""  function draftPayload() {\n    return {\n      format: currentFormat(),\n""",
+           """  function draftPayload() {\n    var mediaFormat = state.media\n      ? (String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE')\n      : currentFormat();\n    if (state.media) setFormatForKind(state.media.kind);\n    return {\n      format: mediaFormat,\n"""),
+          ("""    if (draft.media) { state.media = draft.media; mediaState('Media pret', 'good'); }\n    renderPreview();\n""",
+           """    if (draft.media) {\n      state.media = draft.media;\n      setFormatForKind(draft.media.kind);\n      mediaState('Media pret', 'good');\n    }\n    renderPreview();\n"""),
+          ("""    var formats = document.querySelectorAll('input[name=\"st-format\"]');\n    for (var i = 0; i < formats.length; i += 1) formats[i].addEventListener('change', renderPreview);\n""",
+           """    var formats = document.querySelectorAll('input[name=\"st-format\"]');\n    for (var i = 0; i < formats.length; i += 1) formats[i].addEventListener('change', function () {\n      if (state.media) setFormatForKind(state.media.kind);\n      renderPreview();\n    });\n""")]
+
+          for old, new in replacements:
+              if old not in src:
+                  raise SystemExit('source anchor missing')
+              src = src.replace(old, new, 1)
+          src_path.write_text(src)
+
+          tests_path = Path('tests/ui-v5.mjs')
+          tests = tests_path.read_text()
+          anchor = """test('l apercu du fichier reste local tant qu il n est pas envoye', () => {\n  assert.ok(STUDIO_CLIENT_JS.includes('URL.createObjectURL'));\n  assert.ok(STUDIO_CLIENT_JS.includes('URL.revokeObjectURL'), 'la memoire est rendue au navigateur');\n});\n"""
+          addition = anchor + """\n\ntest('le format du brouillon suit toujours le type reel du media', () => {\n  assert.ok(STUDIO_CLIENT_JS.includes('function setFormatForKind(kind)'));\n  assert.ok(STUDIO_CLIENT_JS.includes("String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE'"));\n  assert.ok(STUDIO_CLIENT_JS.includes('if (state.media) setFormatForKind(state.media.kind)'));\n});\n\ntest('une image dispose d un fallback local si blob echoue sur Android', () => {\n  assert.ok(STUDIO_CLIENT_JS.includes("typeof FileReader === 'undefined'"));\n  assert.ok(STUDIO_CLIENT_JS.includes('reader.readAsDataURL(file)'));\n  assert.ok(STUDIO_CLIENT_JS.includes("main.addEventListener('error', fallback"));\n  assert.ok(STUDIO_CLIENT_JS.includes("mini.addEventListener('error', fallback"));\n  assert.equal(STUDIO_CLIENT_JS.includes("form.append('file', reader.result"), false, 'le data URL ne doit jamais partir au serveur');\n});\n"""
+          if anchor not in tests:
+              raise SystemExit('ui test anchor missing')
+          tests_path.write_text(tests.replace(anchor, addition, 1))
+          PY
+
+          git diff --check
+          npm test
+          node tests/security-audit-v5.mjs
+          npm run build:dry-run
+          git config user.name 'sowizak-glitch'
+          git config user.email 'sow.izak@gmail.com'
+          git add src/studio-client-v5.js tests/ui-v5.mjs
+          git commit -m 'fix(studio): align media format and mobile preview'
+          git push --force origin HEAD:refs/heads/hotfix/studio-mobile-format-preview
