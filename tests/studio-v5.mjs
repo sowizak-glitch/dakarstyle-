@@ -13,7 +13,7 @@ import {
   resolveCsrfSecret, sanitizeFilename, validateMedia, verifyCsrfToken,
 } from '../src/security-v5.js';
 import {
-  ALLOWED_TRANSITIONS, MAX_CAPTION_LENGTH, STUDIO_ERROR, STUDIO_STATE,
+  ALLOWED_TRANSITIONS, MAX_CAPTION_LENGTH, STUDIO_ERROR, STUDIO_STATE, SUPPORTED_FORMATS,
   approveDraft, assertPublishable, beginPublishing, canTransition, cancelSchedule,
   createDraft, markFailed, markPublished, markReady, normalizeHashtags, previewDraft,
   publicationQueue, readDraft, retryFailed, saveDraft, scheduleDraft, transition,
@@ -158,12 +158,13 @@ test('nom de fichier neutralise : ni chemin, ni caractere de controle', () => {
 /* ---------------- Idempotence ---------------- */
 
 test('cle d idempotence : metier, stable, et sensible au contenu', async () => {
-  const base = { draft_id: 'D1', instagram_user_id: '178414', scheduled_for: '2026-07-01T12:00:00Z', media_key: 'k', caption: 'texte' };
+  const base = { draft_id: 'D1', format: 'IMAGE', instagram_user_id: '178414', scheduled_for: '2026-07-01T12:00:00Z', media_key: 'k', caption: 'texte' };
   const a = await businessIdempotencyKey(base);
   const b = await businessIdempotencyKey({ ...base });
   assert.equal(a, b, 'les memes elements donnent toujours la meme cle');
   assert.notEqual(a, await businessIdempotencyKey({ ...base, caption: 'autre texte' }));
   assert.notEqual(a, await businessIdempotencyKey({ ...base, scheduled_for: '2026-07-02T12:00:00Z' }));
+  assert.notEqual(a, await businessIdempotencyKey({ ...base, format: 'STORY' }), 'un Post et une Story sont deux intentions distinctes');
   assert.equal(a.length, 40);
 });
 
@@ -246,12 +247,14 @@ test('validation : legende et media obligatoires, erreurs listees', () => {
 
 test('validation : coherence format et media', () => {
   const reel = createDraft({ caption: 'x', format: 'REEL', media: goodMedia() }, { now: NOW });
-  assert.ok(validateDraft(reel).errors.some((e) => /Reel exige un media video/.test(e)));
-  const image = createDraft({
-    caption: 'x', format: 'IMAGE',
-    media: { r2_key: `${MEDIA_KEY_PREFIX}a.mp4`, content_type: 'video/mp4', size_bytes: 1000, filename: 'a.mp4' },
-  }, { now: NOW });
+  assert.ok(validateDraft(reel).errors.some((e) => /REEL exige un media video/.test(e)));
+  const videoMedia = { r2_key: `${MEDIA_KEY_PREFIX}a.mp4`, content_type: 'video/mp4', size_bytes: 1000, filename: 'a.mp4' };
+  const image = createDraft({ caption: 'x', format: 'IMAGE', media: videoMedia }, { now: NOW });
   assert.ok(validateDraft(image).errors.some((e) => /exige un media image/.test(e)));
+  assert.equal(validateDraft(createDraft({ caption: 'x', format: 'STORY', media: goodMedia() }, { now: NOW })).valid, true);
+  assert.equal(validateDraft(createDraft({ caption: 'x', format: 'STORY', media: videoMedia }, { now: NOW })).valid, true);
+  assert.equal(validateDraft(createDraft({ caption: 'x', format: 'INVENTE', media: goodMedia() }, { now: NOW })).valid, false);
+  assert.ok(SUPPORTED_FORMATS.includes('STORY'));
 });
 
 test('legende tronquee a la limite Instagram, hashtags normalises et bornes', () => {

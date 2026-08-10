@@ -98,6 +98,12 @@ export function mediaUrlFor(env, r2Key) {
 /** Champs du conteneur, selon le format reel du contenu. */
 export function containerFieldsFor(draft, mediaUrl, caption) {
   const format = String(draft?.format || '').toUpperCase();
+  if (format === 'STORY') {
+    const kind = String(draft?.media?.kind || '').toUpperCase();
+    return kind === 'VIDEO'
+      ? { media_type: 'STORIES', video_url: mediaUrl }
+      : { media_type: 'STORIES', image_url: mediaUrl };
+  }
   if (format === 'REEL') {
     return { media_type: 'REELS', video_url: mediaUrl, caption };
   }
@@ -177,6 +183,7 @@ export async function publishDraft(env, client, draft, options = {}) {
   // --- 2. Idempotence metier : la meme intention ne part qu une fois ---
   const key = await businessIdempotencyKey({
     draft_id: draft.draft_id,
+    format: draft.format,
     instagram_user_id: userId,
     scheduled_for: draft.scheduled_for || '',
     media_key: draft.media?.r2_key || '',
@@ -293,7 +300,10 @@ export async function publishDraft(env, client, draft, options = {}) {
   // --- 6. Confirmation finale : sans elle, ce n est pas publie ---
   let confirmation;
   try {
-    confirmation = await client.request(mediaId, { fields: 'id,permalink,timestamp' });
+    const fields = String(draft?.format || '').toUpperCase() === 'STORY'
+      ? 'id,timestamp,media_product_type'
+      : 'id,permalink,timestamp';
+    confirmation = await client.request(mediaId, { fields });
   } catch (error) {
     const code = error instanceof MetaApiError ? error.code : META_ERROR.UNKNOWN;
     return {

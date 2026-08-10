@@ -177,6 +177,27 @@ export const STUDIO_CLIENT_JS = `'use strict';
     if (nodes.ig) nodes.ig.setAttribute('data-format', video ? 'REEL' : 'IMAGE');
   }
 
+  function setDefaultFormatForKind(kind) {
+    if (currentFormat() === 'STORY') {
+      if (nodes.ig) nodes.ig.setAttribute('data-format', 'STORY');
+      return;
+    }
+    setFormatForKind(kind);
+  }
+
+  function formatMatchesMedia(format, kind) {
+    var video = String(kind || '').toUpperCase() === 'VIDEO';
+    if (format === 'STORY') return true;
+    return video ? format === 'REEL' : format === 'IMAGE';
+  }
+
+  function publicMediaPath(media) {
+    var key = String(media && media.r2_key || '');
+    var prefix = 'visuals/social-intelligence/v5/media/';
+    if (key.indexOf(prefix) !== 0 || key.indexOf('..') !== -1 || key.indexOf('\\') !== -1 || key.indexOf('//') !== -1) return '';
+    return '/' + key.split('/').map(encodeURIComponent).join('/');
+  }
+
   /* -------------------- Apercu Instagram -------------------- */
 
   function renderPreview() {
@@ -251,6 +272,9 @@ export const STUDIO_CLIENT_JS = `'use strict';
       };
       main.addEventListener('error', fallback, { once: true });
       mini.addEventListener('error', fallback, { once: true });
+      // Android peut signaler l echec du blob avant que l evenement ne soit
+      // observe. Demarrer aussi le repli de facon proactive garantit un apercu.
+      fallback();
     }
 
     if (nodes.name) nodes.name.textContent = file.name || 'fichier sans nom';
@@ -258,6 +282,35 @@ export const STUDIO_CLIENT_JS = `'use strict';
       var spec = ACCEPTED[file.type];
       nodes.line.textContent = (spec ? spec.label : 'fichier') + ' — ' + humanSize(file.size);
     }
+    show(nodes.media, true);
+  }
+
+  function renderStoredMediaPreview(media) {
+    clearNode(nodes.frame);
+    clearNode(nodes.igMedia);
+    var src = publicMediaPath(media);
+    if (!media || !src) { renderMediaPreview(null); return; }
+
+    var isVideo = String(media.kind || '').toUpperCase() === 'VIDEO'
+      || String(media.content_type || '').indexOf('video/') === 0;
+    var main = document.createElement(isVideo ? 'video' : 'img');
+    var mini = document.createElement(isVideo ? 'video' : 'img');
+    main.src = src; mini.src = src;
+    if (isVideo) {
+      main.controls = true; main.playsInline = true;
+      mini.muted = true; mini.playsInline = true; mini.controls = false;
+    } else {
+      main.alt = 'Apercu du visuel selectionne'; mini.alt = '';
+    }
+    var failed = function () {
+      message('Le fichier est enregistre, mais son apercu doit etre recharge. Rechargez la page avant de publier.', 'warn');
+    };
+    main.addEventListener('error', failed, { once: true });
+    mini.addEventListener('error', failed, { once: true });
+    if (nodes.frame) nodes.frame.appendChild(main);
+    if (nodes.igMedia) nodes.igMedia.appendChild(mini);
+    if (nodes.name) nodes.name.textContent = media.filename || 'media enregistre';
+    if (nodes.line) nodes.line.textContent = (isVideo ? 'video MP4' : 'photo') + ' — ' + humanSize(media.size_bytes);
     show(nodes.media, true);
   }
 
@@ -366,7 +419,7 @@ export const STUDIO_CLIENT_JS = `'use strict';
 
     message('', 'neutral');
     state.media = null;
-    setFormatForKind(spec.kind);
+    setDefaultFormatForKind(spec.kind);
     renderMediaPreview(file);
 
     state.uploading = true;
@@ -378,7 +431,7 @@ export const STUDIO_CLIENT_JS = `'use strict';
 
     upload(file).then(function (data) {
       state.media = data.media;
-      setFormatForKind(state.media && state.media.kind);
+      setDefaultFormatForKind(state.media && state.media.kind);
       state.uploading = false;
       show(nodes.progress, false);
       mediaState('Media pret', 'good');
@@ -406,10 +459,13 @@ export const STUDIO_CLIENT_JS = `'use strict';
   /* -------------------- Enregistrement et publication -------------------- */
 
   function draftPayload() {
-    var mediaFormat = state.media
-      ? (String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE')
-      : currentFormat();
-    if (state.media) setFormatForKind(state.media.kind);
+    var selectedFormat = currentFormat();
+    var mediaFormat = selectedFormat === 'STORY'
+      ? 'STORY'
+      : (state.media
+        ? (String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE')
+        : selectedFormat);
+    if (state.media && selectedFormat !== 'STORY') setFormatForKind(state.media.kind);
     return {
       format: mediaFormat,
       caption: nodes.caption ? nodes.caption.value : '',
@@ -524,7 +580,9 @@ export const STUDIO_CLIENT_JS = `'use strict';
   function applyPrefill(draft) {
     if (!draft) return;
     if (draft.format) {
-      var target = draft.format === 'REEL' || draft.format === 'VIDEO' ? el('st-format-reel') : el('st-format-image');
+      var target = draft.format === 'STORY'
+        ? el('st-format-story')
+        : (draft.format === 'REEL' || draft.format === 'VIDEO' ? el('st-format-reel') : el('st-format-image'));
       if (target) target.checked = true;
     }
     if (nodes.caption && draft.caption) nodes.caption.value = draft.caption;
@@ -535,7 +593,8 @@ export const STUDIO_CLIENT_JS = `'use strict';
     if (nodes.campaign && draft.campaign) nodes.campaign.value = draft.campaign;
     if (draft.media) {
       state.media = draft.media;
-      setFormatForKind(draft.media.kind);
+      if (draft.format !== 'STORY') setFormatForKind(draft.media.kind);
+      renderStoredMediaPreview(draft.media);
       mediaState('Media pret', 'good');
     }
     renderPreview();
@@ -588,7 +647,10 @@ export const STUDIO_CLIENT_JS = `'use strict';
     });
     var formats = document.querySelectorAll('input[name="st-format"]');
     for (var i = 0; i < formats.length; i += 1) formats[i].addEventListener('change', function () {
-      if (state.media) setFormatForKind(state.media.kind);
+      if (state.media && !formatMatchesMedia(currentFormat(), state.media.kind)) {
+        setFormatForKind(state.media.kind);
+        message('Le format a ete ajuste au type du fichier.', 'warn');
+      }
       renderPreview();
     });
 

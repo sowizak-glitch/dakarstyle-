@@ -300,6 +300,7 @@ export const IDEMPOTENCY_PREFIX = 'visuals/social-intelligence/v5/idempotency/';
 export async function businessIdempotencyKey(parts) {
   const material = [
     String(parts?.draft_id ?? ''),
+    String(parts?.format ?? ''),
     String(parts?.instagram_user_id ?? ''),
     String(parts?.scheduled_for ?? ''),
     String(parts?.media_key ?? ''),

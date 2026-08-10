@@ -253,10 +253,13 @@ test('les compteurs de legende et de hashtags sont affiches', () => {
   assert.ok(document.includes('maxlength="2200"'));
 });
 
-test('l apercu Instagram distingue la photo carree du Reel vertical', () => {
+test('l apercu Instagram distingue la photo du Reel et de la Story', () => {
   assert.ok(/\.st-ig-media\{[^}]*aspect-ratio:1\/1/.test(STUDIO_CSS), 'photo carree');
-  assert.ok(/\[data-format="REEL"\] \.st-ig-media\{aspect-ratio:9\/16\}/.test(STUDIO_CSS), 'Reel vertical');
-  assert.ok(renderStudioDocument().includes('data-format="IMAGE"'));
+  assert.ok(STUDIO_CSS.includes('[data-format="REEL"] .st-ig-media,.st-ig[data-format="STORY"] .st-ig-media{aspect-ratio:9/16}'), 'Reel et Story verticaux');
+  const document = renderStudioDocument();
+  assert.ok(document.includes('data-format="IMAGE"'));
+  assert.ok(document.includes('id="st-format-story"'));
+  assert.ok(document.includes('value="STORY"'));
 });
 
 /* ---------------- Ecran Publier : securite du rendu ---------------- */
@@ -392,10 +395,12 @@ test('l apercu du fichier reste local tant qu il n est pas envoye', () => {
 });
 
 
-test('le format du brouillon suit toujours le type reel du media', () => {
+test('le format du brouillon respecte Story et la nature du media', () => {
   assert.ok(STUDIO_CLIENT_JS.includes('function setFormatForKind(kind)'));
-  assert.ok(STUDIO_CLIENT_JS.includes("String(state.media.kind || '').toUpperCase() === 'VIDEO' ? 'REEL' : 'IMAGE'"));
-  assert.ok(STUDIO_CLIENT_JS.includes('if (state.media) setFormatForKind(state.media.kind)'));
+  assert.ok(STUDIO_CLIENT_JS.includes('function setDefaultFormatForKind(kind)'));
+  assert.ok(STUDIO_CLIENT_JS.includes("selectedFormat === 'STORY'"));
+  assert.ok(STUDIO_CLIENT_JS.includes('function formatMatchesMedia(format, kind)'));
+  assert.ok(STUDIO_CLIENT_JS.includes("if (format === 'STORY') return true"));
 });
 
 test('une image dispose d un fallback local si blob echoue sur Android', () => {
@@ -403,7 +408,16 @@ test('une image dispose d un fallback local si blob echoue sur Android', () => {
   assert.ok(STUDIO_CLIENT_JS.includes('reader.readAsDataURL(file)'));
   assert.ok(STUDIO_CLIENT_JS.includes("main.addEventListener('error', fallback"));
   assert.ok(STUDIO_CLIENT_JS.includes("mini.addEventListener('error', fallback"));
+  assert.ok(STUDIO_CLIENT_JS.includes('fallback();'), 'le repli Android doit aussi demarrer proactivement');
   assert.equal(STUDIO_CLIENT_JS.includes("form.append('file', reader.result"), false, 'le data URL ne doit jamais partir au serveur');
+});
+
+test('un brouillon deja enregistre retrouve son apercu sans URL utilisateur', () => {
+  assert.ok(STUDIO_CLIENT_JS.includes('function renderStoredMediaPreview(media)'));
+  assert.ok(STUDIO_CLIENT_JS.includes('function publicMediaPath(media)'));
+  assert.ok(STUDIO_CLIENT_JS.includes("return '/' + key.split('/').map(encodeURIComponent).join('/')"));
+  assert.equal(STUDIO_CLIENT_JS.includes('http://'), false);
+  assert.equal(STUDIO_CLIENT_JS.includes('https://'), false);
 });
 
 test('la progression affichee est mesuree, jamais simulee', () => {

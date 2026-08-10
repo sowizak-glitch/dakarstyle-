@@ -109,6 +109,8 @@ test('URL de media : https obligatoire, base configuree obligatoire', () => {
 test('champs du conteneur selon le format reel', () => {
   assert.deepEqual(containerFieldsFor({ format: 'REEL' }, 'https://x/y.mp4', 'texte'), { media_type: 'REELS', video_url: 'https://x/y.mp4', caption: 'texte' });
   assert.deepEqual(containerFieldsFor({ format: 'IMAGE' }, 'https://x/y.jpg', 'texte'), { image_url: 'https://x/y.jpg', caption: 'texte' });
+  assert.deepEqual(containerFieldsFor({ format: 'STORY', media: { kind: 'IMAGE' } }, 'https://x/y.jpg', 'texte'), { media_type: 'STORIES', image_url: 'https://x/y.jpg' });
+  assert.deepEqual(containerFieldsFor({ format: 'STORY', media: { kind: 'VIDEO' } }, 'https://x/y.mp4', 'texte'), { media_type: 'STORIES', video_url: 'https://x/y.mp4' });
   assert.equal(containerFieldsFor({ format: 'CAROUSEL' }, 'https://x/y.jpg', 't').image_url, 'https://x/y.jpg');
 });
 
@@ -160,6 +162,17 @@ test('publication reussie : les quatre etapes, dans l ordre, une seule fois', as
     'GET 17999',
   ]);
   assert.equal(client.calls.filter((c) => c.path.endsWith('media_publish')).length, 1, 'une seule publication');
+});
+
+test('Story image : conteneur STORIES et confirmation adaptee', async () => {
+  const env = makeEnv();
+  const client = makeClient({});
+  const result = await publishDraft(env, client, readyDraft({ format: 'STORY' }), { ...noSleep, now: () => NOW });
+  assert.equal(result.status, PUBLISH_STATUS.PUBLISHED);
+  const creation = client.calls.find((call) => call.kind === 'POST' && call.path.endsWith('/media'));
+  assert.deepEqual(creation.fields, { media_type: 'STORIES', image_url: 'https://visuals.dakarstyle.com/visuals/social-intelligence/v5/media/2026/07/visuel.jpg' });
+  const confirmation = client.calls.find((call) => call.kind === 'GET' && call.path === '17999');
+  assert.equal(confirmation.params.fields, 'id,timestamp,media_product_type');
 });
 
 test('HTTP 200 a la creation du conteneur ne vaut pas publication', async () => {

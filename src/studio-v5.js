@@ -56,6 +56,7 @@ export const ALLOWED_TRANSITIONS = Object.freeze({
 
 export const MAX_CAPTION_LENGTH = 2200;
 export const MAX_HASHTAGS = 30;
+export const SUPPORTED_FORMATS = Object.freeze(['IMAGE', 'REEL', 'STORY', 'VIDEO', 'CAROUSEL']);
 
 const CONTROL_CHARS = new RegExp('[\\u0000-\\u0009\\u000B-\\u001F\\u007F]', 'g');
 
@@ -163,15 +164,17 @@ export function validateDraft(draft) {
   if (draft.hashtags && draft.hashtags.length > MAX_HASHTAGS) {
     errors.push(`trop de hashtags : ${draft.hashtags.length}, maximum ${MAX_HASHTAGS}`);
   }
+  const format = String(draft.format || '').toUpperCase();
+  if (!SUPPORTED_FORMATS.includes(format)) errors.push(`format de publication refuse : ${format || 'absent'}`);
 
   if (!draft.media) errors.push('media absent');
   else {
     const media = validateMedia(draft.media);
     if (!media.valid) errors.push(...media.errors);
-    else if (draft.format === 'REEL' && media.normalized.kind !== 'VIDEO') {
-      errors.push('un Reel exige un media video');
-    } else if ((draft.format === 'IMAGE' || draft.format === 'CAROUSEL') && media.normalized.kind !== 'IMAGE') {
-      errors.push(`le format ${draft.format} exige un media image`);
+    else if ((format === 'REEL' || format === 'VIDEO') && media.normalized.kind !== 'VIDEO') {
+      errors.push(`le format ${format} exige un media video`);
+    } else if ((format === 'IMAGE' || format === 'CAROUSEL') && media.normalized.kind !== 'IMAGE') {
+      errors.push(`le format ${format} exige un media image`);
     }
   }
 
