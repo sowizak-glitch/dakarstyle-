@@ -1,0 +1,70 @@
+name: Studio Story Debug
+
+on:
+  push:
+    branches: [agent/sowhat-control-v5-story-final]
+    paths:
+      - '.github/workflows/studio-story-debug.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Reapply finalizer patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          awk '
+            /python3 - <<.PY./ { capture=1; next }
+            capture && /^          PY$/ { exit }
+            capture { sub(/^          /, ""); print }
+          ' .github/workflows/studio-story-finalizer.yml > /tmp/studio-patch.py
+          test -s /tmp/studio-patch.py
+          python3 /tmp/studio-patch.py
+      - name: Validate and capture output
+        shell: bash
+        run: |
+          set +e
+          {
+            echo '=== git diff --check ==='
+            git diff --check
+            s1=$?
+            echo '=== npm test ==='
+            npm test
+            s2=$?
+            echo '=== security audit ==='
+            node tests/security-audit-v5.mjs
+            s3=$?
+            echo '=== Cloudflare dry run ==='
+            npm run build:dry-run
+            s4=$?
+            echo "STATUS diff=$s1 test=$s2 security=$s3 dryrun=$s4"
+            if [ "$s1" -ne 0 ] || [ "$s2" -ne 0 ] || [ "$s3" -ne 0 ] || [ "$s4" -ne 0 ]; then exit 1; fi
+          } > STUDIO_VALIDATION.log 2>&1
+          status=$?
+          cat STUDIO_VALIDATION.log
+          if [ "$status" -ne 0 ]; then
+            git config user.name 'sowizak-glitch'
+            git config user.email 'sow.izak@gmail.com'
+            git add -f STUDIO_VALIDATION.log
+            git commit -m 'debug(studio): capture failing validation'
+            git push origin HEAD:agent/sowhat-control-v5-story-final
+            exit 1
+          fi
+          rm STUDIO_VALIDATION.log
+          git config user.name 'sowizak-glitch'
+          git config user.email 'sow.izak@gmail.com'
+          git add src/security-v5.js src/studio-v5.js src/publishing-v5.js src/studio-ui-v5.js src/studio-client-v5.js tests/studio-v5.mjs tests/publishing-v5.mjs tests/ui-v5.mjs .github/workflows/social-intelligence-deploy.yml
+          git commit -m 'feat(studio): add Stories and harden media previews'
+          git push origin HEAD:agent/sowhat-control-v5-story-final
