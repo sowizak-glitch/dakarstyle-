@@ -91,6 +91,24 @@ for name in ['tests/publishing-v5.mjs', 'tests/instagram-client-v5.mjs']:
     t = p.read_text().replace('/visuals/social-intelligence/v5/media/', '/sowhat-media/v5/')
     p.write_text(t)
 
+# Publishing tests must use a real V5 R2 key. The public URL is deliberately
+# no longer identical to that internal key.
+p = Path('tests/publishing-v5.mjs')
+t = p.read_text()
+t = t.replace(
+    "import { handleMediaUpload, isV5PublicMediaPath, newMediaKey, serveV5Media } from '../src/media-upload-v5.js';",
+    "import { handleMediaUpload, isV5PublicMediaPath, newMediaKey, publicMediaPathForKey, serveV5Media } from '../src/media-upload-v5.js';",
+)
+t = t.replace(
+    "  assert.equal(mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: 'https://visuals.dakarstyle.com' }, 'a/b.jpg'), 'https://visuals.dakarstyle.com/a/b.jpg');\n  for (const base of ['', 'http://visuals.dakarstyle.com', 'https://visuals.dakarstyle.com:8443', 'pas-une-url']) {\n    assert.throws(() => mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: base }, 'a.jpg'), (e) => e.code === PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED, base);\n  }",
+    "  assert.equal(mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: 'https://visuals.dakarstyle.com' }, `${MEDIA_KEY_PREFIX}a/b.jpg`), 'https://visuals.dakarstyle.com/sowhat-media/v5/a/b.jpg');\n  for (const base of ['', 'http://visuals.dakarstyle.com', 'https://visuals.dakarstyle.com:8443', 'pas-une-url']) {\n    assert.throws(() => mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: base }, `${MEDIA_KEY_PREFIX}a.jpg`), (e) => e.code === PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED, base);\n  }",
+)
+t = t.replace(
+    "  assert.equal(url, `https://dakarstyle.com/${key}`);",
+    "  assert.equal(url, `https://dakarstyle.com${publicMediaPathForKey(key)}`);",
+)
+p.write_text(t)
+
 # UI tests can pin the collision-free path to prevent regression.
 p = Path('tests/ui-v5.mjs')
 t = p.read_text()
