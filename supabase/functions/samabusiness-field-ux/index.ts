@@ -1,19 +1,28 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const VERSION = "10.3.0";
-const SOURCE_REF = "62de4076ff7b717770b3b6ff1b8821b0fbf5950f";
-const PARTS = Array.from({ length: 10 }, (_, index) =>
-  `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-${String(index).padStart(2, "0")}.js`
-);
-let cachedSource = "";
+const VERSION = "11.3.0";
+const CORE_SOURCE_REF = "62de4076ff7b717770b3b6ff1b8821b0fbf5950f";
+const SALES_SOURCE_REF = "a7f76ff339a23a33514b4901c4949f748cdf78ac";
 
-async function loadSource(): Promise<string> {
-  if (cachedSource) return cachedSource;
+const CORE_PARTS = Array.from({ length: 10 }, (_, index) =>
+  `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${CORE_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-${String(index).padStart(2, "0")}.js`
+);
+const SALES_PART = `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${SALES_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-10-sales-ops.js`;
+const PARTS = [...CORE_PARTS, SALES_PART];
+const STUDIO = "https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-studio-ui?v=11.2.2";
+let cached = "";
+
+function loader(): string {
+  return `;(()=>{if(window.__SAMABUSINESS_SITE_STUDIO_LOADER_V1122__)return;window.__SAMABUSINESS_SITE_STUDIO_LOADER_V1122__=true;document.querySelectorAll('script[data-samabusiness-site-network],script[data-samabusiness-ecosystem],script[data-samabusiness-site-studio],script[data-samabusiness-admin-fix]').forEach(s=>s.remove());const s=document.createElement('script');s.src=${JSON.stringify(STUDIO)};s.defer=true;s.crossOrigin='anonymous';s.dataset.samabusinessSiteStudio='11.2.2';s.onerror=()=>console.error('Sama Business Site Studio unavailable');document.head.appendChild(s);})();`;
+}
+
+async function source(): Promise<string> {
+  if (cached) return cached;
   const responses = await Promise.all(PARTS.map((url) => fetch(url, { headers: { accept: "text/plain" } })));
   if (responses.some((response) => !response.ok)) {
-    throw new Error(`Field UX source unavailable: ${responses.map((response) => response.status).join(",")}`);
+    throw new Error(`FIELD_SOURCE_UNAVAILABLE:${responses.map((response) => response.status).join(",")}`);
   }
-  const source = (await Promise.all(responses.map((response) => response.text()))).join("");
+  let code = (await Promise.all(responses.map((response) => response.text()))).join("");
   const markers = [
     "__SAMABUSINESS_FIELD_UX__",
     "Partager sur WhatsApp",
@@ -21,36 +30,41 @@ async function loadSource(): Promise<string> {
     "Wolof activé",
     "__SAMABUSINESS_NATIVE_PWA__",
     "Importer un vocal WhatsApp",
+    "__SAMABUSINESS_SALES_OPS_V2__",
+    "Ventes & livraisons",
   ];
-  if (source.length < 60000 || !markers.every((marker) => source.includes(marker))) {
-    throw new Error("Invalid field UX source");
+  if (code.length < 85000 || !markers.every((marker) => code.includes(marker))) {
+    throw new Error("FIELD_SOURCE_INVALID");
   }
-  cachedSource = source;
-  return cachedSource;
+  code = code
+    .replace("const VERSION = '10.2.0';", "const VERSION = '11.2.2';")
+    .replace("const VERSION='10.2.0';", "const VERSION='11.2.2';");
+  cached = code + loader();
+  return cached;
 }
 
-function headers(type = "application/javascript; charset=utf-8", cache = "public, max-age=120, stale-while-revalidate=300"): HeadersInit {
-  return {
-    "content-type": type,
-    "cache-control": cache,
+Deno.serve(async (req: Request) => {
+  const headers = {
+    "content-type": "application/javascript; charset=utf-8",
+    "cache-control": "no-store, no-cache, must-revalidate",
     "access-control-allow-origin": "*",
     "access-control-allow-methods": "GET,HEAD,OPTIONS",
     "cross-origin-resource-policy": "cross-origin",
     "x-content-type-options": "nosniff",
+    "referrer-policy": "no-referrer",
     "x-samabusiness-field-ux": VERSION,
+    "x-samabusiness-version": VERSION,
   };
-}
-
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: headers() });
-  if (req.method !== "GET" && req.method !== "HEAD") {
-    return Response.json({ ok: false, error: "Method not allowed" }, { status: 405, headers: headers("application/json; charset=utf-8", "no-store") });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
+  if (req.method !== "GET" && req.method !== "HEAD") return new Response("Method not allowed", { status: 405, headers });
   try {
-    const source = await loadSource();
-    return new Response(req.method === "HEAD" ? null : source, { headers: headers() });
+    const code = await source();
+    return new Response(req.method === "HEAD" ? null : code, { headers });
   } catch (error) {
-    console.error("samabusiness-field-ux", error);
-    return Response.json({ ok: false, error: "Field UX unavailable" }, { status: 503, headers: headers("application/json; charset=utf-8", "no-store") });
+    console.error("samabusiness_field_ux", error);
+    return Response.json(
+      { ok: false, error: "Field UX unavailable" },
+      { status: 503, headers: { ...headers, "content-type": "application/json; charset=utf-8" } },
+    );
   }
 });
