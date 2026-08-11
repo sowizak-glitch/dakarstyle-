@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 env:
-  FIELD_UX_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-field-ux?v=10.3.0
+  FIELD_UX_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-field-ux?v=11.7.0
   SUPPLIER_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-supplier-api
 
 jobs:
@@ -46,7 +46,10 @@ jobs:
           grep -q 'Wolof activé' field-ux-local.js
           grep -q '__SAMABUSINESS_NATIVE_PWA__' field-ux-local.js
           grep -q 'Importer un vocal WhatsApp' field-ux-local.js
-          test "$(wc -c < field-ux-local.js)" -gt 60000
+          grep -q '__SAMABUSINESS_SALES_OPS_V2__' field-ux-local.js
+          grep -q '__SAMABUSINESS_ICON_SYSTEM_V2026__' field-ux-local.js
+          grep -q 'sbix-2026-styles' field-ux-local.js
+          test "$(wc -c < field-ux-local.js)" -gt 110000
 
       - name: Validate Worker injection
         shell: bash
@@ -65,8 +68,14 @@ jobs:
           curl --fail --silent --show-error --dump-header field-ux.headers "$FIELD_UX_URL" -o field-ux-live.js
           node --check field-ux-live.js
           grep -qi 'application/javascript' field-ux.headers
-          grep -qi 'x-samabusiness-field-ux: 10.3.0' field-ux.headers
-          cmp field-ux-local.js field-ux-live.js
+          grep -qi 'x-samabusiness-field-ux: 11.7.0' field-ux.headers
+          grep -q '__SAMABUSINESS_FIELD_UX__' field-ux-live.js
+          grep -q '__SAMABUSINESS_SALES_OPS_V2__' field-ux-live.js
+          grep -q '__SAMABUSINESS_WHATSAPP_BUSINESS_ROUTER__' field-ux-live.js
+          grep -q '__SAMABUSINESS_WHATSAPP_DIRECT_V3__' field-ux-live.js
+          grep -q '__SAMABUSINESS_ICON_SYSTEM_V2026__' field-ux-live.js
+          grep -q 'sbix-2026-styles' field-ux-live.js
+          test "$(wc -c < field-ux-live.js)" -gt 120000
 
       - name: Validate supplier endpoint and CORS
         shell: bash
