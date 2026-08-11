@@ -41,17 +41,31 @@ jobs:
       - name: Build installable APK
         run: gradle --no-daemon clean assembleDebug
 
-      - name: Verify explicit WhatsApp Business package
+      - name: Verify launcher, diagnostic and WhatsApp Business binding
         shell: bash
         run: |
+          set -euo pipefail
+          APK='app/build/outputs/apk/debug/app-debug.apk'
+          AAPT="$ANDROID_HOME/build-tools/35.0.0/aapt"
+
           grep -q 'com.whatsapp.w4b' app/src/main/AndroidManifest.xml
+          grep -q 'android.intent.category.LAUNCHER' app/src/main/AndroidManifest.xml
+          grep -q 'android.intent.action.MAIN' app/src/main/AndroidManifest.xml
           grep -q 'setPackage(WHATSAPP_BUSINESS_PACKAGE)' app/src/main/java/com/samabusiness/wabridge/MainActivity.java
-          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/SAMABUSINESS-WhatsApp-Business-Bridge.apk
-          sha256sum app/build/outputs/apk/debug/SAMABUSINESS-WhatsApp-Business-Bridge.apk
+          grep -q 'BRIDGE_VERSION = "3.0.0"' app/src/main/java/com/samabusiness/wabridge/MainActivity.java
+          grep -q 'Tester l.*ouverture WhatsApp Business' app/src/main/java/com/samabusiness/wabridge/MainActivity.java
+
+          "$AAPT" dump badging "$APK" | tee apk-badging.txt
+          grep -q "package: name='com.samabusiness.wabridge2'" apk-badging.txt
+          grep -q "application-label:'Sama Business WA'" apk-badging.txt
+          grep -q "launchable-activity: name='com.samabusiness.wabridge.MainActivity'" apk-badging.txt
+
+          cp "$APK" app/build/outputs/apk/debug/SAMABUSINESS-WA-Diagnostic-v3.apk
+          sha256sum app/build/outputs/apk/debug/SAMABUSINESS-WA-Diagnostic-v3.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: samabusiness-whatsapp-business-bridge
-          path: android/samabusiness-whatsapp-bridge/app/build/outputs/apk/debug/SAMABUSINESS-WhatsApp-Business-Bridge.apk
+          name: samabusiness-wa-diagnostic-v3
+          path: android/samabusiness-whatsapp-bridge/app/build/outputs/apk/debug/SAMABUSINESS-WA-Diagnostic-v3.apk
           if-no-files-found: error
           retention-days: 30
