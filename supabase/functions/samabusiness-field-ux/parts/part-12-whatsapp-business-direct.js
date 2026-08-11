@@ -3,7 +3,7 @@
   if (window.__SAMABUSINESS_WHATSAPP_DIRECT_V3__) return;
   window.__SAMABUSINESS_WHATSAPP_DIRECT_V3__ = true;
 
-  const BRIDGE_PACKAGE = 'com.samabusiness.wabridge';
+  const BRIDGE_PACKAGE = 'com.samabusiness.wabridge2';
   const isAndroid = () => /android/i.test(String(navigator.userAgentData?.platform || navigator.platform || '') + ' ' + String(navigator.userAgent || ''));
   const digits = (value) => String(value || '').replace(/\D/g, '');
   const normalizePhone = (value) => {
@@ -73,5 +73,5 @@
     launch(bridgeIntent(phone, text));
   }, true);
 
-  document.documentElement.dataset.samabusinessWhatsappRouter = 'native-v3';
+  document.documentElement.dataset.samabusinessWhatsappRouter = 'native-v3-bridge2';
 })();
