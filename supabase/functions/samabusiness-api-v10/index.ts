@@ -6,7 +6,7 @@ type Json = Record<string, unknown>;
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const UPSTREAM = `${SUPABASE_URL}/functions/v1/sama-business-api`;
-const VERSION = "10.2.0";
+const VERSION = "10.3.0";
 
 function serviceKey(): string {
   const direct = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -126,15 +126,31 @@ async function sessionContext(req: Request, requireWrite = false) {
 async function salesWorkspace(req: Request, body: any): Promise<Json> {
   const ctx = await sessionContext(req);
   const limit = Math.min(Math.max(Math.trunc(num(body.limit, 500)), 50), 1000);
-  const [customers, sales, orders, deliveries, products] = await Promise.all([
+  const activityLimit = Math.min(limit, 500);
+  const [customers, sales, orders, deliveries, products, expenses, cashMovements] = await Promise.all([
     db!.from("sama_customer_360_v2").select("id,name,phone,whatsapp,normalized_phone,default_address,default_area,purchase_count,total_purchased,total_paid,outstanding_amount,last_purchase_at,open_delivery_count,delivery_today_count,next_delivery_at,last_order_at").eq("merchant_id", ctx.merchant.id).order("last_purchase_at", { ascending: false, nullsFirst: false }).limit(limit),
     db!.from("sama_sales").select("id,client_ref,customer_id,customer_name_snapshot,customer_phone_snapshot,description,total_amount,paid_amount,remaining_amount,source,happened_at,cost_amount,delivery_cost,payment_method,order_id,profit_amount").eq("merchant_id", ctx.merchant.id).is("deleted_at", null).order("happened_at", { ascending: false }).limit(limit),
-    db!.from("sama_orders").select("id,client_ref,order_number,source,status,payment_status,delivery_status,customer_id,customer_name,customer_phone,customer_whatsapp,delivery_address,delivery_area,landmark,requested_for,total_amount,paid_amount,delivery_cost,payment_method,sale_id,delivery_id,notes,created_at,updated_at,delivered_at,sama_order_items(id,product_id,product_name,variant,quantity,unit_price,unit_cost,line_total,line_cost)").eq("merchant_id", ctx.merchant.id).order("created_at", { ascending: false }).limit(limit),
+    db!.from("sama_orders").select("id,client_ref,order_number,source,status,payment_status,delivery_status,customer_id,customer_name,customer_phone,customer_whatsapp,delivery_address,delivery_area,landmark,requested_for,total_amount,paid_amount,delivery_cost,payment_method,sale_id,delivery_id,notes,raw_message,missing_fields,whatsapp_message,checkout_channel,customer_consent_at,sent_to_whatsapp_at,created_at,updated_at,delivered_at,sama_order_items(id,product_id,product_name,variant,quantity,unit_price,unit_cost,line_total,line_cost)").eq("merchant_id", ctx.merchant.id).order("created_at", { ascending: false }).limit(limit),
     db!.from("liv_deliveries").select("id,delivery_number,source_reference,recipient_name,recipient_phone,delivery_address,delivery_area,package_description,package_value,amount_to_collect,payment_received,amount_remaining,payment_status,status,assigned_driver_id,scheduled_for,delivered_at,failed_at,created_at,updated_at").eq("merchant_id", ctx.merchant.id).order("created_at", { ascending: false }).limit(limit),
-    db!.from("sama_products").select("id,sku,name,category,sale_price,purchase_cost,stock_quantity,track_stock,active").eq("merchant_id", ctx.merchant.id).eq("active", true).order("name").limit(1000),
+    db!.from("sama_products").select("id,sku,name,category,sale_price,purchase_cost,stock_quantity,low_stock_threshold,track_stock,active,image_url").eq("merchant_id", ctx.merchant.id).eq("active", true).order("name").limit(1000),
+    db!.from("sama_expenses").select("id,client_ref,category,label,amount,payment_method,scope,related_order_id,notes,happened_at,created_at,updated_at").eq("merchant_id", ctx.merchant.id).order("happened_at", { ascending: false }).limit(activityLimit),
+    db!.from("sama_cash_movements").select("id,client_ref,movement_type,amount,payment_method,reason,happened_at,created_at").eq("merchant_id", ctx.merchant.id).order("happened_at", { ascending: false }).limit(activityLimit),
   ]);
-  for (const query of [customers, sales, orders, deliveries, products]) if (query.error) throw query.error;
-  return { ok: true, version: VERSION, merchant: ctx.merchant, access: ctx.access, customers: customers.data ?? [], sales: sales.data ?? [], orders: orders.data ?? [], deliveries: deliveries.data ?? [], products: products.data ?? [] };
+  for (const query of [customers, sales, orders, deliveries, products, expenses, cashMovements]) if (query.error) throw query.error;
+  return {
+    ok: true,
+    version: VERSION,
+    merchant: ctx.merchant,
+    access: ctx.access,
+    customers: customers.data ?? [],
+    sales: sales.data ?? [],
+    orders: orders.data ?? [],
+    deliveries: deliveries.data ?? [],
+    products: products.data ?? [],
+    expenses: expenses.data ?? [],
+    cash_movements: cashMovements.data ?? [],
+    capabilities: { copilot_context: true, whatsapp_inbox_context: true, finance_context: true, low_stock_thresholds: true },
+  };
 }
 
 async function createSaleV2(req: Request, body: any): Promise<Json> {
@@ -253,7 +269,7 @@ async function setOrderState(req: Request, body: any): Promise<Json> {
         merchant_id: ctx.merchant.id,
         delivery_id: deliveryId,
         event_type: "status_change",
-        status_from: orderQ.data.delivery_status || null,
+        status_from: null,
         status_to: deliveryStatus,
         note: "Mise à jour depuis SAMABUSINESS Ventes",
       });
@@ -279,7 +295,7 @@ Deno.serve(async (req: Request) => {
   }
   if (!allowed(origin)) return Response.json({ ok: false, error: "Origin non autorisée." }, { status: 403, headers: cors(origin) });
   if (!SUPABASE_URL) return Response.json({ ok: false, error: "Backend indisponible." }, { status: 503, headers: cors(origin) });
-  if (req.method === "GET") return Response.json({ ok: true, service: "samabusiness-api-v10", version: VERSION, upstream: "sama-business-api", sales_ops: true }, { headers: cors(origin) });
+  if (req.method === "GET") return Response.json({ ok: true, service: "samabusiness-api-v10", version: VERSION, upstream: "sama-business-api", sales_ops: true, copilot_context: true }, { headers: cors(origin) });
   if (req.method !== "POST") return Response.json({ ok: false, error: "Méthode non autorisée." }, { status: 405, headers: cors(origin) });
 
   const raw = await req.arrayBuffer();
