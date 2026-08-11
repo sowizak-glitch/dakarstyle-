@@ -1,10 +1,10 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const VERSION = "11.5.0";
+const VERSION = "11.6.0";
 const CORE_SOURCE_REF = "62de4076ff7b717770b3b6ff1b8821b0fbf5950f";
 const SALES_SOURCE_REF = "a7f76ff339a23a33514b4901c4949f748cdf78ac";
-const WHATSAPP_SOURCE_REF = "02c69a7fe5f9656f96cda9961fe8eb1497c2e401";
-const WHATSAPP_DIRECT_SOURCE_REF = "8a1912f2699f6d0ded6bb6137d8a1b911b0144c5";
+const WHATSAPP_SOURCE_REF = "b6914736730d82ae5bbd8ca0d9b395d2bbcdd396";
+const WHATSAPP_DIRECT_SOURCE_REF = "7929ef854d38ee384803c9e62b836ddc7beae320";
 
 const CORE_PARTS = Array.from({ length: 10 }, (_, index) =>
   `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${CORE_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-${String(index).padStart(2, "0")}.js`
@@ -38,10 +38,10 @@ async function source(): Promise<string> {
     "Ventes & livraisons",
     "__SAMABUSINESS_WHATSAPP_BUSINESS_ROUTER__",
     "com.whatsapp.w4b",
-    "com.samabusiness.wabridge",
-    "native-explicit-package-bridge",
+    "com.samabusiness.wabridge2",
+    "native-explicit-package-bridge-v2",
     "__SAMABUSINESS_WHATSAPP_DIRECT_V3__",
-    "native-v3",
+    "native-v3-bridge2",
   ];
   if (code.length < 88000 || !markers.every((marker) => code.includes(marker))) {
     throw new Error("FIELD_SOURCE_INVALID");
