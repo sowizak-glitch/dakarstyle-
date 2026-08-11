@@ -201,6 +201,55 @@ test('pagination : plafond de pages respecte', async () => {
   assert.equal(result.truncated, true);
 });
 
+
+
+test('ecriture Instagram Login : multipart FormData avec image_url et Bearer', async () => {
+  const captured = [];
+  const client = createInstagramClient(ENV, {
+    fetchImpl: async (url, init) => { captured.push({ url, init }); return json(200, { id: 'container-1' }); },
+    sleep: async () => {}, random: () => 0.5, now: () => 0,
+  });
+  await client.mutate(`${ENV.INSTAGRAM_USER_ID}/media`, {
+    image_url: 'https://dakarstyle.com/visuals/social-intelligence/v5/media/test.jpg',
+    caption: 'Test',
+  });
+  assert.equal(captured.length, 1);
+  assert.equal(captured[0].init.method, 'POST');
+  assert.ok(captured[0].init.body instanceof FormData, 'Instagram Login doit utiliser multipart/form-data');
+  assert.equal(captured[0].init.body.get('image_url'), 'https://dakarstyle.com/visuals/social-intelligence/v5/media/test.jpg');
+  assert.equal(captured[0].init.body.get('caption'), 'Test');
+  assert.equal(captured[0].init.headers.authorization, `Bearer ${TOKEN}`);
+  assert.equal(captured[0].init.headers['content-type'], undefined, 'la boundary multipart doit etre generee par fetch');
+});
+
+test('ecriture Facebook Login : formulaire URL encode et token hors URL', async () => {
+  const captured = [];
+  const env = { ...ENV, INSTAGRAM_API_FLOW: 'facebook_login' };
+  const client = createInstagramClient(env, {
+    fetchImpl: async (url, init) => { captured.push({ url, init }); return json(200, { id: 'container-1' }); },
+    sleep: async () => {}, random: () => 0.5, now: () => 0,
+  });
+  await client.mutate(`${ENV.INSTAGRAM_USER_ID}/media`, { image_url: 'https://dakarstyle.com/test.jpg' });
+  assert.equal(typeof captured[0].init.body, 'string');
+  assert.ok(captured[0].init.body.includes('access_token='));
+  assert.ok(!captured[0].url.includes('access_token='));
+  assert.equal(captured[0].init.headers['content-type'], 'application/x-www-form-urlencoded');
+});
+
+test('detail Meta conserve aussi error_user_msg nettoye', () => {
+  const error = classifyMetaError(400, {
+    error: {
+      code: 9004,
+      error_subcode: 2207052,
+      message: 'Only photo or video can be accepted as media type.',
+      error_user_msg: 'Media download has failed.',
+    },
+  });
+  assert.equal(error.code, META_ERROR.BAD_REQUEST);
+  assert.equal(error.metaSubcode, 2207052);
+  assert.ok(error.detail.includes('Media download has failed.'));
+});
+
 /* ---------------- Etat du jeton ---------------- */
 
 test('etat du jeton : valide', async () => {
@@ -328,12 +377,15 @@ test('ecriture : le credential ne circule jamais dans l URL', async () => {
     assert.equal(captured[0].init.method, 'POST');
     assert.ok(!captured[0].url.includes('access_token='), `${flow} : pas de token dans l URL d une ecriture`);
     assert.ok(!captured[0].url.includes(TOKEN), `${flow} : pas de token dans l URL`);
-    assert.ok(captured[0].init.body.includes('caption=test'));
     if (flow === META_API_FLOW.FACEBOOK_LOGIN) {
+      assert.equal(typeof captured[0].init.body, 'string');
+      assert.ok(captured[0].init.body.includes('caption=test'));
       assert.ok(captured[0].init.body.includes('access_token='), 'flux query : credential dans le corps');
     } else {
+      assert.ok(captured[0].init.body instanceof FormData, 'Instagram Login : corps multipart');
+      assert.equal(captured[0].init.body.get('caption'), 'test');
+      assert.equal(captured[0].init.body.get('access_token'), null, 'Bearer uniquement');
       assert.equal(captured[0].init.headers.authorization, `Bearer ${TOKEN}`);
-      assert.ok(!captured[0].init.body.includes('access_token='));
     }
   }
 });
