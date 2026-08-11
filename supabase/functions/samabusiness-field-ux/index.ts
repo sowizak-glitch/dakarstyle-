@@ -1,16 +1,18 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const VERSION = "11.4.0";
+const VERSION = "11.5.0";
 const CORE_SOURCE_REF = "62de4076ff7b717770b3b6ff1b8821b0fbf5950f";
 const SALES_SOURCE_REF = "a7f76ff339a23a33514b4901c4949f748cdf78ac";
 const WHATSAPP_SOURCE_REF = "02c69a7fe5f9656f96cda9961fe8eb1497c2e401";
+const WHATSAPP_DIRECT_SOURCE_REF = "8a1912f2699f6d0ded6bb6137d8a1b911b0144c5";
 
 const CORE_PARTS = Array.from({ length: 10 }, (_, index) =>
   `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${CORE_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-${String(index).padStart(2, "0")}.js`
 );
 const SALES_PART = `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${SALES_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-10-sales-ops.js`;
 const WHATSAPP_BUSINESS_PART = `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${WHATSAPP_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-11-whatsapp-business.js`;
-const PARTS = [...CORE_PARTS, SALES_PART, WHATSAPP_BUSINESS_PART];
+const WHATSAPP_DIRECT_PART = `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${WHATSAPP_DIRECT_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-12-whatsapp-business-direct.js`;
+const PARTS = [...CORE_PARTS, SALES_PART, WHATSAPP_BUSINESS_PART, WHATSAPP_DIRECT_PART];
 const STUDIO = "https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-studio-ui?v=11.2.2";
 let cached = "";
 
@@ -38,8 +40,10 @@ async function source(): Promise<string> {
     "com.whatsapp.w4b",
     "com.samabusiness.wabridge",
     "native-explicit-package-bridge",
+    "__SAMABUSINESS_WHATSAPP_DIRECT_V3__",
+    "native-v3",
   ];
-  if (code.length < 87000 || !markers.every((marker) => code.includes(marker))) {
+  if (code.length < 88000 || !markers.every((marker) => code.includes(marker))) {
     throw new Error("FIELD_SOURCE_INVALID");
   }
   code = code
