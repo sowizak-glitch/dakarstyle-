@@ -228,7 +228,10 @@ export function classifyMetaError(status, payload) {
   const error = payload?.error || {};
   const metaCode = Number.isFinite(Number(error.code)) ? Number(error.code) : null;
   const metaSubcode = Number.isFinite(Number(error.error_subcode)) ? Number(error.error_subcode) : null;
-  const detail = redactSecrets(error.message || '');
+  const detail = redactSecrets([
+    error.message || '',
+    error.error_user_msg || '',
+  ].filter(Boolean).join(' — '));
   const options = { status, detail, metaCode, metaSubcode };
 
   if (metaSubcode === 463 || metaSubcode === 467 || metaCode === 190) {
@@ -339,13 +342,16 @@ export function createInstagramClient(env, options = {}) {
     return redactSecrets(String(path || '')).slice(0, 120);
   }
 
-  async function requestOnce(url, { method = 'GET', body = null } = {}) {
+  async function requestOnce(url, { method = 'GET', body = null, extraHeaders = {} } = {}) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const init = {
         method,
-        headers: buildHeaders(body ? { 'content-type': 'application/x-www-form-urlencoded' } : {}),
+        // Pour FormData, ne jamais poser Content-Type a la main : fetch ajoute
+        // la boundary multipart. Les autres transports peuvent fournir un
+        // en-tete explicite via extraHeaders.
+        headers: buildHeaders(extraHeaders),
         // Jamais de suivi automatique : un 3xx pourrait renvoyer le credential
         // vers un hote non autorise. On refuse, on ne suit pas.
         redirect: 'manual',
@@ -436,17 +442,36 @@ export function createInstagramClient(env, options = {}) {
       if (wait > 0) await sleep(Math.min(wait, MAX_BACKOFF_MS));
 
       const url = buildUrl(path, {}, { withCredential: false });
-      const form = new URLSearchParams();
-      for (const [key, value] of Object.entries(fields || {})) {
-        if (value === undefined || value === null || value === '') continue;
-        form.set(key, String(value));
+      let body;
+      let extraHeaders = {};
+
+      if (flow === META_API_FLOW.INSTAGRAM_LOGIN) {
+        // La collection officielle Meta pour Instagram Login envoie les
+        // champs de creation/publication en multipart/form-data. On s aligne
+        // exactement sur ce contrat ; le token reste en Bearer.
+        const form = new FormData();
+        for (const [key, value] of Object.entries(fields || {})) {
+          if (value === undefined || value === null || value === '') continue;
+          form.set(key, String(value));
+        }
+        body = form;
+      } else {
+        // Facebook Login conserve le transport historique en formulaire URL
+        // encode, avec le token dans le corps et jamais dans l URL d ecriture.
+        const form = new URLSearchParams();
+        for (const [key, value] of Object.entries(fields || {})) {
+          if (value === undefined || value === null || value === '') continue;
+          form.set(key, String(value));
+        }
+        if (transport === 'query') form.set('access_token', token);
+        body = form.toString();
+        extraHeaders = { 'content-type': 'application/x-www-form-urlencoded' };
       }
-      if (transport === 'query') form.set('access_token', token);
 
       try {
         state.calls += 1;
         state.writes += 1;
-        const { response, payload } = await requestOnce(url, { method: 'POST', body: form.toString() });
+        const { response, payload } = await requestOnce(url, { method: 'POST', body, extraHeaders });
         const usage = readAppUsage(response.headers);
         if (usage !== null) {
           state.lastAppUsage = usage;
