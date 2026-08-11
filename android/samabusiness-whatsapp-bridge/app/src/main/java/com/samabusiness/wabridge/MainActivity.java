@@ -2,11 +2,13 @@ package com.samabusiness.wabridge;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
-
-import java.util.Locale;
+import android.widget.Toast;
 
 public final class MainActivity extends Activity {
     private static final String WHATSAPP_BUSINESS_PACKAGE = "com.whatsapp.w4b";
@@ -34,27 +36,101 @@ public final class MainActivity extends Activity {
         String phone = normalizePhone(data.getQueryParameter("phone"));
         String text = safeText(data.getQueryParameter("text"));
         if (phone.isEmpty()) {
-            finish();
+            Toast.makeText(this, "Numéro client invalide", Toast.LENGTH_SHORT).show();
+            finishAndRemoveTask();
             return;
         }
 
+        PackageManager pm = getPackageManager();
+        if (!isBusinessInstalled(pm)) {
+            Toast.makeText(this, "WhatsApp Business non détecté dans ce profil Android", Toast.LENGTH_LONG).show();
+            openBusinessStore();
+            finishAndRemoveTask();
+            return;
+        }
+
+        if (openDirectBusinessChat(pm, phone, text)) {
+            finishAndRemoveTask();
+            return;
+        }
+
+        if (openBusinessShare(pm, phone, text)) {
+            finishAndRemoveTask();
+            return;
+        }
+
+        Toast.makeText(this, "WhatsApp Business est installé mais aucune activité compatible n’a été trouvée", Toast.LENGTH_LONG).show();
+        openBusinessHome(pm);
+        finishAndRemoveTask();
+    }
+
+    private boolean isBusinessInstalled(PackageManager pm) {
+        try {
+            ApplicationInfo info = pm.getApplicationInfo(WHATSAPP_BUSINESS_PACKAGE, 0);
+            return info.enabled;
+        } catch (PackageManager.NameNotFoundException notFound) {
+            return false;
+        }
+    }
+
+    private boolean openDirectBusinessChat(PackageManager pm, String phone, String text) {
         Uri.Builder target = new Uri.Builder()
                 .scheme("https")
-                .authority("api.whatsapp.com")
-                .path("send")
-                .appendQueryParameter("phone", phone);
+                .authority("wa.me")
+                .appendPath(phone);
         if (!text.isEmpty()) target.appendQueryParameter("text", text);
 
         Intent business = new Intent(Intent.ACTION_VIEW, target.build());
         business.setPackage(WHATSAPP_BUSINESS_PACKAGE);
+        business.addCategory(Intent.CATEGORY_BROWSABLE);
         business.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
 
+        ComponentName resolved = business.resolveActivity(pm);
+        if (resolved == null || !WHATSAPP_BUSINESS_PACKAGE.equals(resolved.getPackageName())) {
+            return false;
+        }
+
+        business.setComponent(resolved);
         try {
+            Toast.makeText(this, "Ouverture WhatsApp Business", Toast.LENGTH_SHORT).show();
             startActivity(business);
-        } catch (ActivityNotFoundException notInstalled) {
-            openBusinessStore();
-        } finally {
-            finishAndRemoveTask();
+            return true;
+        } catch (ActivityNotFoundException ignored) {
+            return false;
+        }
+    }
+
+    private boolean openBusinessShare(PackageManager pm, String phone, String text) {
+        Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.setPackage(WHATSAPP_BUSINESS_PACKAGE);
+        send.putExtra(Intent.EXTRA_TEXT, text.isEmpty() ? "Bonjour" : text);
+        send.putExtra("jid", phone + "@s.whatsapp.net");
+        send.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+
+        ComponentName resolved = send.resolveActivity(pm);
+        if (resolved == null || !WHATSAPP_BUSINESS_PACKAGE.equals(resolved.getPackageName())) {
+            return false;
+        }
+
+        send.setComponent(resolved);
+        try {
+            Toast.makeText(this, "Ouverture WhatsApp Business", Toast.LENGTH_SHORT).show();
+            startActivity(send);
+            return true;
+        } catch (ActivityNotFoundException ignored) {
+            return false;
+        }
+    }
+
+    private void openBusinessHome(PackageManager pm) {
+        Intent launch = pm.getLaunchIntentForPackage(WHATSAPP_BUSINESS_PACKAGE);
+        if (launch == null) return;
+        launch.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        try {
+            startActivity(launch);
+        } catch (ActivityNotFoundException ignored) {
+            // Package was visible but launcher activity is unavailable.
         }
     }
 
