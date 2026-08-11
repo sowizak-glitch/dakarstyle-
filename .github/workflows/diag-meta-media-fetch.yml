@@ -13,19 +13,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v5
-      - name: Probe exact media URL
+      - name: Probe exact existing media on new public route
         shell: bash
         run: |
           set -euxo pipefail
-          URL='https://dakarstyle.com/visuals/social-intelligence/v5/media/199fd26a-90e1-4734-a3e8-6ed46a1c7088.jpg'
-          curl -sS -A 'facebookexternalhit/1.1' -D /tmp/headers.txt -o /tmp/media.bin --max-time 30 "$URL" || true
-          cat /tmp/headers.txt || true
-          echo "bytes=$(wc -c < /tmp/media.bin 2>/dev/null || echo 0)"
-          echo -n 'magic='; od -An -tx1 -N16 /tmp/media.bin 2>/dev/null | tr -d '\n ' || true; echo
-          echo -n 'file='; file -b --mime-type /tmp/media.bin 2>/dev/null || true
-      - name: Inspect code paths that could delete V5 media
-        shell: bash
-        run: |
-          set -euxo pipefail
-          grep -RIn --exclude-dir=.git -E "VISUALS_BUCKET\.(delete|list)|MEDIA_KEY_PREFIX|visuals/social-intelligence/v5/media" src tests .github | head -n 300 || true
+          URL='https://dakarstyle.com/sowhat-media/v5/199fd26a-90e1-4734-a3e8-6ed46a1c7088.jpg'
+          CODE=$(curl -sS -A 'facebookexternalhit/1.1' -D /tmp/headers.txt -o /tmp/media.bin --max-time 30 -w '%{http_code}' "$URL")
+          cat /tmp/headers.txt
+          echo "http=$CODE"
+          echo "bytes=$(wc -c < /tmp/media.bin)"
+          echo -n 'magic='; od -An -tx1 -N16 /tmp/media.bin | tr -d '\n '; echo
+          MIME=$(file -b --mime-type /tmp/media.bin)
+          echo "file=$MIME"
+          test "$CODE" = '200'
+          grep -qi '^content-type: image/jpeg' /tmp/headers.txt
+          test "$MIME" = 'image/jpeg'
+          MAGIC=$(od -An -tx1 -N3 /tmp/media.bin | tr -d ' \n')
+          test "$MAGIC" = 'ffd8ff'
