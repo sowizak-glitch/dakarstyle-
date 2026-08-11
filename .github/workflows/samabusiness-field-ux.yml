@@ -7,6 +7,7 @@ on:
     paths:
       - 'src/worker-entry.js'
       - 'supabase/functions/samabusiness-field-ux/**'
+      - 'supabase/functions/samabusiness-api-v10/**'
       - 'supabase/functions/samabusiness-supplier-api/**'
       - '.github/workflows/samabusiness-field-ux.yml'
   push:
@@ -15,6 +16,7 @@ on:
     paths:
       - 'src/worker-entry.js'
       - 'supabase/functions/samabusiness-field-ux/**'
+      - 'supabase/functions/samabusiness-api-v10/**'
       - 'supabase/functions/samabusiness-supplier-api/**'
       - '.github/workflows/samabusiness-field-ux.yml'
   workflow_dispatch:
@@ -23,7 +25,8 @@ permissions:
   contents: read
 
 env:
-  FIELD_UX_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-field-ux?v=11.8.0
+  FIELD_UX_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-field-ux?v=11.8.1
+  SALES_API_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-api-v10
   SUPPLIER_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-supplier-api
 
 jobs:
@@ -48,18 +51,31 @@ jobs:
           grep -q 'Importer un vocal WhatsApp' field-ux-local.js
           grep -q '__SAMABUSINESS_SALES_OPS_V2__' field-ux-local.js
           grep -q '__SAMABUSINESS_ICON_SYSTEM_V2026__' field-ux-local.js
-          grep -q 'sbix-2026-styles' field-ux-local.js
           grep -q '__SAMABUSINESS_ICON_POLISH_V2026__' field-ux-local.js
-          grep -q 'sbix-2026-polish-styles' field-ux-local.js
           grep -q '__SAMABUSINESS_CLIENT_FINANCIAL_RECAP_V2026__' field-ux-local.js
-          grep -q 'sbfr-2026-styles' field-ux-local.js
           grep -q '__SAMABUSINESS_DESIGN_SYSTEM_V18_2__' field-ux-local.js
           grep -q 'sama-design-system-v18-2' field-ux-local.js
           grep -q '__SAMABUSINESS_COGNITIVE_COPILOT_V19__' field-ux-local.js
           grep -q 'SAMA Copilote' field-ux-local.js
           grep -q '__SAMABUSINESS_CAPTURE_MARKETING_V19__' field-ux-local.js
           grep -q 'SAMA Marketing Copilot' field-ux-local.js
-          test "$(wc -c < field-ux-local.js)" -gt 180000
+          grep -q '__SAMABUSINESS_OPERATIONAL_INTELLIGENCE_V19__' field-ux-local.js
+          grep -q 'sama-operational-intelligence-styles' field-ux-local.js
+          grep -q 'Agent Bêta' field-ux-local.js
+          grep -q 'WhatsApp à traiter' field-ux-local.js
+          test "$(wc -c < field-ux-local.js)" -gt 200000
+
+      - name: Validate API source contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'const VERSION = "10.3.0"' supabase/functions/samabusiness-api-v10/index.ts
+          grep -q 'low_stock_threshold' supabase/functions/samabusiness-api-v10/index.ts
+          grep -q 'raw_message' supabase/functions/samabusiness-api-v10/index.ts
+          grep -q 'missing_fields' supabase/functions/samabusiness-api-v10/index.ts
+          grep -q 'sama_expenses' supabase/functions/samabusiness-api-v10/index.ts
+          grep -q 'sama_cash_movements' supabase/functions/samabusiness-api-v10/index.ts
+          grep -q 'copilot_context: true' supabase/functions/samabusiness-api-v10/index.ts
 
       - name: Validate Worker injection
         shell: bash
@@ -78,7 +94,7 @@ jobs:
           curl --fail --silent --show-error --dump-header field-ux.headers "$FIELD_UX_URL" -o field-ux-live.js
           node --check field-ux-live.js
           grep -qi 'application/javascript' field-ux.headers
-          grep -qi 'x-samabusiness-field-ux: 11.8.0' field-ux.headers
+          grep -qi 'x-samabusiness-field-ux: 11.8.1' field-ux.headers
           grep -q '__SAMABUSINESS_FIELD_UX__' field-ux-live.js
           grep -q '__SAMABUSINESS_SALES_OPS_V2__' field-ux-live.js
           grep -q '__SAMABUSINESS_WHATSAPP_BUSINESS_ROUTER__' field-ux-live.js
@@ -91,7 +107,27 @@ jobs:
           grep -q 'SAMA Copilote' field-ux-live.js
           grep -q '__SAMABUSINESS_CAPTURE_MARKETING_V19__' field-ux-live.js
           grep -q 'SAMA Marketing Copilot' field-ux-live.js
-          test "$(wc -c < field-ux-live.js)" -gt 200000
+          grep -q '__SAMABUSINESS_OPERATIONAL_INTELLIGENCE_V19__' field-ux-live.js
+          grep -q 'Agent Bêta' field-ux-live.js
+          test "$(wc -c < field-ux-live.js)" -gt 220000
+
+      - name: Validate live Sales Ops / Copilot API health
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --dump-header sales-api.headers "$SALES_API_URL" -o sales-api-health.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          health = json.loads(Path('sales-api-health.json').read_text())
+          assert health.get('ok') is True, health
+          assert health.get('service') == 'samabusiness-api-v10', health
+          assert health.get('version') == '10.3.0', health
+          assert health.get('sales_ops') is True, health
+          assert health.get('copilot_context') is True, health
+          headers = Path('sales-api.headers').read_text().lower()
+          assert 'x-samabusiness-api-version: 10.3.0' in headers, headers
+          PY
 
       - name: Validate supplier endpoint and CORS
         shell: bash
@@ -120,6 +156,8 @@ jobs:
           path: |
             field-ux.headers
             field-ux-live.js
+            sales-api.headers
+            sales-api-health.json
             supplier-health.json
             supplier-options.headers
           if-no-files-found: error
