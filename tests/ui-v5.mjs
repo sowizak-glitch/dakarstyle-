@@ -419,7 +419,7 @@ test('une image dispose d un fallback local si blob echoue sur Android', () => {
 test('un brouillon deja enregistre retrouve son apercu sans URL utilisateur', () => {
   assert.ok(STUDIO_CLIENT_JS.includes('function renderStoredMediaPreview(media)'));
   assert.ok(STUDIO_CLIENT_JS.includes('function publicMediaPath(media)'));
-  assert.ok(STUDIO_CLIENT_JS.includes("return '/' + key.split('/').map(encodeURIComponent).join('/')"));
+  assert.ok(STUDIO_CLIENT_JS.includes("return '/sowhat-media/v5/' + suffix.split('/').map(encodeURIComponent).join('/')"));
   assert.equal(STUDIO_CLIENT_JS.includes('http://'), false);
   assert.equal(STUDIO_CLIENT_JS.includes('https://'), false);
 });

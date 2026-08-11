@@ -285,7 +285,15 @@ export async function handleMediaUpload(request, env, options = {}) {
  * choix. Le chemin correspond exactement a la cle R2, ce qui permet a
  * `mediaUrlFor()` de composer l URL sans table de correspondance.
  */
-export const V5_PUBLIC_MEDIA_PREFIX = `/${MEDIA_KEY_PREFIX}`;
+export const V5_PUBLIC_MEDIA_PREFIX = '/sowhat-media/v5/';
+
+export function publicMediaPathForKey(r2Key) {
+  const key = String(r2Key || '');
+  if (!key.startsWith(MEDIA_KEY_PREFIX)) return '';
+  const suffix = key.slice(MEDIA_KEY_PREFIX.length);
+  if (!suffix || suffix.includes('..') || suffix.includes('//') || suffix.includes('\\')) return '';
+  return `${V5_PUBLIC_MEDIA_PREFIX}${suffix.split('/').map(encodeURIComponent).join('/')}`;
+}
 
 export function isV5PublicMediaPath(pathname) {
   return String(pathname || '').startsWith(V5_PUBLIC_MEDIA_PREFIX);
@@ -306,12 +314,16 @@ export async function serveV5Media(request, env) {
   }
 
   const url = new URL(request.url);
-  let key;
+  let suffix;
   try {
-    key = decodeURIComponent(url.pathname.replace(/^\/+/, ''));
+    suffix = decodeURIComponent(url.pathname.slice(V5_PUBLIC_MEDIA_PREFIX.length));
   } catch {
     return new Response('Bad Request', { status: 400, headers: { 'cache-control': 'no-store' } });
   }
+  if (!suffix || suffix.startsWith('/') || suffix.includes('..') || suffix.includes('//') || suffix.includes('\\')) {
+    return new Response('Not Found', { status: 404, headers: { 'cache-control': 'no-store' } });
+  }
+  const key = `${MEDIA_KEY_PREFIX}${suffix}`;
   if (!key.startsWith(MEDIA_KEY_PREFIX) || key.includes('..') || key.includes('//') || key.includes('\\')) {
     return new Response('Not Found', { status: 404, headers: { 'cache-control': 'no-store' } });
   }

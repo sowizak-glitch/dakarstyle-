@@ -4,7 +4,7 @@
  */
 
 import assert from 'node:assert/strict';
-import { handleMediaUpload, isV5PublicMediaPath, newMediaKey, serveV5Media } from '../src/media-upload-v5.js';
+import { handleMediaUpload, isV5PublicMediaPath, newMediaKey, publicMediaPathForKey, serveV5Media } from '../src/media-upload-v5.js';
 import { META_ERROR, MetaApiError } from '../src/instagram-client-v5.js';
 import { MEDIA_KEY_PREFIX, readIdempotencyRecord } from '../src/security-v5.js';
 import {
@@ -113,9 +113,9 @@ const noSleep = { containerPolling: { delayMs: 0, sleep: async () => {} } };
 /* ---------------- URL publique du media ---------------- */
 
 test('URL de media : https obligatoire, base configuree obligatoire', () => {
-  assert.equal(mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: 'https://visuals.dakarstyle.com' }, 'a/b.jpg'), 'https://visuals.dakarstyle.com/a/b.jpg');
+  assert.equal(mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: 'https://visuals.dakarstyle.com' }, `${MEDIA_KEY_PREFIX}a/b.jpg`), 'https://visuals.dakarstyle.com/sowhat-media/v5/a/b.jpg');
   for (const base of ['', 'http://visuals.dakarstyle.com', 'https://visuals.dakarstyle.com:8443', 'pas-une-url']) {
-    assert.throws(() => mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: base }, 'a.jpg'), (e) => e.code === PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED, base);
+    assert.throws(() => mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: base }, `${MEDIA_KEY_PREFIX}a.jpg`), (e) => e.code === PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED, base);
   }
   assert.throws(() => mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: 'https://x.com' }, ''), (e) => e.code === PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED);
 });
@@ -205,7 +205,7 @@ test('Story image : conteneur STORIES et confirmation adaptee', async () => {
   const result = await publishDraft(env, client, readyDraft({ format: 'STORY' }), { ...noSleep, now: () => NOW });
   assert.equal(result.status, PUBLISH_STATUS.PUBLISHED);
   const creation = client.calls.find((call) => call.kind === 'POST' && call.path.endsWith('/media'));
-  assert.deepEqual(creation.fields, { media_type: 'STORIES', image_url: 'https://visuals.dakarstyle.com/visuals/social-intelligence/v5/media/2026/07/visuel.jpg' });
+  assert.deepEqual(creation.fields, { media_type: 'STORIES', image_url: 'https://visuals.dakarstyle.com/sowhat-media/v5/2026/07/visuel.jpg' });
   const confirmation = client.calls.find((call) => call.kind === 'GET' && call.path === '17999');
   assert.equal(confirmation.params.fields, 'id,timestamp,media_product_type');
 });
@@ -387,7 +387,7 @@ test('la cle d idempotence consigne l identifiant Meta confirme', async () => {
 test('la cle produite par le televersement compose une URL Meta valide', () => {
   const key = newMediaKey('image/jpeg');
   const url = mediaUrlFor({ SOWHAT_MEDIA_PUBLIC_BASE: 'https://dakarstyle.com' }, key);
-  assert.equal(url, `https://dakarstyle.com/${key}`);
+  assert.equal(url, `https://dakarstyle.com${publicMediaPathForKey(key)}`);
   assert.ok(url.startsWith('https://'), 'Meta exige https');
   assert.ok(isV5PublicMediaPath(new URL(url).pathname), 'l URL doit tomber sur la route publique V5');
 });

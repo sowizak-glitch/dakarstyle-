@@ -210,13 +210,13 @@ test('ecriture Instagram Login : multipart FormData avec image_url et Bearer', a
     sleep: async () => {}, random: () => 0.5, now: () => 0,
   });
   await client.mutate(`${ENV.INSTAGRAM_USER_ID}/media`, {
-    image_url: 'https://dakarstyle.com/visuals/social-intelligence/v5/media/test.jpg',
+    image_url: 'https://dakarstyle.com/sowhat-media/v5/test.jpg',
     caption: 'Test',
   });
   assert.equal(captured.length, 1);
   assert.equal(captured[0].init.method, 'POST');
   assert.ok(captured[0].init.body instanceof FormData, 'Instagram Login doit utiliser multipart/form-data');
-  assert.equal(captured[0].init.body.get('image_url'), 'https://dakarstyle.com/visuals/social-intelligence/v5/media/test.jpg');
+  assert.equal(captured[0].init.body.get('image_url'), 'https://dakarstyle.com/sowhat-media/v5/test.jpg');
   assert.equal(captured[0].init.body.get('caption'), 'Test');
   assert.equal(captured[0].init.headers.authorization, `Bearer ${TOKEN}`);
   assert.equal(captured[0].init.headers['content-type'], undefined, 'la boundary multipart doit etre generee par fetch');
