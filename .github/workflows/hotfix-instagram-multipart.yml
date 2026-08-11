@@ -22,7 +22,9 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - name: Apply official Instagram Login multipart transport
-        run: python3 .github/hotfix-instagram-multipart.py
+        run: |
+          python3 .github/hotfix-instagram-multipart.py
+          python3 .github/hotfix-instagram-multipart-tests.py
       - name: Syntax
         run: |
           node --check src/instagram-client-v5.js
