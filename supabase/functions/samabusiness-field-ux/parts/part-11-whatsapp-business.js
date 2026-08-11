@@ -3,10 +3,10 @@
   if (window.__SAMABUSINESS_WHATSAPP_BUSINESS_ROUTER__) return;
   window.__SAMABUSINESS_WHATSAPP_BUSINESS_ROUTER__ = true;
 
-  const VERSION = '1.1.0';
-  const ANDROID_PACKAGE = 'com.whatsapp.w4b';
+  const VERSION = '2.0.0';
+  const BRIDGE_PACKAGE = 'com.samabusiness.wabridge';
+  const BUSINESS_PACKAGE = 'com.whatsapp.w4b';
   const BUSINESS_SENDER_PHONE = '221773374762';
-  const PLAY_STORE_FALLBACK = 'https://play.google.com/store/apps/details?id=com.whatsapp.w4b';
   const nativeOpen = window.open.bind(window);
 
   const isAndroid = () => {
@@ -21,49 +21,36 @@
     try {
       const value = String(rawUrl || '');
       if (!value) return null;
-
       if (/^https?:\/\/(?:www\.)?wa\.me\//i.test(value)) {
         const url = new URL(value, location.href);
-        return {
-          phone: cleanPhone(url.pathname.split('/').filter(Boolean)[0] || ''),
-          text: url.searchParams.get('text') || '',
-        };
+        return { phone: cleanPhone(url.pathname.split('/').filter(Boolean)[0] || ''), text: url.searchParams.get('text') || '' };
       }
-
       if (/^https?:\/\/(?:api\.)?whatsapp\.com\/send/i.test(value)) {
         const url = new URL(value, location.href);
-        return {
-          phone: cleanPhone(url.searchParams.get('phone') || ''),
-          text: url.searchParams.get('text') || '',
-        };
+        return { phone: cleanPhone(url.searchParams.get('phone') || ''), text: url.searchParams.get('text') || '' };
       }
-
       if (/^whatsapp:\/\/send/i.test(value)) {
         const url = new URL(value);
-        return {
-          phone: cleanPhone(url.searchParams.get('phone') || ''),
-          text: url.searchParams.get('text') || '',
-        };
+        return { phone: cleanPhone(url.searchParams.get('phone') || ''), text: url.searchParams.get('text') || '' };
       }
     } catch (_) {}
     return null;
   }
 
-  function businessIntent(phone, text) {
+  function bridgeIntent(phone, text) {
     const query = new URLSearchParams();
     if (phone) query.set('phone', phone);
     if (text) query.set('text', text);
-    const fallback = encodeURIComponent(PLAY_STORE_FALLBACK);
-    return `intent://send/?${query.toString()}#Intent;scheme=whatsapp;package=${ANDROID_PACKAGE};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;S.browser_fallback_url=${fallback};end`;
+    return `intent://send/?${query.toString()}#Intent;scheme=samabusiness-wabiz;package=${BRIDGE_PACKAGE};action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
   }
 
-  function launchTrustedIntent(intentUrl) {
+  function launch(url) {
     const anchor = document.createElement('a');
-    anchor.href = intentUrl;
+    anchor.href = url;
     anchor.target = '_self';
     anchor.rel = 'noopener';
     anchor.setAttribute('aria-hidden', 'true');
-    anchor.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;pointer-events:none';
+    anchor.style.cssText = 'position:fixed;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0';
     document.body.appendChild(anchor);
     anchor.click();
     setTimeout(() => anchor.remove(), 1200);
@@ -72,7 +59,7 @@
   function openBusiness(rawUrl) {
     const target = extractWhatsAppTarget(rawUrl);
     if (!target || !isAndroid()) return false;
-    launchTrustedIntent(businessIntent(target.phone, target.text));
+    launch(bridgeIntent(target.phone, target.text));
     return true;
   }
 
@@ -94,9 +81,10 @@
 
   window.SAMABUSINESS_WHATSAPP_BUSINESS = Object.freeze({
     version: VERSION,
-    package: ANDROID_PACKAGE,
+    bridgePackage: BRIDGE_PACKAGE,
+    businessPackage: BUSINESS_PACKAGE,
     senderPhone: BUSINESS_SENDER_PHONE,
     androidForced: true,
-    strategy: 'explicit-package-trusted-anchor',
+    strategy: 'native-explicit-package-bridge',
   });
 })();
