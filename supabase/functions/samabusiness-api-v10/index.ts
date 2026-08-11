@@ -6,7 +6,7 @@ type Json = Record<string, unknown>;
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const UPSTREAM = `${SUPABASE_URL}/functions/v1/sama-business-api`;
-const VERSION = "10.3.0";
+const VERSION = "10.4.0";
 
 function serviceKey(): string {
   const direct = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -120,7 +120,7 @@ async function sessionContext(req: Request, requireWrite = false) {
   if (requireWrite && !access.can_write) {
     fail(access.suspended ? "Ce compte est suspendu. Contactez l’assistance." : "Votre période gratuite ou votre abonnement est terminé.", 402);
   }
-  return { account: accountQ.data, merchant: merchantQ.data, access };
+  return { account: accountQ.data, merchant: merchantQ.data, access, session_hash: tokenHash };
 }
 
 async function salesWorkspace(req: Request, body: any): Promise<Json> {
@@ -149,8 +149,39 @@ async function salesWorkspace(req: Request, body: any): Promise<Json> {
     products: products.data ?? [],
     expenses: expenses.data ?? [],
     cash_movements: cashMovements.data ?? [],
-    capabilities: { copilot_context: true, whatsapp_inbox_context: true, finance_context: true, low_stock_thresholds: true },
+    capabilities: { copilot_context: true, whatsapp_inbox_context: true, finance_context: true, low_stock_thresholds: true, guide_v17: true },
   };
+}
+
+async function copilotGuide(req: Request, body: any, action: "snapshot" | "interpret_text" | "save_settings"): Promise<Json> {
+  const ctx = await sessionContext(req, action === "save_settings");
+  const payload = action === "interpret_text"
+    ? { text: text(body.text ?? body.query, 1200) }
+    : action === "save_settings"
+      ? {
+          guideEnabled: body.guideEnabled,
+          marketMode: body.marketMode,
+          helpStyle: text(body.helpStyle, 20) || "mixed",
+          literacyMode: text(body.literacyMode, 20) || "simple",
+          language: text(body.language, 10) || "fr",
+          audioExplanations: body.audioExplanations,
+          simplifiedMode: body.simplifiedMode,
+        }
+      : {};
+  if (action === "interpret_text" && !payload.text) fail("Dites ou écrivez ce que vous voulez faire.");
+  const query = await db!.rpc("sama_guide_gateway_v17", {
+    p_session_hash: ctx.session_hash,
+    p_action: action,
+    p_payload: payload,
+  });
+  if (query.error) throw query.error;
+  const result = query.data as any;
+  if (result?.ok === false) {
+    const code = String(result.code || "");
+    const status = code === "AUTH_REQUIRED" || code === "SESSION_EXPIRED" ? 401 : code === "RATE_LIMITED" ? 429 : 400;
+    fail(text(result.error, 300) || "Le guide est momentanément indisponible.", status);
+  }
+  return { ok: true, version: VERSION, guide: result };
 }
 
 async function createSaleV2(req: Request, body: any): Promise<Json> {
@@ -285,6 +316,9 @@ const localActions = new Set([
   "sales_ops_save_customer",
   "sales_ops_customer_detail",
   "sales_ops_set_order_state",
+  "copilot_snapshot",
+  "copilot_interpret",
+  "copilot_save_settings",
 ]);
 
 Deno.serve(async (req: Request) => {
@@ -295,7 +329,7 @@ Deno.serve(async (req: Request) => {
   }
   if (!allowed(origin)) return Response.json({ ok: false, error: "Origin non autorisée." }, { status: 403, headers: cors(origin) });
   if (!SUPABASE_URL) return Response.json({ ok: false, error: "Backend indisponible." }, { status: 503, headers: cors(origin) });
-  if (req.method === "GET") return Response.json({ ok: true, service: "samabusiness-api-v10", version: VERSION, upstream: "sama-business-api", sales_ops: true, copilot_context: true }, { headers: cors(origin) });
+  if (req.method === "GET") return Response.json({ ok: true, service: "samabusiness-api-v10", version: VERSION, upstream: "sama-business-api", sales_ops: true, copilot_context: true, guide_v17: true }, { headers: cors(origin) });
   if (req.method !== "POST") return Response.json({ ok: false, error: "Méthode non autorisée." }, { status: 405, headers: cors(origin) });
 
   const raw = await req.arrayBuffer();
@@ -309,7 +343,10 @@ Deno.serve(async (req: Request) => {
         : action === "sales_ops_create_sale" ? await createSaleV2(req, body)
         : action === "sales_ops_save_customer" ? await saveCustomer(req, body)
         : action === "sales_ops_customer_detail" ? await customerDetail(req, body)
-        : await setOrderState(req, body);
+        : action === "sales_ops_set_order_state" ? await setOrderState(req, body)
+        : action === "copilot_snapshot" ? await copilotGuide(req, body, "snapshot")
+        : action === "copilot_interpret" ? await copilotGuide(req, body, "interpret_text")
+        : await copilotGuide(req, body, "save_settings");
       return Response.json(result, { headers: cors(origin) });
     } catch (unknownError) {
       const error = unknownError as ApiError;
