@@ -22,7 +22,9 @@ jobs:
           node-version: 22
           package-manager-cache: false
       - name: Apply collision-free public media route
-        run: python3 .github/apply-meta-public-media-route.py
+        run: |
+          python3 .github/apply-meta-public-media-route.py
+          python3 .github/apply-meta-public-media-route-ui-test.py
       - name: Syntax
         run: |
           node --check src/media-upload-v5.js
