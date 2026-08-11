@@ -3,8 +3,8 @@
   if (window.__SAMABUSINESS_WHATSAPP_BUSINESS_ROUTER__) return;
   window.__SAMABUSINESS_WHATSAPP_BUSINESS_ROUTER__ = true;
 
-  const VERSION = '2.0.0';
-  const BRIDGE_PACKAGE = 'com.samabusiness.wabridge';
+  const VERSION = '2.1.0';
+  const BRIDGE_PACKAGE = 'com.samabusiness.wabridge2';
   const BUSINESS_PACKAGE = 'com.whatsapp.w4b';
   const BUSINESS_SENDER_PHONE = '221773374762';
   const nativeOpen = window.open.bind(window);
@@ -85,6 +85,6 @@
     businessPackage: BUSINESS_PACKAGE,
     senderPhone: BUSINESS_SENDER_PHONE,
     androidForced: true,
-    strategy: 'native-explicit-package-bridge',
+    strategy: 'native-explicit-package-bridge-v2',
   });
 })();
