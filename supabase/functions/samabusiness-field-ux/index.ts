@@ -1,9 +1,9 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const VERSION = "11.3.1";
+const VERSION = "11.3.2";
 const CORE_SOURCE_REF = "62de4076ff7b717770b3b6ff1b8821b0fbf5950f";
 const SALES_SOURCE_REF = "a7f76ff339a23a33514b4901c4949f748cdf78ac";
-const WHATSAPP_SOURCE_REF = "ed56b535dcdfdc706d35318f0e9095d0323fec09";
+const WHATSAPP_SOURCE_REF = "03d8b91ba79f17b086b25d7d58c577ab2ea3f0a1";
 
 const CORE_PARTS = Array.from({ length: 10 }, (_, index) =>
   `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${CORE_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-${String(index).padStart(2, "0")}.js`
@@ -36,6 +36,7 @@ async function source(): Promise<string> {
     "Ventes & livraisons",
     "__SAMABUSINESS_WHATSAPP_BUSINESS_ROUTER__",
     "com.whatsapp.w4b",
+    "explicit-package-trusted-anchor",
   ];
   if (code.length < 87000 || !markers.every((marker) => code.includes(marker))) {
     throw new Error("FIELD_SOURCE_INVALID");
