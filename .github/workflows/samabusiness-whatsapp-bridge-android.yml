@@ -1,0 +1,55 @@
+name: Build SAMABUSINESS WhatsApp Business Bridge
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'android/samabusiness-whatsapp-bridge/**'
+      - '.github/workflows/samabusiness-whatsapp-bridge-android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: android/samabusiness-whatsapp-bridge
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android SDK 35
+        shell: bash
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+
+      - name: Build installable APK
+        run: gradle --no-daemon clean assembleDebug
+
+      - name: Verify explicit WhatsApp Business package
+        shell: bash
+        run: |
+          grep -q 'com.whatsapp.w4b' app/src/main/AndroidManifest.xml
+          grep -q 'setPackage(WHATSAPP_BUSINESS_PACKAGE)' app/src/main/java/com/samabusiness/wabridge/MainActivity.java
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/SAMABUSINESS-WhatsApp-Business-Bridge.apk
+          sha256sum app/build/outputs/apk/debug/SAMABUSINESS-WhatsApp-Business-Bridge.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-whatsapp-business-bridge
+          path: android/samabusiness-whatsapp-bridge/app/build/outputs/apk/debug/SAMABUSINESS-WhatsApp-Business-Bridge.apk
+          if-no-files-found: error
+          retention-days: 30
