@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import {
   MAX_REQUEST_BYTES, STREAM_THRESHOLD_BYTES, UPLOAD_ERROR, UPLOAD_FIELD,
   V5_PUBLIC_MEDIA_PREFIX, detectContentType, detectHostileContent, displayFilename,
-  handleMediaUpload, isV5PublicMediaPath, newMediaKey, serveV5Media,
+  handleMediaUpload, isV5PublicMediaPath, newMediaKey, publicMediaPathForKey, serveV5Media,
 } from '../src/media-upload-v5.js';
 import { MEDIA_KEY_PREFIX, validateMedia } from '../src/security-v5.js';
 
@@ -384,8 +384,10 @@ test('formulaire illisible : refus sans exception', async () => {
 /* ------------------------------------------------------------------ */
 
 test('le chemin public correspond exactement a la cle R2', () => {
-  assert.equal(V5_PUBLIC_MEDIA_PREFIX, `/${MEDIA_KEY_PREFIX}`);
-  assert.equal(isV5PublicMediaPath(`/${MEDIA_KEY_PREFIX}abc.jpg`), true);
+  assert.equal(V5_PUBLIC_MEDIA_PREFIX, '/sowhat-media/v5/');
+  assert.equal(publicMediaPathForKey(`${MEDIA_KEY_PREFIX}abc.jpg`), '/sowhat-media/v5/abc.jpg');
+  assert.equal(isV5PublicMediaPath('/sowhat-media/v5/abc.jpg'), true);
+  assert.equal(isV5PublicMediaPath(`/${MEDIA_KEY_PREFIX}abc.jpg`), false, 'la cle R2 interne n est plus une URL publique');
   assert.equal(isV5PublicMediaPath('/visuals/media/autre.jpg'), false, 'la V4 garde son prefixe');
   assert.equal(isV5PublicMediaPath('/visuals/manifest/a.json'), false);
 });
@@ -394,7 +396,7 @@ test('media servi avec le bon type, sans sniffing, en lecture seule', async () =
   const bucket = new Bucket();
   const uploaded = await upload(makeEnv(bucket), realRequest(JPEG, { name: 'a.jpg', type: 'image/jpeg' }));
   const response = await serveV5Media(
-    new Request(`https://dakarstyle.com/${uploaded.media.r2_key}`), makeEnv(bucket),
+    new Request(`https://dakarstyle.com${publicMediaPathForKey(uploaded.media.r2_key)}`), makeEnv(bucket),
   );
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('content-type'), 'image/jpeg');
@@ -405,7 +407,7 @@ test('media servi avec le bon type, sans sniffing, en lecture seule', async () =
 
 test('ecriture interdite sur le chemin public', async () => {
   const response = await serveV5Media(
-    new Request(`https://dakarstyle.com/${MEDIA_KEY_PREFIX}a.jpg`, { method: 'DELETE' }), makeEnv(),
+    new Request('https://dakarstyle.com/sowhat-media/v5/a.jpg', { method: 'DELETE' }), makeEnv(),
   );
   assert.equal(response.status, 405);
 });
@@ -414,9 +416,9 @@ test('remontee de chemin et prefixe etranger refuses', async () => {
   const bucket = new Bucket();
   await bucket.put('visuals/media/secret.jpg', JPEG, { httpMetadata: { contentType: 'image/jpeg' } });
   for (const path of [
-    `/${MEDIA_KEY_PREFIX}sous/../../../media/secret.jpg`,
+    '/sowhat-media/v5/sous/../../../media/secret.jpg',
     '/visuals/media/secret.jpg',
-    `/${MEDIA_KEY_PREFIX}sous//dossier.jpg`,
+    '/sowhat-media/v5/sous//dossier.jpg',
   ]) {
     const response = await serveV5Media(new Request(`https://dakarstyle.com${path}`), makeEnv(bucket));
     assert.equal(response.status, 404, path);
@@ -427,14 +429,14 @@ test('objet au type non autorise : non servi, meme sous le bon prefixe', async (
   const bucket = new Bucket();
   await bucket.put(`${MEDIA_KEY_PREFIX}piege.jpg`, HTML, { httpMetadata: { contentType: 'text/html' } });
   const response = await serveV5Media(
-    new Request(`https://dakarstyle.com/${MEDIA_KEY_PREFIX}piege.jpg`), makeEnv(bucket),
+    new Request('https://dakarstyle.com/sowhat-media/v5/piege.jpg'), makeEnv(bucket),
   );
   assert.equal(response.status, 404);
 });
 
 test('media inexistant : 404 sans mise en cache', async () => {
   const response = await serveV5Media(
-    new Request(`https://dakarstyle.com/${MEDIA_KEY_PREFIX}inconnu.jpg`), makeEnv(),
+    new Request('https://dakarstyle.com/sowhat-media/v5/inconnu.jpg'), makeEnv(),
   );
   assert.equal(response.status, 404);
   assert.equal(response.headers.get('cache-control'), 'no-store');

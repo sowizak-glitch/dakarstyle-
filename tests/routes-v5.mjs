@@ -241,7 +241,8 @@ test('aucun secret dans les reponses', async () => {
 
 test('l espace de noms V5 couvre les medias publics, sans toucher a la V4', () => {
   const v5 = (p) => isSocialIntelligenceV5Route(new URL(`https://dakarstyle.com${p}`));
-  assert.equal(v5(`/${MEDIA_KEY_PREFIX}abc.jpg`), true, 'les medias V5 doivent etre routes par la V5');
+  assert.equal(v5('/sowhat-media/v5/abc.jpg'), true, 'les medias V5 doivent etre routes par la V5');
+  assert.equal(v5(`/${MEDIA_KEY_PREFIX}abc.jpg`), false, 'la cle R2 interne ne doit plus etre exposee comme route');
   assert.equal(v5('/visuals/media/abc.jpg'), false, 'les medias V4 restent a la V4');
   assert.equal(v5('/visuals/manifest/abc.json'), false);
   assert.equal(v5(`${V5_ROUTE_PREFIX}/studio`), true);
@@ -252,7 +253,7 @@ test('le media public est servi sans authentification : Meta n en a aucune', asy
   const env = makeEnv();
   env.VISUALS_BUCKET.s.set(`${MEDIA_KEY_PREFIX}visuel.jpg`, 'octets');
   env.VISUALS_BUCKET.meta.set(`${MEDIA_KEY_PREFIX}visuel.jpg`, { httpMetadata: { contentType: 'image/jpeg' } });
-  const response = await call(env, req(`/${MEDIA_KEY_PREFIX}visuel.jpg`, { auth: false }));
+  const response = await call(env, req('/sowhat-media/v5/visuel.jpg', { auth: false }));
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('content-type'), 'image/jpeg');
 });

@@ -21,6 +21,7 @@
  */
 
 import { META_ERROR, MetaApiError } from './instagram-client-v5.js';
+import { publicMediaPathForKey } from './media-upload-v5.js';
 import {
   businessIdempotencyKey, completeIdempotencyKey, readIdempotencyRecord, reserveIdempotencyKey,
 } from './security-v5.js';
@@ -92,7 +93,11 @@ export function mediaUrlFor(env, r2Key) {
   if (!key) {
     throw publishError(PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED, 'cle de media absente', PUBLISH_STAGE.PREFLIGHT);
   }
-  return `${origin}/${key}`;
+  const publicPath = publicMediaPathForKey(key);
+  if (!publicPath) {
+    throw publishError(PUBLISH_ERROR.MEDIA_URL_NOT_CONFIGURED, 'cle de media hors du chemin public V5', PUBLISH_STAGE.PREFLIGHT);
+  }
+  return `${origin}${publicPath}`;
 }
 
 /** Champs du conteneur, selon le format reel du contenu. */
