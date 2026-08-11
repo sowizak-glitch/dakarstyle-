@@ -23,7 +23,7 @@ permissions:
   contents: read
 
 env:
-  FIELD_UX_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-field-ux?v=11.7.1
+  FIELD_UX_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-field-ux?v=11.7.2
   SUPPLIER_URL: https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-supplier-api
 
 jobs:
@@ -51,7 +51,9 @@ jobs:
           grep -q 'sbix-2026-styles' field-ux-local.js
           grep -q '__SAMABUSINESS_ICON_POLISH_V2026__' field-ux-local.js
           grep -q 'sbix-2026-polish-styles' field-ux-local.js
-          test "$(wc -c < field-ux-local.js)" -gt 115000
+          grep -q '__SAMABUSINESS_CLIENT_FINANCIAL_RECAP_V2026__' field-ux-local.js
+          grep -q 'sbfr-2026-styles' field-ux-local.js
+          test "$(wc -c < field-ux-local.js)" -gt 120000
 
       - name: Validate Worker injection
         shell: bash
@@ -70,7 +72,7 @@ jobs:
           curl --fail --silent --show-error --dump-header field-ux.headers "$FIELD_UX_URL" -o field-ux-live.js
           node --check field-ux-live.js
           grep -qi 'application/javascript' field-ux.headers
-          grep -qi 'x-samabusiness-field-ux: 11.7.1' field-ux.headers
+          grep -qi 'x-samabusiness-field-ux: 11.7.2' field-ux.headers
           grep -q '__SAMABUSINESS_FIELD_UX__' field-ux-live.js
           grep -q '__SAMABUSINESS_SALES_OPS_V2__' field-ux-live.js
           grep -q '__SAMABUSINESS_WHATSAPP_BUSINESS_ROUTER__' field-ux-live.js
@@ -79,7 +81,9 @@ jobs:
           grep -q 'sbix-2026-styles' field-ux-live.js
           grep -q '__SAMABUSINESS_ICON_POLISH_V2026__' field-ux-live.js
           grep -q 'sbix-2026-polish-styles' field-ux-live.js
-          test "$(wc -c < field-ux-live.js)" -gt 125000
+          grep -q '__SAMABUSINESS_CLIENT_FINANCIAL_RECAP_V2026__' field-ux-live.js
+          grep -q 'sbfr-2026-styles' field-ux-live.js
+          test "$(wc -c < field-ux-live.js)" -gt 130000
 
       - name: Validate supplier endpoint and CORS
         shell: bash
