@@ -13,20 +13,19 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - uses: actions/checkout@v5
       - name: Probe exact media URL
         shell: bash
         run: |
           set -euxo pipefail
           URL='https://dakarstyle.com/visuals/social-intelligence/v5/media/199fd26a-90e1-4734-a3e8-6ed46a1c7088.jpg'
-          echo '--- HEAD default ---'
-          curl -sS -D - -o /dev/null --max-time 20 "$URL" || true
-          echo '--- HEAD Meta UA ---'
-          curl -sS -A 'facebookexternalhit/1.1' -D - -o /dev/null --max-time 20 "$URL" || true
-          echo '--- GET headers + body ---'
           curl -sS -A 'facebookexternalhit/1.1' -D /tmp/headers.txt -o /tmp/media.bin --max-time 30 "$URL" || true
           cat /tmp/headers.txt || true
           echo "bytes=$(wc -c < /tmp/media.bin 2>/dev/null || echo 0)"
           echo -n 'magic='; od -An -tx1 -N16 /tmp/media.bin 2>/dev/null | tr -d '\n ' || true; echo
           echo -n 'file='; file -b --mime-type /tmp/media.bin 2>/dev/null || true
-          echo '--- first 300 printable chars ---'
-          strings /tmp/media.bin 2>/dev/null | head -n 10 || true
+      - name: Inspect code paths that could delete V5 media
+        shell: bash
+        run: |
+          set -euxo pipefail
+          grep -RIn --exclude-dir=.git -E "VISUALS_BUCKET\.(delete|list)|MEDIA_KEY_PREFIX|visuals/social-intelligence/v5/media" src tests .github | head -n 300 || true
