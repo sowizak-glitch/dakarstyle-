@@ -35,7 +35,7 @@ await context.addInitScript(() => {
   window.open = (url) => { window.__openedUrls.push(String(url)); return null; };
 });
 const page = await context.newPage();
-page.on('pageerror', (error) => report.pageErrors.push(String(error)));
+page.on('pageerror', (error) => report.pageErrors.push(error?.stack || String(error)));
 page.on('response', (response) => { if (response.status() >= 500) report.serverErrors.push({ url: response.url(), status: response.status() }); });
 
 try {
@@ -50,6 +50,15 @@ try {
     'Le module UX terrain ne s’est pas initialisé'
   );
   pass('Chargement production 10.2.0 et injection UX terrain');
+
+  const publicDemo = page.locator('#sama-demo-modal.open');
+  if (await publicDemo.isVisible().catch(() => false)) {
+    const closeButton = publicDemo.locator('button').first();
+    await visible(closeButton);
+    await closeButton.click({ force: true });
+    await publicDemo.waitFor({ state: 'hidden', timeout: 10000 });
+    pass('Démo publique fermable avant authentification');
+  }
 
   await visible(page.locator('#authScreen'));
   await visible(page.locator('[data-sbfu-email-toggle]'));
