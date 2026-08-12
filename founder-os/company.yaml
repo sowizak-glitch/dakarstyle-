@@ -1,0 +1,45 @@
+version: 1
+company:
+  id: sowhat-ecosystem
+  name: SOWHAT Ecosystem
+  operator_mode: single_operator_supervised_autonomy
+  timezone: Africa/Casablanca
+  default_language: fr
+  supported_languages: [fr, wo]
+
+systems_of_record:
+  commerce: sowhat_supabase
+  merchant_os: sama_business_supabase
+  comparison: senecompare_supabase
+  delivery: liv_supabase
+  source_code: github
+  automation: n8n
+  edge_runtime: cloudflare
+  knowledge: notion_plus_markdown_plus_pgvector
+  communications: gmail_whatsapp_meta
+
+pillars:
+  - COMMAND
+  - COMMS
+  - FINANCE
+  - CONTENT
+  - KNOWLEDGE
+  - AUTOMATIONS
+
+control_plane:
+  event_namespace: founder_os_events
+  run_namespace: founder_os_agent_runs
+  decision_namespace: founder_os_decisions
+  connector_namespace: founder_os_connectors
+  knowledge_namespace: founder_os_knowledge_items
+  alert_namespace: founder_os_alerts
+
+principles:
+  - preserve_existing_systems_of_record
+  - truthful_connector_status
+  - least_privilege
+  - idempotent_writes
+  - verify_after_write
+  - evidence_before_claim
+  - one_click_human_gate_for_commitments
+  - fail_closed_on_security
