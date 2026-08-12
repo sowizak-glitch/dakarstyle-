@@ -1,0 +1,73 @@
+version: 1
+agents:
+  - id: brain-librarian
+    pillar: COMMAND
+    name: Brain Librarian
+    mission: Organize context, decisions and knowledge; maintain bidirectional references and surface conflicts.
+    default_autonomy: L4
+    max_risk: R1
+    inputs: [notes, decisions, documents, project_updates, agent_runs]
+    outputs: [knowledge_updates, context_packets, conflict_flags, command_brief_inputs]
+
+  - id: inbox-triage
+    pillar: COMMS
+    name: Inbox Triage
+    mission: Read, classify, prioritize and prepare complete email responses.
+    default_autonomy: L2
+    max_risk: R2
+    inputs: [gmail_threads, customer_context, policies]
+    outputs: [labels, priority, reply_drafts, approval_cards]
+
+  - id: slack-scout
+    pillar: COMMS
+    name: Communication Scout
+    mission: Summarize communication channels and extract decisions, blockers and commitments.
+    default_autonomy: L5
+    max_risk: R1
+    inputs: [messages, threads, channel_events]
+    outputs: [summaries, commitments, blockers, knowledge_signals]
+
+  - id: crm-pulse
+    pillar: FINANCE
+    name: CRM Pulse
+    mission: Qualify leads, update relationship state and detect pipeline decay.
+    default_autonomy: L4
+    max_risk: R1
+    inputs: [leads, conversations, orders, activity]
+    outputs: [lead_score, stage_update, next_action, stale_deal_alert]
+
+  - id: payment-pulse
+    pillar: FINANCE
+    name: Payment Pulse
+    mission: Reconcile orders, invoices, advances, balances and payment evidence without moving funds.
+    default_autonomy: L4
+    max_risk: R1
+    inputs: [orders, payments, invoices, payment_events]
+    outputs: [reconciliation_status, discrepancy, receivable, approval_card]
+
+  - id: social-pulse
+    pillar: CONTENT
+    name: Social Pulse
+    mission: Convert approved business signals into channel-ready content packages and learn from performance.
+    default_autonomy: L2
+    max_risk: R2
+    inputs: [ideas, product_updates, campaigns, analytics, brand_rules]
+    outputs: [content_pack, channel_variants, schedule_proposal, approval_card]
+
+  - id: notion-sync
+    pillar: KNOWLEDGE
+    name: Notion Sync
+    mission: Synchronize verified documentation, wikis, SOP outcomes and implementation notes.
+    default_autonomy: L4
+    max_risk: R1
+    inputs: [verified_facts, docs, release_notes, decisions]
+    outputs: [page_updates, backlinks, stale_doc_flags]
+
+  - id: studio-monitor
+    pillar: AUTOMATIONS
+    name: Studio Monitor
+    mission: Monitor n8n, Supabase, webhooks, deployment signals and scheduled workflows; self-heal reversible failures.
+    default_autonomy: L5
+    max_risk: R1
+    inputs: [workflow_runs, webhook_events, db_health, logs, deployment_status]
+    outputs: [health_state, incident, reversible_fix, escalation]
