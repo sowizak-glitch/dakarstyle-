@@ -1,0 +1,81 @@
+version: 1
+sops:
+  - id: daily-command-brief
+    pillar: COMMAND
+    owner_agent: brain-librarian
+    trigger: schedule_daily
+    default_autonomy: L5
+    risk: R0
+    approval_required: false
+    objective: Produce one decision-first brief from goals, revenue, incidents, commitments and overdue items.
+    outputs: [top_decisions, exceptions, cash_snapshot, pipeline_risks, automation_health, today_focus]
+
+  - id: inbox-triage-and-draft
+    pillar: COMMS
+    owner_agent: inbox-triage
+    trigger: new_or_unread_email
+    default_autonomy: L2
+    risk: R2
+    approval_required: true
+    objective: Classify mail, extract asks/deadlines, draft a complete reply and present a one-click approval card.
+    outputs: [classification, priority, extracted_commitments, draft_reply, approval_card]
+
+  - id: communications-scout
+    pillar: COMMS
+    owner_agent: slack-scout
+    trigger: schedule_or_message_batch
+    default_autonomy: L5
+    risk: R0
+    approval_required: false
+    objective: Summarize communication streams and convert important signals into structured commitments and blockers.
+    outputs: [summary, decisions, blockers, commitments, knowledge_signals]
+
+  - id: lead-and-crm-pulse
+    pillar: FINANCE
+    owner_agent: crm-pulse
+    trigger: new_lead_or_activity
+    default_autonomy: L4
+    risk: R1
+    approval_required: false
+    objective: Qualify incoming opportunities, update standard CRM fields and surface stalled or high-value cases.
+    outputs: [lead_score, stage, owner, next_action, stale_alert]
+
+  - id: payment-reconciliation
+    pillar: FINANCE
+    owner_agent: payment-pulse
+    trigger: payment_or_order_change
+    default_autonomy: L4
+    risk: R1
+    approval_required: false
+    objective: Reconcile expected and observed money states without initiating transfers or refunds.
+    outputs: [matched_records, discrepancy, amount_due, payment_status, escalation]
+
+  - id: content-multichannel-pack
+    pillar: CONTENT
+    owner_agent: social-pulse
+    trigger: approved_idea_campaign_or_release
+    default_autonomy: L2
+    risk: R2
+    approval_required: true
+    objective: Turn one approved source into brand-consistent channel-ready variants with scheduling proposal.
+    outputs: [master_angle, x_variant, linkedin_variant, newsletter_variant, whatsapp_variant, visual_brief, approval_card]
+
+  - id: verified-knowledge-sync
+    pillar: KNOWLEDGE
+    owner_agent: notion-sync
+    trigger: verified_fact_or_release
+    default_autonomy: L4
+    risk: R1
+    approval_required: false
+    objective: Sync verified facts, release notes, SOP outcomes and backlinks; flag stale or contradictory documentation.
+    outputs: [updated_pages, backlinks, stale_flags, conflict_flags]
+
+  - id: automation-health-watch
+    pillar: AUTOMATIONS
+    owner_agent: studio-monitor
+    trigger: schedule_5m_or_failure_event
+    default_autonomy: L5
+    risk: R1
+    approval_required: false
+    objective: Detect failed workflows, webhook drift, database/service degradation and repair only reversible known-safe cases.
+    outputs: [health_state, detected_incidents, safe_fixes_applied, unresolved_escalations]

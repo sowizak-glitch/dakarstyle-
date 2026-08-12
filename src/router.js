@@ -5,6 +5,8 @@ import samabusinessMedia from './samabusiness-media-review-v133.js';
 import samabusinessOwner from './samabusiness-owner-command-v14.js';
 import { handleSocialIntelligenceV3, runInstagramSync } from './social-intelligence-v3.js';
 import { authorizeV5, handleSocialIntelligenceV5, isSocialIntelligenceV5Route } from './social-intelligence-v5-routes.js';
+import { handleFounderOs, isFounderOsRoute } from './founder-os-routes-v1.js';
+import { runHealthCycle } from './founder-os-runtime-v1.js';
 
 const SENECOMPARE_HOSTS = new Set([
   'senecompare.dakarstyle.com',
@@ -166,6 +168,14 @@ async function upgradeLegacySocialIntelligenceResponse(request, url, response) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // Founder OS reutilise la session proprietaire SOWHAT Control V5 et vit
+    // dans son propre espace de noms. Il passe avant les routes Social
+    // Intelligence afin que /api/founder-os/* ne puisse jamais etre capture.
+    if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isFounderOsRoute(url)) {
+      return handleFounderOs(request, env, ctx);
+    }
+
     // La V5 vit dans son propre espace de noms et passe AVANT la V4, sinon la
     // V4 capterait ses chemins. Aucune route V4 n est modifiee pour autant.
     if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceV5Route(url)) {
@@ -203,7 +213,10 @@ export default {
   },
 
   async scheduled(_controller, env, ctx) {
-    if (!env.INSTAGRAM_ACCESS_TOKEN || !env.INSTAGRAM_USER_ID) return;
-    ctx.waitUntil(runInstagramSync(env, null));
+    const jobs = [runHealthCycle(env, { origin: 'https://dakarstyle.com' })];
+    if (env.INSTAGRAM_ACCESS_TOKEN && env.INSTAGRAM_USER_ID) jobs.push(runInstagramSync(env, null));
+    const task = Promise.allSettled(jobs);
+    if (ctx?.waitUntil) ctx.waitUntil(task);
+    else await task;
   },
 };
