@@ -65,7 +65,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -REn "(sb_secret_|service_role[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9._-]{20,}|EAA[A-Za-z0-9_-]{20,})" src/founder-os-* founder-os/ tests/founder-os-v1.mjs; then
+          # Scan deployable/runtime and architecture files. Test fixtures are
+          # intentionally excluded because they contain forbidden token prefixes
+          # as negative assertions and would otherwise trigger the scanner itself.
+          if grep -REn "(sb_secret_|service_role[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9._-]{20,}|EAA[A-Za-z0-9_-]{20,})" src/founder-os-* founder-os/; then
             echo 'Potential private credential committed in Founder OS scope.' >&2
             exit 1
           fi
