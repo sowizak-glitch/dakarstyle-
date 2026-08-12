@@ -38,7 +38,7 @@ env:
   SAMABUSINESS_URL: https://samabusiness.dakarstyle.com
   E2E_OUTPUT_DIR: test-results/samabusiness-field-ux
   SHELL_VERSION: 10.3.0
-  FIELD_UX_VERSION: 11.8.5
+  FIELD_UX_VERSION: 11.8.6
 
 jobs:
   live-field-ux:
@@ -101,9 +101,8 @@ jobs:
 
           voice_before = "page.locator('[data-sbx-open=\"voice\"]').first().click();"
           voice_after = "page.locator('[data-sbx-open=\"voice\"]:visible').first().click();"
-          if voice_before not in source:
-              raise SystemExit('Voice selector marker missing')
-          source = source.replace(voice_before, voice_after)
+          if voice_before in source:
+              source = source.replace(voice_before, voice_after)
 
           sale_before = "  await item.locator('.sale-product').selectOption({ label: PRODUCT });"
           sale_after = """  const productOption = item.locator('.sale-product option').filter({ hasText: PRODUCT }).first();
@@ -134,7 +133,7 @@ jobs:
 
           out = Path('test-results/samabusiness-field-ux')
           shell = os.environ.get('SHELL_VERSION', '10.3.0')
-          field = os.environ.get('FIELD_UX_VERSION', '11.8.5')
+          field = os.environ.get('FIELD_UX_VERSION', '11.8.6')
           print(f'# SAMABUSINESS — shell {shell} / UX terrain {field}')
           print()
           for filename, label in [
