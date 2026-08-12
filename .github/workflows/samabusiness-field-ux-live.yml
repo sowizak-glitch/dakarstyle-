@@ -7,6 +7,7 @@ on:
     paths:
       - 'tests/samabusiness-field-ux-live.mjs'
       - 'tests/samabusiness-copilot-live.mjs'
+      - 'supabase/functions/samabusiness-field-ux/index.ts'
       - 'supabase/functions/samabusiness-field-ux/parts/part-17-sama-copilot-v19.js'
       - 'supabase/functions/samabusiness-field-ux/parts/part-20-guide-engine-bridge-v19.js'
       - 'supabase/functions/samabusiness-api-v10/index.ts'
@@ -17,6 +18,7 @@ on:
     paths:
       - 'tests/samabusiness-field-ux-live.mjs'
       - 'tests/samabusiness-copilot-live.mjs'
+      - 'supabase/functions/samabusiness-field-ux/index.ts'
       - 'supabase/functions/samabusiness-field-ux/parts/part-17-sama-copilot-v19.js'
       - 'supabase/functions/samabusiness-field-ux/parts/part-20-guide-engine-bridge-v19.js'
       - 'supabase/functions/samabusiness-api-v10/index.ts'
