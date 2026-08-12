@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const VERSION = "11.8.6";
+const VERSION = "11.8.7";
 const CORE_SOURCE_REF = "62de4076ff7b717770b3b6ff1b8821b0fbf5950f";
 const SALES_SOURCE_REF = "a7f76ff339a23a33514b4901c4949f748cdf78ac";
 const WHATSAPP_SOURCE_REF = "b6914736730d82ae5bbd8ca0d9b395d2bbcdd396";
@@ -13,6 +13,7 @@ const COPILOT_SOURCE_REF = "27a8f63266fdcc451a7a70c7154fac7603e7bd7f";
 const CAPTURE_MARKETING_SOURCE_REF = "bfa6b82b58c46a02ae6fa0d4f8e57fc0100caa85";
 const OPERATIONAL_SOURCE_REF = "78c732b55666d052e80a2c8bf13160a2a7745c4a";
 const GUIDE_BRIDGE_SOURCE_REF = "8ff8417c670f68c805ee81e9bf852ab83138ae86";
+const SALES_RECEIPT_BRIDGE_SOURCE_REF = "925f30a257b787943072485dc810a2101b4c7ad2";
 
 const CORE_PARTS = Array.from({ length: 10 }, (_, index) =>
   `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${CORE_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-${String(index).padStart(2, "0")}.js`
@@ -28,7 +29,8 @@ const COPILOT_PART = `https://raw.githubusercontent.com/sowizak-glitch/dakarstyl
 const CAPTURE_MARKETING_PART = `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${CAPTURE_MARKETING_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-18-capture-marketing-v19.js`;
 const OPERATIONAL_PART = `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${OPERATIONAL_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-19-operational-intelligence-v19.js`;
 const GUIDE_BRIDGE_PART = `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${GUIDE_BRIDGE_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-20-guide-engine-bridge-v19.js`;
-const PARTS = [...CORE_PARTS, SALES_PART, WHATSAPP_BUSINESS_PART, WHATSAPP_DIRECT_PART, ICON_PART, ICON_POLISH_PART, CLIENT_RECAP_PART, DESIGN_PART, COPILOT_PART, CAPTURE_MARKETING_PART, OPERATIONAL_PART, GUIDE_BRIDGE_PART];
+const SALES_RECEIPT_BRIDGE_PART = `https://raw.githubusercontent.com/sowizak-glitch/dakarstyle-/${SALES_RECEIPT_BRIDGE_SOURCE_REF}/supabase/functions/samabusiness-field-ux/parts/part-21-sales-receipt-bridge-v19.js`;
+const PARTS = [...CORE_PARTS, SALES_PART, WHATSAPP_BUSINESS_PART, WHATSAPP_DIRECT_PART, ICON_PART, ICON_POLISH_PART, CLIENT_RECAP_PART, DESIGN_PART, COPILOT_PART, CAPTURE_MARKETING_PART, OPERATIONAL_PART, GUIDE_BRIDGE_PART, SALES_RECEIPT_BRIDGE_PART];
 const STUDIO = "https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-studio-ui?v=11.2.2";
 let cached = "";
 
@@ -86,13 +88,14 @@ async function source(): Promise<string> {
     "sama-operational-intelligence-styles",
     "__SAMABUSINESS_GUIDE_ENGINE_BRIDGE_V19__",
     "sama-guide-engine-bridge-styles",
+    "__SAMABUSINESS_SALES_RECEIPT_BRIDGE_V19__",
   ];
   if (code.length < 160000 || !markers.every((marker) => code.includes(marker))) {
     throw new Error("FIELD_SOURCE_INVALID");
   }
   code = code
-    .replace("const VERSION = '10.2.0';", "const VERSION = '11.8.6';")
-    .replace("const VERSION='10.2.0';", "const VERSION='11.8.6';");
+    .replace("const VERSION = '10.2.0';", "const VERSION = '11.8.7';")
+    .replace("const VERSION='10.2.0';", "const VERSION='11.8.7';");
   cached = code + publicDemoGuard() + modalLayerGuard() + ecosystemNavigationBridge() + loader();
   return cached;
 }
