@@ -29,6 +29,7 @@ permissions:
 env:
   SAMABUSINESS_URL: https://samabusiness.dakarstyle.com
   E2E_OUTPUT_DIR: test-results/samabusiness-field-ux
+  SHELL_VERSION: 10.3.0
   FIELD_UX_VERSION: 11.8.2
 
 jobs:
@@ -39,20 +40,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Wait for production 11.8.2
+      - name: Wait for production shell
         shell: bash
         run: |
           set -euo pipefail
           for attempt in $(seq 1 30); do
             headers=$(curl --silent --show-error --dump-header - --output /dev/null --max-time 20 "$SAMABUSINESS_URL/?deploy-check=$GITHUB_RUN_ID" | tr -d '\r')
-            if grep -qi "^x-samabusiness-field-ux: ${FIELD_UX_VERSION}$" <<<"$headers"; then
-              echo "SAMABUSINESS ${FIELD_UX_VERSION} is live."
+            if grep -qi "^x-samabusiness-field-ux: ${SHELL_VERSION}$" <<<"$headers"; then
+              echo "SAMABUSINESS shell ${SHELL_VERSION} is live."
               exit 0
             fi
-            echo "Waiting for production deployment ($attempt/30)..."
+            echo "Waiting for production shell ($attempt/30)..."
             sleep 20
           done
-          echo "SAMABUSINESS ${FIELD_UX_VERSION} was not detected in production." >&2
+          echo "SAMABUSINESS shell ${SHELL_VERSION} was not detected in production." >&2
           exit 1
 
       - name: Setup Node
@@ -71,11 +72,24 @@ jobs:
           python3 - <<'PY'
           import os
           from pathlib import Path
+
           path = Path('tests/samabusiness-field-ux-live.mjs')
           source = path.read_text()
+          shell_version = os.environ['SHELL_VERSION']
+          field_version = os.environ['FIELD_UX_VERSION']
 
-          expected_version = os.environ['FIELD_UX_VERSION']
-          source = source.replace('10.2.0', expected_version)
+          old_header = "assert.equal(response.headers()['x-samabusiness-field-ux'], '10.2.0');"
+          new_header = f"assert.equal(response.headers()['x-samabusiness-field-ux'], '{shell_version}');"
+          if old_header not in source:
+              raise SystemExit('Field UX shell header marker missing')
+          source = source.replace(old_header, new_header, 1)
+
+          old_runtime = "(value) => value === '10.2.0',"
+          new_runtime = f"(value) => value === '{field_version}',"
+          if old_runtime not in source:
+              raise SystemExit('Field UX runtime version marker missing')
+          source = source.replace(old_runtime, new_runtime, 1)
+          source = source.replace('Chargement production 10.2.0 et injection UX terrain', f'Shell {shell_version} + UX terrain {field_version}')
 
           voice_before = "page.locator('[data-sbx-open=\"voice\"]').first().click();"
           voice_after = "page.locator('[data-sbx-open=\"voice\"]:visible').first().click();"
@@ -111,8 +125,9 @@ jobs:
           from pathlib import Path
 
           out = Path('test-results/samabusiness-field-ux')
-          version = os.environ.get('FIELD_UX_VERSION', '11.8.2')
-          print(f'# SAMABUSINESS — UX terrain {version}')
+          shell = os.environ.get('SHELL_VERSION', '10.3.0')
+          field = os.environ.get('FIELD_UX_VERSION', '11.8.2')
+          print(f'# SAMABUSINESS — shell {shell} / UX terrain {field}')
           print()
           for filename, label in [
               ('field-ux-report.json', 'Parcours terrain'),
