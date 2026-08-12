@@ -43,7 +43,7 @@ jobs:
     timeout-minutes: 12
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Validate Worker JavaScript
         run: |
@@ -89,20 +89,27 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail --silent --show-error "$PWA_URL?mode=health" -o pwa-health.json
-          curl --fail --silent --show-error --dump-header manifest.headers "$PWA_URL?mode=manifest&v=10.1.0" -o manifest.json
-          curl --fail --silent --show-error --dump-header sw.headers "$PWA_URL?mode=sw&v=10.1.0" -o sw.js
-          curl --fail --silent --show-error --dump-header icon.headers "$PWA_URL?mode=icon&size=512&v=10.1.0" -o icon.svg
+          curl --fail --silent --show-error --dump-header manifest.headers "$PWA_URL?mode=manifest&v=11.2.2" -o manifest.json
+          curl --fail --silent --show-error --dump-header sw.headers "$PWA_URL?mode=sw&v=11.2.2" -o sw.js
+          curl --fail --silent --show-error --dump-header icon.headers "$PWA_URL?mode=icon&size=512&v=11.2.2" -o icon.svg
           python3 - <<'PY'
           import json
           from pathlib import Path
           health = json.loads(Path('pwa-health.json').read_text())
           assert health.get('ok') is True, health
+          assert health.get('version') == '11.2.2', health
           manifest = json.loads(Path('manifest.json').read_text())
           assert manifest.get('name') == 'SAMABUSINESS', manifest
           assert 'application/manifest+json' in Path('manifest.headers').read_text().lower()
           assert 'application/javascript' in Path('sw.headers').read_text().lower()
           assert 'image/svg+xml' in Path('icon.headers').read_text().lower()
-          assert 'samabusiness-shell-' in Path('sw.js').read_text()
+          sw = Path('sw.js').read_text()
+          # v11 uses one versioned cache namespace (`samabusiness-<VERSION>`).
+          # Validate the behaviour contract instead of the removed legacy
+          # `samabusiness-shell-*` implementation detail.
+          assert "C='samabusiness-'+V" in sw, sw[:300]
+          assert 'caches.open(C)' in sw, sw[:500]
+          assert "k.startsWith('samabusiness-')" in sw, sw[:700]
           PY
 
       - name: Test business API proxy
@@ -196,7 +203,7 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Deploy Worker when Cloudflare credentials are configured
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
