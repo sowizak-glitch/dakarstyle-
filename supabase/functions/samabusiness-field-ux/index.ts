@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const VERSION = "11.8.2";
+const VERSION = "11.8.3";
 const CORE_SOURCE_REF = "62de4076ff7b717770b3b6ff1b8821b0fbf5950f";
 const SALES_SOURCE_REF = "a7f76ff339a23a33514b4901c4949f748cdf78ac";
 const WHATSAPP_SOURCE_REF = "b6914736730d82ae5bbd8ca0d9b395d2bbcdd396";
@@ -31,6 +31,10 @@ const GUIDE_BRIDGE_PART = `https://raw.githubusercontent.com/sowizak-glitch/daka
 const PARTS = [...CORE_PARTS, SALES_PART, WHATSAPP_BUSINESS_PART, WHATSAPP_DIRECT_PART, ICON_PART, ICON_POLISH_PART, CLIENT_RECAP_PART, DESIGN_PART, COPILOT_PART, CAPTURE_MARKETING_PART, OPERATIONAL_PART, GUIDE_BRIDGE_PART];
 const STUDIO = "https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-studio-ui?v=11.2.2";
 let cached = "";
+
+function authenticatedDemoGuard(): string {
+  return `;(()=>{if(window.__SAMABUSINESS_AUTH_DEMO_GUARD_V1183__)return;window.__SAMABUSINESS_AUTH_DEMO_GUARD_V1183__=true;let running=false;const visible=(el)=>{if(!el)return false;const style=getComputedStyle(el);return !el.classList.contains('hidden')&&style.display!=='none'&&style.visibility!=='hidden'};const closeDemo=()=>{if(running)return;running=true;try{const shell=document.querySelector('#appShell');const modal=document.querySelector('#sama-demo-modal');if(visible(shell)&&modal?.classList.contains('open')){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');modal.querySelectorAll('video,audio').forEach(media=>{try{media.pause()}catch(_){}});document.documentElement.style.overflow='';document.body&&(document.body.style.overflow='')}}finally{running=false}};closeDemo();new MutationObserver(closeDemo).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});window.addEventListener('sama-session-change',closeDemo);window.addEventListener('storage',closeDemo);})();`;
+}
 
 function loader(): string {
   return `;(()=>{if(window.__SAMABUSINESS_SITE_STUDIO_LOADER_V1122__)return;window.__SAMABUSINESS_SITE_STUDIO_LOADER_V1122__=true;document.querySelectorAll('script[data-samabusiness-site-network],script[data-samabusiness-ecosystem],script[data-samabusiness-site-studio],script[data-samabusiness-admin-fix]').forEach(s=>s.remove());const s=document.createElement('script');s.src=${JSON.stringify(STUDIO)};s.defer=true;s.crossOrigin='anonymous';s.dataset.samabusinessSiteStudio='11.2.2';s.onerror=()=>console.error('Sama Business Site Studio unavailable');document.head.appendChild(s);})();`;
@@ -79,9 +83,9 @@ async function source(): Promise<string> {
     throw new Error("FIELD_SOURCE_INVALID");
   }
   code = code
-    .replace("const VERSION = '10.2.0';", "const VERSION = '11.8.2';")
-    .replace("const VERSION='10.2.0';", "const VERSION='11.8.2';");
-  cached = code + loader();
+    .replace("const VERSION = '10.2.0';", "const VERSION = '11.8.3';")
+    .replace("const VERSION='10.2.0';", "const VERSION='11.8.3';");
+  cached = code + authenticatedDemoGuard() + loader();
   return cached;
 }
 
