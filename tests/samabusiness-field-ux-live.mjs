@@ -211,7 +211,7 @@ try {
   await page.locator('#sbfu-receipt-modal [data-sbfu-modal-close]').click();
 
   await clickVisibleNavigation(page, 'sales', ['Ventes']);
-  const saleRow = page.locator('#salesList .row-card:visible').filter({ hasText: 'Moustapha Test' }).first();
+  const saleRow = page.locator('.sbso-card:visible').filter({ hasText: 'Moustapha Test' }).first();
   await visible(saleRow, 30000);
   await visible(saleRow.locator('[data-sbfu-receipt]'));
   pass('Reçu accessible en un clic depuis l’historique des ventes');
