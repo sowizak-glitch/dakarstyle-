@@ -1,6 +1,7 @@
 import application from './worker-entry.js';
 import { injectSamabusinessPublicExperience } from './samabusiness-public-experience.js';
 import { handleEcosystemSeoRequest, transformEcosystemSeoResponse } from './ecosystem-seo-v1.js';
+import { applyDakarstyleCwvHints } from './dakarstyle-cwv-edge-v1.js';
 
 const VERSION = '13.1.0';
 const HOSTS = new Set([
@@ -93,6 +94,7 @@ export default {
     const publicExperienceResponse = HOSTS.has(url.hostname)
       ? await transform(request, response, url)
       : response;
-    return transformEcosystemSeoResponse(request, publicExperienceResponse);
+    const seoTransformedResponse = await transformEcosystemSeoResponse(request, publicExperienceResponse);
+    return applyDakarstyleCwvHints(request, seoTransformedResponse);
   },
 };

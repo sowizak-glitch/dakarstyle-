@@ -1,0 +1,81 @@
+name: AETHER CWV Final Quality
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/dakarstyle-cwv-edge-v1.js'
+      - 'src/worker-entry-v131.js'
+      - 'tests/dakarstyle-cwv-edge-v1.mjs'
+      - '.github/workflows/aether-cwv-final-quality.yml'
+  push:
+    branches:
+      - main
+      - 'agent/aether-cwv-final-2027'
+    paths:
+      - 'src/dakarstyle-cwv-edge-v1.js'
+      - 'src/worker-entry-v131.js'
+      - 'tests/dakarstyle-cwv-edge-v1.mjs'
+      - '.github/workflows/aether-cwv-final-quality.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: aether-cwv-final-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check src/dakarstyle-cwv-edge-v1.js
+          node --check src/worker-entry-v131.js
+      - name: CWV edge contract
+        run: node tests/dakarstyle-cwv-edge-v1.mjs
+      - name: Full regression suite
+        run: npm test
+      - name: Cloudflare Worker dry run
+        run: npm run build:dry-run
+      - name: Static performance invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'dakarstyle-base-2026.css.*rel=preload; as=style' src/dakarstyle-cwv-edge-v1.js
+          grep -q 'dakarstyle-base-2026.js.*rel=preload; as=script' src/dakarstyle-cwv-edge-v1.js
+          grep -q 'fetchpriority="high"' index.html
+          grep -q 'loading="lazy"' index.html
+          grep -q 'prefers-reduced-motion' assets/css/dakarstyle-cwv-2026.css
+
+  verify-production:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Wait for Cloudflare Git/SEO deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          live=0
+          for attempt in 1 2 3 4 5 6 7 8; do
+            curl -fsS -D /tmp/home.headers -o /tmp/home.html 'https://dakarstyle.com/' || true
+            if grep -qi '^x-aether-cwv-release: aether-cwv-2027.1' /tmp/home.headers; then live=1; break; fi
+            echo "Waiting for CWV edge release (attempt ${attempt}/8)..."
+            sleep 25
+          done
+          test "$live" = '1'
+          grep -qi 'dakarstyle-base-2026.css>; rel=preload; as=style' /tmp/home.headers
+          grep -qi 'dakarstyle-base-2026.js>; rel=preload; as=script' /tmp/home.headers
+          grep -qi '^x-aether-seo-release: aether-seo-2027.1' /tmp/home.headers
+          grep -qi '^x-robots-tag: index, follow' /tmp/home.headers
+          grep -q 'data-aether-network="2027"' /tmp/home.html
+          echo 'AETHER CWV edge hints + SEO production boundaries: PASS' >> "$GITHUB_STEP_SUMMARY"
