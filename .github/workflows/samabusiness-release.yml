@@ -64,15 +64,14 @@ jobs:
           grep -qi 'webp' logo-file-type.txt
           grep -q '192x192' logo-file-type.txt
 
-      - name: Validate versioned addon source
+      - name: Validate repository addon fallback source
         shell: bash
         run: |
           set -euo pipefail
           test -s supabase/functions/samabusiness-addon/index.ts
-          grep -q '__SAMABUSINESS_FETCH_PATCHED__' supabase/functions/samabusiness-addon/index.ts
-          grep -q '__SAMABUSINESS_PRODUCT_SELECTORS_PATCHED__' supabase/functions/samabusiness-addon/index.ts
-          grep -q 'productSelectorFix:true' supabase/functions/samabusiness-addon/index.ts
           grep -q 'samabusiness-api-v10' supabase/functions/samabusiness-addon/index.ts
+          grep -q 'PWA_ROOT' supabase/functions/samabusiness-addon/index.ts
+          grep -q 'focus-visible' supabase/functions/samabusiness-addon/index.ts
 
       - name: Validate site commerce proxy source
         shell: bash
@@ -104,9 +103,6 @@ jobs:
           assert 'application/javascript' in Path('sw.headers').read_text().lower()
           assert 'image/svg+xml' in Path('icon.headers').read_text().lower()
           sw = Path('sw.js').read_text()
-          # v11 uses one versioned cache namespace (`samabusiness-<VERSION>`).
-          # Validate the behaviour contract instead of the removed legacy
-          # `samabusiness-shell-*` implementation detail.
           assert "C='samabusiness-'+V" in sw, sw[:300]
           assert 'caches.open(C)' in sw, sw[:500]
           assert "k.startsWith('samabusiness-')" in sw, sw[:700]
@@ -161,16 +157,22 @@ jobs:
           assert catalog.get('site', {}).get('siteId') == 'sowhat-africa', catalog
           PY
 
-      - name: Test runtime finishing addon
+      - name: Test live v11 runtime finishing addon
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error "$ADDON_URL?v=10.1.0" -o addon.js
-          grep -q '__SAMABUSINESS_FETCH_PATCHED__' addon.js
-          grep -q '__SAMABUSINESS_PRODUCT_SELECTORS_PATCHED__' addon.js
-          grep -q 'productSelectorFix:true' addon.js
+          curl --fail --silent --show-error --dump-header addon.headers "$ADDON_URL?v=11.2.2" -o addon.js
+          test -s addon.js
           grep -q 'samabusiness-api-v10' addon.js
           grep -q 'focus-visible' addon.js
+          grep -q '__SAMABUSINESS_AETHER_CORE_2026__' addon.js
+          python3 - <<'PY'
+          from pathlib import Path
+          headers = Path('addon.headers').read_text().lower()
+          assert 'x-samabusiness-version: 11.2.2' in headers, headers
+          assert 'x-samabusiness-aether: 1.1.0' in headers, headers
+          assert 'application/javascript' in headers, headers
+          PY
 
       - name: Upload validation evidence
         uses: actions/upload-artifact@v4
@@ -189,6 +191,8 @@ jobs:
             renderer-health.json
             commerce-health.json
             commerce-catalog.json
+            addon.headers
+            addon.js
             logo-file-type.txt
           if-no-files-found: error
           retention-days: 14
