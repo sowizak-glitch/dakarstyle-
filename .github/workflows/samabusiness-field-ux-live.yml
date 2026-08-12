@@ -1,11 +1,25 @@
 name: SAMABUSINESS field UX live journey
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'tests/samabusiness-field-ux-live.mjs'
+      - 'tests/samabusiness-copilot-live.mjs'
+      - 'supabase/functions/samabusiness-field-ux/parts/part-17-sama-copilot-v19.js'
+      - 'supabase/functions/samabusiness-field-ux/parts/part-20-guide-engine-bridge-v19.js'
+      - 'supabase/functions/samabusiness-api-v10/index.ts'
+      - '.github/workflows/samabusiness-field-ux-live.yml'
   pull_request:
     branches:
       - main
     paths:
       - 'tests/samabusiness-field-ux-live.mjs'
+      - 'tests/samabusiness-copilot-live.mjs'
+      - 'supabase/functions/samabusiness-field-ux/parts/part-17-sama-copilot-v19.js'
+      - 'supabase/functions/samabusiness-field-ux/parts/part-20-guide-engine-bridge-v19.js'
+      - 'supabase/functions/samabusiness-api-v10/index.ts'
       - '.github/workflows/samabusiness-field-ux-live.yml'
   workflow_dispatch:
 
@@ -15,6 +29,7 @@ permissions:
 env:
   SAMABUSINESS_URL: https://samabusiness.dakarstyle.com
   E2E_OUTPUT_DIR: test-results/samabusiness-field-ux
+  FIELD_UX_VERSION: 11.8.2
 
 jobs:
   live-field-ux:
@@ -24,20 +39,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Wait for production 10.2.0
+      - name: Wait for production 11.8.2
         shell: bash
         run: |
           set -euo pipefail
           for attempt in $(seq 1 30); do
             headers=$(curl --silent --show-error --dump-header - --output /dev/null --max-time 20 "$SAMABUSINESS_URL/?deploy-check=$GITHUB_RUN_ID" | tr -d '\r')
-            if grep -qi '^x-samabusiness-field-ux: 10.2.0$' <<<"$headers"; then
-              echo 'SAMABUSINESS 10.2.0 is live.'
+            if grep -qi "^x-samabusiness-field-ux: ${FIELD_UX_VERSION}$" <<<"$headers"; then
+              echo "SAMABUSINESS ${FIELD_UX_VERSION} is live."
               exit 0
             fi
             echo "Waiting for production deployment ($attempt/30)..."
             sleep 20
           done
-          echo 'SAMABUSINESS 10.2.0 was not detected in production.' >&2
+          echo "SAMABUSINESS ${FIELD_UX_VERSION} was not detected in production." >&2
           exit 1
 
       - name: Setup Node
@@ -54,9 +69,13 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
+          import os
           from pathlib import Path
           path = Path('tests/samabusiness-field-ux-live.mjs')
           source = path.read_text()
+
+          expected_version = os.environ['FIELD_UX_VERSION']
+          source = source.replace('10.2.0', expected_version)
 
           voice_before = "page.locator('[data-sbx-open=\"voice\"]').first().click();"
           voice_after = "page.locator('[data-sbx-open=\"voice\"]:visible').first().click();"
@@ -79,29 +98,44 @@ jobs:
       - name: Run live field UX journey
         run: node tests/samabusiness-field-ux-live.mjs
 
+      - name: Run live guided copilot journey
+        run: node tests/samabusiness-copilot-live.mjs
+
       - name: Publish summary
         if: always()
         shell: bash
         run: |
-          if [ -f "$E2E_OUTPUT_DIR/field-ux-report.json" ]; then
-            python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
           import json
+          import os
           from pathlib import Path
-          report = json.loads(Path('test-results/samabusiness-field-ux/field-ux-report.json').read_text())
-          print('# SAMABUSINESS — UX terrain 10.2.0')
+
+          out = Path('test-results/samabusiness-field-ux')
+          version = os.environ.get('FIELD_UX_VERSION', '11.8.2')
+          print(f'# SAMABUSINESS — UX terrain {version}')
           print()
-          print(f"- Résultat : **{'SUCCÈS' if report.get('ok') else 'ÉCHEC'}**")
-          print(f"- Contrôles réussis : **{len(report.get('checks', []))}**")
-          print(f"- Erreurs JavaScript : **{len(report.get('pageErrors', []))}**")
-          print(f"- Réponses serveur 5xx : **{len(report.get('serverErrors', []))}**")
-          for check in report.get('checks', []):
-              print(f"- ✅ {check.get('name')}")
-          if report.get('failure'):
-              print('\n## Échec\n```')
-              print(report['failure'][:4000])
-              print('```')
+          for filename, label in [
+              ('field-ux-report.json', 'Parcours terrain'),
+              ('copilot-report.json', 'Copilote guidé'),
+          ]:
+              path = out / filename
+              if not path.exists():
+                  print(f'- {label}: **rapport absent**')
+                  continue
+              report = json.loads(path.read_text())
+              print(f"## {label}")
+              print(f"- Résultat : **{'SUCCÈS' if report.get('ok') else 'ÉCHEC'}**")
+              print(f"- Contrôles réussis : **{len(report.get('checks', []))}**")
+              print(f"- Erreurs JavaScript : **{len(report.get('pageErrors', []))}**")
+              print(f"- Réponses serveur 5xx : **{len(report.get('serverErrors', []))}**")
+              for check in report.get('checks', []):
+                  print(f"- ✅ {check.get('name')}")
+              if report.get('failure'):
+                  print('\n### Échec\n```')
+                  print(report['failure'][:4000])
+                  print('```')
+              print()
           PY
-          fi
 
       - name: Upload live evidence
         if: always()
