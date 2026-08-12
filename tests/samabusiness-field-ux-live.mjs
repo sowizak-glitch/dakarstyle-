@@ -28,6 +28,44 @@ async function pollPage(page, reader, predicate, message, timeout = 30000, inter
   throw new Error(`${message}. Dernière valeur : ${JSON.stringify(latest)}`);
 }
 
+async function clickVisibleNavigation(page, key, labels = []) {
+  const selectors = [
+    `#sama-eco-root [data-action="${key}"]:visible`,
+    `#sama-eco-root [data-eco-action="${key}"]:visible`,
+    `.nav-btn[data-nav="${key}"]:visible`,
+    `[data-nav="${key}"]:visible`,
+  ];
+  for (const selector of selectors) {
+    const candidate = page.locator(selector).first();
+    if (await candidate.isVisible().catch(() => false)) {
+      await candidate.click();
+      return;
+    }
+  }
+  for (const label of labels) {
+    const byAria = page.locator(`#sama-eco-root button[aria-label="${label}"]:visible, button.nav-btn[aria-label="${label}"]:visible`).first();
+    if (await byAria.isVisible().catch(() => false)) {
+      await byAria.click();
+      return;
+    }
+    const byText = page.locator('#sama-eco-root button:visible, button.nav-btn:visible').filter({ hasText: label }).first();
+    if (await byText.isVisible().catch(() => false)) {
+      await byText.click();
+      return;
+    }
+  }
+  const available = await page.locator('#sama-eco-root button:visible, button.nav-btn:visible').evaluateAll((nodes) =>
+    nodes.slice(0, 40).map((node) => ({
+      text: (node.textContent || '').trim().replace(/\s+/g, ' ').slice(0, 100),
+      aria: node.getAttribute('aria-label'),
+      action: node.getAttribute('data-action'),
+      ecoAction: node.getAttribute('data-eco-action'),
+      nav: node.getAttribute('data-nav'),
+    }))
+  ).catch(() => []);
+  throw new Error(`Navigation visible introuvable pour ${key}: ${JSON.stringify(available)}`);
+}
+
 const browser = await chromium.launch({ headless: true });
 const context = await browser.newContext({ viewport: { width: 390, height: 844 }, bypassCSP: false, serviceWorkers: 'block' });
 await context.addInitScript(() => {
@@ -109,7 +147,7 @@ try {
   await page.locator('#saveProductBtn').click();
   await page.locator('#productModal').waitFor({ state: 'hidden', timeout: 30000 });
   await waitReady(page);
-  await page.locator('.nav-btn[data-nav="stock"]').click();
+  await clickVisibleNavigation(page, 'stock', ['Stock']);
   await visible(page.locator('#view-stock.active'));
   const productRow = page.locator('#productsList .row-card').filter({ hasText: PRODUCT }).first();
   await visible(productRow, 30000);
@@ -133,7 +171,7 @@ try {
   assert(openedUrls.some((url) => url.includes('wa.me/221770000000')));
   pass('Fournisseur mémorisé et message WhatsApp prérempli');
 
-  await page.locator('.nav-btn[data-nav="more"]').click();
+  await clickVisibleNavigation(page, 'more', ['Plus', 'Menu']);
   await visible(page.locator('#view-more.active'));
   await page.locator('[data-sbx-open="voice"]').first().click();
   await visible(page.locator('#sbx-module-voice'));
@@ -147,7 +185,7 @@ try {
   await page.keyboard.press('Escape').catch(() => {});
   await page.locator('#sbx-panel .sbx-close').click().catch(() => {});
 
-  await page.locator('.nav-btn[data-nav="home"]').click();
+  await clickVisibleNavigation(page, 'home', ['Accueil']);
   await visible(page.locator('#view-home.active'));
   await page.locator('[data-open="saleModal"]').first().click();
   await visible(page.locator('#saleModal.open'));
@@ -167,7 +205,7 @@ try {
   pass('Reçu visuel disponible en image, PDF et partage WhatsApp');
   await page.locator('#sbfu-receipt-modal [data-sbfu-modal-close]').click();
 
-  await page.locator('.nav-btn[data-nav="sales"]').click();
+  await clickVisibleNavigation(page, 'sales', ['Ventes']);
   const saleRow = page.locator('#salesList .row-card').filter({ hasText: 'Moustapha Test' }).first();
   await visible(saleRow, 30000);
   await visible(saleRow.locator('[data-sbfu-receipt]'));
