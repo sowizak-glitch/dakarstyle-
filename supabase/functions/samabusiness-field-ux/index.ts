@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const VERSION = "11.8.5";
+const VERSION = "11.8.6";
 const CORE_SOURCE_REF = "62de4076ff7b717770b3b6ff1b8821b0fbf5950f";
 const SALES_SOURCE_REF = "a7f76ff339a23a33514b4901c4949f748cdf78ac";
 const WHATSAPP_SOURCE_REF = "b6914736730d82ae5bbd8ca0d9b395d2bbcdd396";
@@ -38,6 +38,10 @@ function publicDemoGuard(): string {
 
 function modalLayerGuard(): string {
   return `;(()=>{if(window.__SAMABUSINESS_MODAL_LAYER_GUARD_V1185__)return;window.__SAMABUSINESS_MODAL_LAYER_GUARD_V1185__=true;const STYLE_ID='sama-modal-layer-guard-v1185';if(!document.getElementById(STYLE_ID)){const style=document.createElement('style');style.id=STYLE_ID;style.textContent='#sama-eco-root.sama-modal-suspended{visibility:hidden!important;pointer-events:none!important}';document.head.appendChild(style)};const candidates='#productModal,#saleModal,#expenseModal,#clientModal,#sbfu-supplier-modal,#sbfu-receipt-modal,#sbx-panel,[role="dialog"],.modal,.sheet,.drawer';const visible=(el)=>{if(!el||el.closest('#sama-eco-root'))return false;if(el.getAttribute('aria-hidden')==='true'||el.classList.contains('hidden'))return false;const style=getComputedStyle(el),rect=el.getBoundingClientRect();return rect.width>0&&rect.height>0&&style.display!=='none'&&style.visibility!=='hidden'&&style.pointerEvents!=='none'};let scheduled=false;const sync=()=>{scheduled=false;const root=document.querySelector('#sama-eco-root');if(!root)return;const active=[...document.querySelectorAll(candidates)].some(visible);root.classList.toggle('sama-modal-suspended',active)};const schedule=()=>{if(scheduled)return;scheduled=true;requestAnimationFrame(sync)};new MutationObserver(schedule).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','hidden','aria-hidden']});document.addEventListener('click',()=>setTimeout(schedule,0),true);document.addEventListener('submit',()=>setTimeout(schedule,0),true);window.addEventListener('sama-session-change',schedule);schedule();})();`;
+}
+
+function ecosystemNavigationBridge(): string {
+  return `;(()=>{if(window.__SAMABUSINESS_ECOSYSTEM_NAV_BRIDGE_V1186__)return;window.__SAMABUSINESS_ECOSYSTEM_NAV_BRIDGE_V1186__=true;const legacyNav=(key)=>document.querySelector('.nav-btn[data-nav="'+key+'"]');const closeEco=()=>{document.querySelector('#eco-layer')?.classList.remove('open');document.documentElement.style.overflow=''};const clickLegacy=(key)=>{const target=legacyNav(key);if(!target)return false;closeEco();target.click();return true};document.addEventListener('click',event=>{const button=event.target?.closest?.('#sama-eco-root button');if(!button)return;let key='';if(button.hasAttribute('data-home'))key='home';else if(button.dataset.action==='stock')key='stock';else if(button.closest('.eco-bottom')&&button.dataset.action==='sale')key='sales';if(key&&legacyNav(key)){event.preventDefault();event.stopImmediatePropagation();clickLegacy(key);return}if(button.dataset.action==='voice'&&legacyNav('more')){event.preventDefault();event.stopImmediatePropagation();clickLegacy('more');setTimeout(()=>{const trigger=[...document.querySelectorAll('[data-sbx-open="voice"]')].find(el=>{const style=getComputedStyle(el),r=el.getBoundingClientRect();return r.width>0&&r.height>0&&style.display!=='none'&&style.visibility!=='hidden'});trigger?.click()},80)}},true);window.SAMABUSINESS=Object.assign(window.SAMABUSINESS||{},{ecosystemNavigationBridge:{version:'11.8.6'}});})();`;
 }
 
 function loader(): string {
@@ -87,9 +91,9 @@ async function source(): Promise<string> {
     throw new Error("FIELD_SOURCE_INVALID");
   }
   code = code
-    .replace("const VERSION = '10.2.0';", "const VERSION = '11.8.5';")
-    .replace("const VERSION='10.2.0';", "const VERSION='11.8.5';");
-  cached = code + publicDemoGuard() + modalLayerGuard() + loader();
+    .replace("const VERSION = '10.2.0';", "const VERSION = '11.8.6';")
+    .replace("const VERSION='10.2.0';", "const VERSION='11.8.6';");
+  cached = code + publicDemoGuard() + modalLayerGuard() + ecosystemNavigationBridge() + loader();
   return cached;
 }
 
