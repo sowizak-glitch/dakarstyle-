@@ -1,0 +1,87 @@
+name: Founder OS Quality
+
+on:
+  pull_request:
+    paths:
+      - 'founder-os/**'
+      - 'src/founder-os-*.js'
+      - 'src/router.js'
+      - 'tests/founder-os-v1.mjs'
+      - '.github/workflows/founder-os-quality.yml'
+      - 'wrangler.jsonc'
+  push:
+    branches: [main]
+    paths:
+      - 'founder-os/**'
+      - 'src/founder-os-*.js'
+      - 'src/router.js'
+      - 'tests/founder-os-v1.mjs'
+      - '.github/workflows/founder-os-quality.yml'
+      - 'wrangler.jsonc'
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          package-manager-cache: false
+
+      - name: Syntax gate
+        run: |
+          node --check src/founder-os-runtime-v1.js
+          node --check src/founder-os-ui-v1.js
+          node --check src/founder-os-client-v1.js
+          node --check src/founder-os-routes-v1.js
+          node --check src/router.js
+          node --check tests/founder-os-v1.mjs
+
+      - name: Founder OS behaviour and security suite
+        run: node tests/founder-os-v1.mjs
+
+      - name: Architecture contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q "Founder OS" founder-os/README.md
+          grep -q "COMMAND" founder-os/agents.yaml
+          grep -q "automation-health-watch" founder-os/sops.yaml
+          grep -q "founder_os_decisions" founder-os/migrations/001_control_plane.sql
+          grep -q "founder_os_outbox" founder-os/migrations/001_control_plane.sql
+          grep -q "handleFounderOs" src/router.js
+          grep -q "authorizeV5" src/founder-os-routes-v1.js
+          grep -q "x-founder-os-idempotency" src/founder-os-client-v1.js
+
+      - name: Secret hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -REn "(sb_secret_|service_role[[:space:]]*[:=][[:space:]]*['\"][A-Za-z0-9._-]{20,}|EAA[A-Za-z0-9_-]{20,})" src/founder-os-* founder-os/ tests/founder-os-v1.mjs; then
+            echo 'Potential private credential committed in Founder OS scope.' >&2
+            exit 1
+          fi
+          if grep -REn "FOUNDER_OS.*(TOKEN|SECRET|PASSWORD)[[:space:]]*[:=][[:space:]]*['\"][^'\"]{8,}" src/founder-os-* founder-os/; then
+            echo 'Raw Founder OS credential detected.' >&2
+            exit 1
+          fi
+          echo 'Founder OS secret hygiene: OK'
+
+      - name: Cloudflare bundle dry run
+        run: npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-founder-os-dry
+
+      - name: Bundle contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d .wrangler-founder-os-dry
+          grep -Rqs "founder-os" .wrangler-founder-os-dry
+          echo 'Founder OS worker bundle: OK'
