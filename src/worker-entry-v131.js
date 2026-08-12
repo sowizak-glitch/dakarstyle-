@@ -1,5 +1,6 @@
 import application from './worker-entry.js';
 import { injectSamabusinessPublicExperience } from './samabusiness-public-experience.js';
+import { handleEcosystemSeoRequest, transformEcosystemSeoResponse } from './ecosystem-seo-v1.js';
 
 const VERSION = '13.1.0';
 const HOSTS = new Set([
@@ -85,8 +86,13 @@ async function transform(request, response, url) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const seoResponse = handleEcosystemSeoRequest(request);
+    if (seoResponse) return seoResponse;
+
     const response = await application.fetch(request, env, ctx);
-    if (!HOSTS.has(url.hostname)) return response;
-    return transform(request, response, url);
+    const publicExperienceResponse = HOSTS.has(url.hostname)
+      ? await transform(request, response, url)
+      : response;
+    return transformEcosystemSeoResponse(request, publicExperienceResponse);
   },
 };
