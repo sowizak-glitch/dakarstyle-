@@ -10,6 +10,7 @@ on:
       - 'supabase/functions/samabusiness-field-ux/index.ts'
       - 'supabase/functions/samabusiness-field-ux/parts/part-17-sama-copilot-v19.js'
       - 'supabase/functions/samabusiness-field-ux/parts/part-20-guide-engine-bridge-v19.js'
+      - 'supabase/functions/samabusiness-field-ux/parts/part-21-sales-receipt-bridge-v19.js'
       - 'supabase/functions/samabusiness-api-v10/index.ts'
       - 'supabase/functions/samabusiness-ecosystem-ui/**'
       - 'supabase/functions/samabusiness-site-network-v12/**'
@@ -24,6 +25,7 @@ on:
       - 'supabase/functions/samabusiness-field-ux/index.ts'
       - 'supabase/functions/samabusiness-field-ux/parts/part-17-sama-copilot-v19.js'
       - 'supabase/functions/samabusiness-field-ux/parts/part-20-guide-engine-bridge-v19.js'
+      - 'supabase/functions/samabusiness-field-ux/parts/part-21-sales-receipt-bridge-v19.js'
       - 'supabase/functions/samabusiness-api-v10/index.ts'
       - 'supabase/functions/samabusiness-ecosystem-ui/**'
       - 'supabase/functions/samabusiness-site-network-v12/**'
@@ -38,7 +40,7 @@ env:
   SAMABUSINESS_URL: https://samabusiness.dakarstyle.com
   E2E_OUTPUT_DIR: test-results/samabusiness-field-ux
   SHELL_VERSION: 10.3.0
-  FIELD_UX_VERSION: 11.8.6
+  FIELD_UX_VERSION: 11.8.7
 
 jobs:
   live-field-ux:
@@ -133,7 +135,7 @@ jobs:
 
           out = Path('test-results/samabusiness-field-ux')
           shell = os.environ.get('SHELL_VERSION', '10.3.0')
-          field = os.environ.get('FIELD_UX_VERSION', '11.8.6')
+          field = os.environ.get('FIELD_UX_VERSION', '11.8.7')
           print(f'# SAMABUSINESS — shell {shell} / UX terrain {field}')
           print()
           for filename, label in [
