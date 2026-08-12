@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-const VERSION = "11.8.3";
+const VERSION = "11.8.4";
 const CORE_SOURCE_REF = "62de4076ff7b717770b3b6ff1b8821b0fbf5950f";
 const SALES_SOURCE_REF = "a7f76ff339a23a33514b4901c4949f748cdf78ac";
 const WHATSAPP_SOURCE_REF = "b6914736730d82ae5bbd8ca0d9b395d2bbcdd396";
@@ -32,8 +32,8 @@ const PARTS = [...CORE_PARTS, SALES_PART, WHATSAPP_BUSINESS_PART, WHATSAPP_DIREC
 const STUDIO = "https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/samabusiness-site-studio-ui?v=11.2.2";
 let cached = "";
 
-function authenticatedDemoGuard(): string {
-  return `;(()=>{if(window.__SAMABUSINESS_AUTH_DEMO_GUARD_V1183__)return;window.__SAMABUSINESS_AUTH_DEMO_GUARD_V1183__=true;let running=false;const visible=(el)=>{if(!el)return false;const style=getComputedStyle(el);return !el.classList.contains('hidden')&&style.display!=='none'&&style.visibility!=='hidden'};const closeDemo=()=>{if(running)return;running=true;try{const shell=document.querySelector('#appShell');const modal=document.querySelector('#sama-demo-modal');if(visible(shell)&&modal?.classList.contains('open')){modal.classList.remove('open');modal.setAttribute('aria-hidden','true');modal.querySelectorAll('video,audio').forEach(media=>{try{media.pause()}catch(_){}});document.documentElement.style.overflow='';document.body&&(document.body.style.overflow='')}}finally{running=false}};closeDemo();new MutationObserver(closeDemo).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});window.addEventListener('sama-session-change',closeDemo);window.addEventListener('storage',closeDemo);})();`;
+function publicDemoGuard(): string {
+  return `;(()=>{if(window.__SAMABUSINESS_PUBLIC_DEMO_GUARD_V1184__)return;window.__SAMABUSINESS_PUBLIC_DEMO_GUARD_V1184__=true;let running=false,explicit=false;const visible=(el)=>{if(!el)return false;const style=getComputedStyle(el);return !el.classList.contains('hidden')&&style.display!=='none'&&style.visibility!=='hidden'};const isDemoTrigger=(target)=>{const el=target?.closest?.('button,a,[role="button"]');if(!el)return false;const label=[el.textContent,el.getAttribute('aria-label'),el.getAttribute('title'),el.id].filter(Boolean).join(' ');return /voir\s+la\s+d[eé]mo|watch\s+demo|demo[-_ ]?(?:open|button|trigger)/i.test(label)};const close=(modal)=>{modal.classList.remove('open');modal.setAttribute('aria-hidden','true');modal.querySelectorAll('video,audio').forEach(media=>{try{media.pause()}catch(_){}});document.documentElement.style.overflow='';if(document.body)document.body.style.overflow=''};const sync=()=>{if(running)return;running=true;try{const shell=document.querySelector('#appShell'),modal=document.querySelector('#sama-demo-modal');if(!modal)return;if(!modal.classList.contains('open')){explicit=false;return}if(visible(shell)||!explicit)close(modal)}finally{running=false}};document.addEventListener('click',event=>{if(event.isTrusted&&isDemoTrigger(event.target))explicit=true},true);sync();new MutationObserver(sync).observe(document.documentElement,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style']});window.addEventListener('sama-session-change',sync);window.addEventListener('storage',sync);})();`;
 }
 
 function loader(): string {
@@ -83,9 +83,9 @@ async function source(): Promise<string> {
     throw new Error("FIELD_SOURCE_INVALID");
   }
   code = code
-    .replace("const VERSION = '10.2.0';", "const VERSION = '11.8.3';")
-    .replace("const VERSION='10.2.0';", "const VERSION='11.8.3';");
-  cached = code + authenticatedDemoGuard() + loader();
+    .replace("const VERSION = '10.2.0';", "const VERSION = '11.8.4';")
+    .replace("const VERSION='10.2.0';", "const VERSION='11.8.4';");
+  cached = code + publicDemoGuard() + loader();
   return cached;
 }
 
