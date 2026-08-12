@@ -11,6 +11,9 @@ on:
       - 'supabase/functions/samabusiness-field-ux/parts/part-17-sama-copilot-v19.js'
       - 'supabase/functions/samabusiness-field-ux/parts/part-20-guide-engine-bridge-v19.js'
       - 'supabase/functions/samabusiness-api-v10/index.ts'
+      - 'supabase/functions/samabusiness-ecosystem-ui/**'
+      - 'supabase/functions/samabusiness-site-network-v12/**'
+      - 'supabase/functions/samabusiness-studio-language-v12/**'
       - '.github/workflows/samabusiness-field-ux-live.yml'
   pull_request:
     branches:
@@ -22,6 +25,9 @@ on:
       - 'supabase/functions/samabusiness-field-ux/parts/part-17-sama-copilot-v19.js'
       - 'supabase/functions/samabusiness-field-ux/parts/part-20-guide-engine-bridge-v19.js'
       - 'supabase/functions/samabusiness-api-v10/index.ts'
+      - 'supabase/functions/samabusiness-ecosystem-ui/**'
+      - 'supabase/functions/samabusiness-site-network-v12/**'
+      - 'supabase/functions/samabusiness-studio-language-v12/**'
       - '.github/workflows/samabusiness-field-ux-live.yml'
   workflow_dispatch:
 
