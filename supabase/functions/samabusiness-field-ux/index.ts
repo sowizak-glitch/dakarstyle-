@@ -79,8 +79,8 @@ async function source(): Promise<string> {
     throw new Error("FIELD_SOURCE_INVALID");
   }
   code = code
-    .replace("const VERSION = '10.2.0';", "const VERSION = '11.2.2';")
-    .replace("const VERSION='10.2.0';", "const VERSION='11.2.2';");
+    .replace("const VERSION = '10.2.0';", "const VERSION = '11.8.2';")
+    .replace("const VERSION='10.2.0';", "const VERSION='11.8.2';");
   cached = code + loader();
   return cached;
 }
