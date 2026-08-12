@@ -5,6 +5,7 @@ import { chromium } from 'playwright';
 
 const BASE = process.env.SAMABUSINESS_URL || 'https://samabusiness.dakarstyle.com';
 const OUT = process.env.E2E_OUTPUT_DIR || 'test-results/samabusiness-field-ux';
+const SHELL_VERSION = process.env.SHELL_VERSION || '10.3.0';
 const FIELD_VERSION = process.env.FIELD_UX_VERSION || '11.8.2';
 const GUIDE_VERSION = '19.0.0-beta.3';
 const PIN = '483920';
@@ -53,8 +54,8 @@ try {
   });
   assert(response, 'Réponse principale absente');
   assert.equal(response.status(), 200);
-  assert.equal(response.headers()['x-samabusiness-field-ux'], FIELD_VERSION);
-  pass(`Production ${FIELD_VERSION} détectée`);
+  assert.equal(response.headers()['x-samabusiness-field-ux'], SHELL_VERSION);
+  pass(`Shell production ${SHELL_VERSION} détecté`);
 
   await visible(page.locator('#authScreen'));
   const emailToggle = page.locator('[data-sbfu-email-toggle]');
@@ -68,13 +69,14 @@ try {
   await pollPage(
     page,
     () => ({
+      field: window.__SAMABUSINESS_FIELD_UX__?.version || '',
       copilot: document.documentElement.dataset.samaCopilotVersion || '',
       guide: document.documentElement.dataset.samaGuideBridgeVersion || '',
     }),
-    (value) => value.copilot.startsWith('19.0.0-beta') && value.guide === GUIDE_VERSION,
+    (value) => value.field === FIELD_VERSION && value.copilot.startsWith('19.0.0-beta') && value.guide === GUIDE_VERSION,
     'Le copilote guidé ne s’est pas initialisé'
   );
-  pass('Copilote V19 et pont guidé chargés');
+  pass(`UX terrain ${FIELD_VERSION}, copilote V19 et pont guidé chargés`);
 
   await visible(page.locator('#sama-copilot-fab'));
   await page.locator('#sama-copilot-fab').click();
