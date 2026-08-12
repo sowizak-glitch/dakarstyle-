@@ -32,7 +32,7 @@ env:
   SAMABUSINESS_URL: https://samabusiness.dakarstyle.com
   E2E_OUTPUT_DIR: test-results/samabusiness-field-ux
   SHELL_VERSION: 10.3.0
-  FIELD_UX_VERSION: 11.8.3
+  FIELD_UX_VERSION: 11.8.4
 
 jobs:
   live-field-ux:
@@ -128,7 +128,7 @@ jobs:
 
           out = Path('test-results/samabusiness-field-ux')
           shell = os.environ.get('SHELL_VERSION', '10.3.0')
-          field = os.environ.get('FIELD_UX_VERSION', '11.8.3')
+          field = os.environ.get('FIELD_UX_VERSION', '11.8.4')
           print(f'# SAMABUSINESS — shell {shell} / UX terrain {field}')
           print()
           for filename, label in [
