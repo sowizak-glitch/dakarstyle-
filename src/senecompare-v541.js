@@ -1,4 +1,5 @@
 import application from './senecompare-v5-router.js';
+import { handleEcosystemSeoRequest, transformEcosystemSeoResponse } from './ecosystem-seo-v1.js';
 
 const RELEASE = '5.4.1';
 const MEDIA_EDGE = 'https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/senecompare-media-v54';
@@ -79,6 +80,9 @@ function injectScript(html) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    const seoResponse = handleEcosystemSeoRequest(request);
+    if (seoResponse) return seoResponse;
+
     const filename = MEDIA.get(url.pathname);
     if (filename && ['GET', 'HEAD'].includes(request.method)) return serveMedia(request, filename);
     if (url.pathname === SCRIPT_PATH && ['GET', 'HEAD'].includes(request.method)) return serveScript(request, env);
@@ -91,12 +95,14 @@ export default {
       headers.set('Cache-Control', 'no-store');
       headers.set('CDN-Cache-Control', 'no-store');
       headers.set('Cloudflare-CDN-Cache-Control', 'no-store');
-      return new Response(html, { status: response.status, statusText: response.statusText, headers });
+      const enriched = new Response(html, { status: response.status, statusText: response.statusText, headers });
+      return transformEcosystemSeoResponse(request, enriched);
     }
-    return new Response(request.method === 'HEAD' ? null : response.body, {
+    const released = new Response(request.method === 'HEAD' ? null : response.body, {
       status: response.status,
       statusText: response.statusText,
       headers: releaseHeaders(response.headers),
     });
+    return transformEcosystemSeoResponse(request, released);
   },
 };
