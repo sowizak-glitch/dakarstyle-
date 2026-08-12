@@ -10,6 +10,9 @@ on:
       - 'merchant-feed.xml'
       - 'assets/products/**'
       - 'assets/hero/**'
+      - 'src/ecosystem-seo-v1.js'
+      - 'src/worker-entry-v131.js'
+      - 'src/senecompare-v541.js'
       - '3c1568dbd24f8e50c1875a76882f449d.txt'
       - '.github/workflows/indexnow.yml'
   workflow_dispatch:
@@ -24,7 +27,7 @@ concurrency:
 jobs:
   notify-indexnow:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Validate IndexNow key and submit sitemap URLs
         shell: bash
@@ -35,6 +38,20 @@ jobs:
           HOST='dakarstyle.com'
           KEY_LOCATION="https://${HOST}/${KEY}.txt"
           SITEMAP_URL="https://${HOST}/sitemap.xml"
+
+          echo 'Waiting for the matching AETHER sitemap release when applicable...'
+          for attempt in 1 2 3 4 5; do
+            RELEASE_HEADERS=$(curl --silent --show-error --location --head --max-time 20 "https://${HOST}/" || true)
+            if printf '%s' "$RELEASE_HEADERS" | grep -qi '^x-aether-seo-release: aether-seo-2027.1'; then
+              echo 'AETHER release is live.'
+              break
+            fi
+            if [ "$attempt" = '5' ]; then
+              echo 'AETHER release header not observed yet; continuing because this workflow also serves non-AETHER product updates.'
+            else
+              sleep 20
+            fi
+          done
 
           echo 'Validating public IndexNow key...'
           KEY_BODY=$(curl --fail --silent --show-error --location --retry 3 --retry-delay 2 --max-time 20 "$KEY_LOCATION")
