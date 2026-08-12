@@ -172,9 +172,14 @@ try {
   pass('Fournisseur mémorisé et message WhatsApp prérempli');
 
   await clickVisibleNavigation(page, 'more', ['Plus', 'Menu']);
-  await visible(page.locator('#view-more.active'));
-  await page.locator('[data-sbx-open="voice"]').first().click();
-  await visible(page.locator('#sbx-module-voice'));
+  const ecosystemVoice = page.locator('#sama-eco-root [data-action="voice"]:visible, #sama-eco-root [data-eco-action="voice"]:visible').first();
+  if (await ecosystemVoice.isVisible().catch(() => false)) {
+    await ecosystemVoice.click();
+  } else {
+    await visible(page.locator('#view-more.active'));
+    await page.locator('[data-sbx-open="voice"]:visible').first().click();
+  }
+  await visible(page.locator('#sbx-module-voice'), 30000);
   await page.locator('#sbx-voice-text').fill('Achat de pièce 10000');
   await page.locator('#sbx-voice-analyse').click();
   await visible(page.locator('#sbx-voice-form'));
