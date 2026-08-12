@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import ecosystem from "./ecosystem.ts";
 
-const VERSION = "12.0.2";
+const VERSION = "12.0.3";
 const SCRIPT = `;(${ecosystem.toString()})();`;
 Deno.serve((req: Request) => {
   const headers: HeadersInit = {
