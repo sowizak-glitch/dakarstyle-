@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "source": "sama-business/app-v9-00..03.b64",
+  "format": "gzip+base64",
+  "compatibilityPatch": "D55u859x -> D55b959x in chunk 01",
+  "sourcePartSha256": [
+    "96588464cc74fb60c06846ce193f8c8fdfb87af971e56cdfd0ec4f6890c5e3cc",
+    "584ffd6aa887dee6b599e65dccd5bc9318f9b3bc14a336fb93e9cfb6cfd74399",
+    "6c96d546476036a2f98eec5b627a57843b1a2b26128c6019f8291358dc876fc1",
+    "1671898f81c952791ec5b58fd6faee45c3babd29b3a113ccb150b4ce1baa0e9c"
+  ],
+  "expectedPartSha256": [
+    "96588464cc74fb60c06846ce193f8c8fdfb87af971e56cdfd0ec4f6890c5e3cc",
+    "584ffd6aa887dee6b599e65dccd5bc9318f9b3bc14a336fb93e9cfb6cfd74399",
+    "6c96d546476036a2f98eec5b627a57843b1a2b26128c6019f8291358dc876fc1",
+    "1671898f81c952791ec5b58fd6faee45c3babd29b3a113ccb150b4ce1baa0e9c"
+  ],
+  "compressedBytes": 19432,
+  "htmlBytes": 71613,
+  "htmlSha256": "e41356da7aa799fdf2762d0dbdc3941a01dca94d8a8491b930f3fdd54b1679a9"
+}

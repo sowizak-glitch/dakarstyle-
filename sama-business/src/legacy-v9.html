@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#123c2f">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="SAMA BUSINESS IA — ventes, stock, dépenses, bénéfice réel, commandes WhatsApp et livraison pour les commerçants.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SAMA BUSINESS">
+  <link rel="manifest" href="?mode=manifest&v=9.0.0">
+  <link rel="icon" href="?mode=icon&size=192">
+  <link rel="apple-touch-icon" href="?mode=icon&size=192">
+  <title>SAMA BUSINESS IA</title>
+<style>
+:root{
+  --ink:#10231d;--muted:#62716b;--line:#dce5df;--surface:#fff;--soft:#f2f6f3;
+  --brand:#123c2f;--brand2:#1c6b4d;--accent:#f2b84b;--danger:#b93535;--warning:#9a5b00;
+  --success:#147246;--shadow:0 18px 45px rgba(16,35,29,.11);--radius:20px;
+  --safe-bottom:max(14px,env(safe-area-inset-bottom));--max:1160px
+}
+*{box-sizing:border-box}html{scroll-behavior:smooth;background:#eaf0ec}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--ink);background:linear-gradient(180deg,#edf3ef 0,#f8faf8 280px,#f8faf8 100%);min-height:100vh}
+button,input,select,textarea{font:inherit}button{cursor:pointer}a{color:inherit}.hidden{display:none!important}.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.shell{min-height:100vh}.topbar{position:sticky;top:0;z-index:40;background:rgba(248,250,248,.92);backdrop-filter:blur(15px);border-bottom:1px solid rgba(18,60,47,.08)}
+.topbar-inner{max-width:var(--max);margin:auto;padding:10px 16px;display:flex;align-items:center;gap:12px}
+.logo{display:flex;align-items:center;gap:10px;min-width:0}.logo-mark{width:43px;height:43px;border-radius:15px;background:linear-gradient(145deg,var(--brand),var(--brand2));display:grid;place-items:center;color:#fff;font-weight:900;box-shadow:0 8px 20px rgba(18,60,47,.24);letter-spacing:-1px}
+.logo-copy{min-width:0}.logo-copy strong{display:block;font-size:15px;line-height:1.1}.logo-copy span{display:block;font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:8px}.status-pill{border:1px solid var(--line);background:#fff;border-radius:999px;padding:8px 10px;font-size:11px;font-weight:800;display:flex;align-items:center;gap:6px}.dot{width:8px;height:8px;border-radius:50%;background:var(--success)}.dot.off{background:var(--danger)}
+.icon-btn{border:1px solid var(--line);background:#fff;width:40px;height:40px;border-radius:13px;display:grid;place-items:center}
+.main{max-width:var(--max);margin:auto;padding:18px 16px 110px}.view{display:none}.view.active{display:block}
+.hero{background:linear-gradient(135deg,#123c2f 0,#1b5c45 58%,#27765a 100%);color:#fff;border-radius:27px;padding:22px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.hero:after{content:"";position:absolute;width:260px;height:260px;border-radius:50%;right:-110px;top:-110px;background:rgba(242,184,75,.15)}
+.hero-row{display:flex;gap:16px;align-items:flex-start;position:relative;z-index:1}.hero h1{font-size:clamp(24px,5vw,38px);margin:6px 0 8px;letter-spacing:-1.2px}.hero p{margin:0;color:rgba(255,255,255,.78);max-width:620px;line-height:1.45}
+.hero-badge{font-size:11px;font-weight:900;letter-spacing:.8px;text-transform:uppercase;color:#ffe29c}.hero-side{margin-left:auto;text-align:right;min-width:150px}.hero-side small{display:block;color:rgba(255,255,255,.68)}.hero-side strong{font-size:24px;display:block;margin-top:4px}
+.quick-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-top:17px;position:relative;z-index:1}
+.quick{border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.1);color:#fff;border-radius:16px;padding:13px 8px;text-align:center;min-height:76px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px}.quick:hover{background:rgba(255,255,255,.17)}.quick b{font-size:12px}.quick .emoji{font-size:23px}
+.section-title{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:24px 2px 12px}.section-title h2{font-size:20px;margin:0;letter-spacing:-.4px}.section-title p{font-size:12px;color:var(--muted);margin:4px 0 0}.link-btn{border:0;background:transparent;color:var(--brand2);font-weight:850;font-size:12px}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.kpi{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;min-height:118px;box-shadow:0 8px 22px rgba(16,35,29,.045)}.kpi .label{font-size:11px;color:var(--muted);font-weight:750;line-height:1.3}.kpi .value{font-size:22px;font-weight:950;margin-top:12px;letter-spacing:-.8px}.kpi .sub{font-size:10px;color:var(--muted);margin-top:5px}.kpi.profit{background:linear-gradient(145deg,#effaf3,#fff);border-color:#b9ddc7}.kpi.withdraw{background:linear-gradient(145deg,#fff8e9,#fff);border-color:#edd6a3}
+.two-col{display:grid;grid-template-columns:1.25fr .75fr;gap:14px}.card{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px;box-shadow:0 8px 24px rgba(16,35,29,.04)}
+.alert-list,.activity-list{display:flex;flex-direction:column;gap:9px}.alert{display:flex;align-items:center;gap:11px;padding:12px;border-radius:15px;background:var(--soft)}.alert.warn{background:#fff6e2}.alert.danger{background:#fff0f0}.alert-icon{width:36px;height:36px;border-radius:12px;background:#fff;display:grid;place-items:center}.alert-copy{min-width:0}.alert-copy b{display:block;font-size:13px}.alert-copy span{font-size:11px;color:var(--muted)}
+.empty{padding:28px;text-align:center;color:var(--muted);font-size:13px}.empty .big{font-size:34px;margin-bottom:8px}
+.toolbar{display:flex;gap:10px;align-items:center;margin-bottom:13px;flex-wrap:wrap}.search{flex:1;min-width:210px;position:relative}.search input{width:100%;height:46px;border:1px solid var(--line);background:#fff;border-radius:15px;padding:0 44px 0 15px;outline:none}.search input:focus{border-color:#79a993;box-shadow:0 0 0 4px rgba(28,107,77,.1)}
+.primary,.secondary,.danger-btn{border:0;border-radius:14px;min-height:44px;padding:10px 16px;font-weight:900}.primary{background:var(--brand);color:#fff}.secondary{background:#fff;border:1px solid var(--line);color:var(--ink)}.danger-btn{background:#fff0f0;color:var(--danger);border:1px solid #f0c3c3}.primary:disabled,.secondary:disabled{opacity:.55;cursor:not-allowed}
+.list{display:flex;flex-direction:column;gap:9px}.row-card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center}.row-main{min-width:0}.row-title{font-weight:900;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row-meta{font-size:11px;color:var(--muted);margin-top:5px;display:flex;gap:7px;flex-wrap:wrap}.row-value{text-align:right}.row-value strong{display:block;font-size:15px}.row-value span{font-size:10px;color:var(--muted)}.badge{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;font-size:9px;font-weight:900;background:var(--soft);color:var(--muted)}.badge.ok{background:#e9f7ee;color:#17633d}.badge.warn{background:#fff2d8;color:#8a5400}.badge.bad{background:#ffebeb;color:#a42b2b}.stock-number{font-weight:950;font-size:18px}.stock-low{color:var(--danger)}
+.order-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.order-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:15px;position:relative}.order-card .top{display:flex;justify-content:space-between;gap:10px}.order-card h3{font-size:14px;margin:0}.order-card p{font-size:11px;color:var(--muted);margin:7px 0}.order-card .amount{font-size:18px;font-weight:950}.order-card .actions{display:flex;gap:7px;margin-top:12px}.mini-btn{border:1px solid var(--line);background:#fff;border-radius:11px;padding:8px 10px;font-size:10px;font-weight:850}.mini-btn.fill{background:var(--brand);color:#fff;border-color:var(--brand)}
+.bottom-nav{position:fixed;z-index:50;left:50%;bottom:calc(9px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(calc(100% - 18px),680px);padding:7px;background:rgba(16,35,29,.94);backdrop-filter:blur(14px);border-radius:22px;display:grid;grid-template-columns:repeat(5,1fr);box-shadow:0 18px 45px rgba(16,35,29,.28)}
+.nav-btn{border:0;background:transparent;color:rgba(255,255,255,.63);padding:7px 2px;border-radius:16px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:9px;font-weight:800}.nav-btn .ico{font-size:19px}.nav-btn.active{color:#fff;background:rgba(255,255,255,.12)}
+.modal-backdrop{position:fixed;inset:0;z-index:100;background:rgba(5,18,14,.65);backdrop-filter:blur(5px);display:none;align-items:flex-end;justify-content:center}.modal-backdrop.open{display:flex}.modal{background:#fff;width:min(100%,720px);max-height:92vh;overflow:auto;border-radius:26px 26px 0 0;padding:18px 18px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -20px 70px rgba(0,0,0,.25)}
+.modal-head{display:flex;align-items:center;gap:12px;margin-bottom:15px;position:sticky;top:-18px;background:#fff;padding:17px 0 10px;z-index:2}.modal-head h2{font-size:19px;margin:0}.close{margin-left:auto;width:38px;height:38px;border-radius:12px;border:1px solid var(--line);background:#fff}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:11px;color:var(--muted);font-weight:850}.field input,.field select,.field textarea{width:100%;border:1px solid var(--line);border-radius:14px;background:#fff;padding:12px 13px;outline:none;min-height:45px}.field textarea{min-height:92px;resize:vertical}.field input:focus,.field select:focus,.field textarea:focus{border-color:#79a993;box-shadow:0 0 0 4px rgba(28,107,77,.09)}
+.field-wrap{position:relative}.field-wrap input,.field-wrap textarea{padding-right:48px}.mic{position:absolute;right:6px;top:6px;width:35px;height:35px;border:0;border-radius:11px;background:#edf4ef}.mic.listening{background:#ffe5e5;animation:pulse 1s infinite}@keyframes pulse{50%{transform:scale(.93)}}
+.form-actions{display:flex;gap:9px;justify-content:flex-end;margin-top:16px}.hint{font-size:10px;color:var(--muted);line-height:1.45}.total-box{background:var(--soft);border-radius:16px;padding:13px;margin-top:12px;display:flex;justify-content:space-between;gap:12px}.total-box b{font-size:18px}
+.sale-item{display:grid;grid-template-columns:2fr .7fr 1fr auto;gap:8px;align-items:end;padding:10px;background:var(--soft);border-radius:15px;margin-bottom:8px}.sale-item .field{gap:4px}.sale-item input,.sale-item select{min-height:40px;padding:8px}.remove-item{width:38px;height:38px;border-radius:11px;border:1px solid #efc5c5;background:#fff0f0;color:var(--danger)}
+.auth-screen{min-height:100vh;padding:24px 16px;display:grid;place-items:center;background:radial-gradient(circle at 15% 5%,#dbece2,transparent 35%),radial-gradient(circle at 90% 95%,#fff0c8,transparent 34%),#f5f8f6}.auth-card{width:min(100%,500px);background:#fff;border:1px solid var(--line);border-radius:28px;padding:24px;box-shadow:var(--shadow)}.auth-brand{text-align:center;margin-bottom:20px}.auth-brand .logo-mark{margin:auto;width:64px;height:64px;border-radius:22px;font-size:20px}.auth-brand h1{font-size:27px;margin:13px 0 5px;letter-spacing:-1px}.auth-brand p{font-size:12px;color:var(--muted);margin:0;line-height:1.5}.auth-tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);padding:5px;border-radius:15px;margin-bottom:15px}.auth-tab{border:0;background:transparent;border-radius:11px;padding:10px;font-weight:850;color:var(--muted)}.auth-tab.active{background:#fff;color:var(--ink);box-shadow:0 3px 10px rgba(16,35,29,.08)}
+.auth-type{display:flex;gap:7px;margin-bottom:11px}.type-btn{flex:1;border:1px solid var(--line);background:#fff;border-radius:12px;padding:9px;font-size:11px;font-weight:850}.type-btn.active{border-color:var(--brand);background:#edf6f1;color:var(--brand)}
+.auth-submit{width:100%;margin-top:13px;min-height:50px}.auth-status{font-size:11px;text-align:center;min-height:18px;margin-top:10px;color:var(--muted)}.auth-status.error{color:var(--danger)}
+.toast-wrap{position:fixed;z-index:200;right:14px;top:72px;width:min(calc(100% - 28px),390px);display:flex;flex-direction:column;gap:8px}.toast{background:#10231d;color:#fff;border-radius:15px;padding:13px 14px;box-shadow:var(--shadow);font-size:12px;display:flex;gap:10px;align-items:flex-start}.toast.error{background:#7f2222}.toast.warn{background:#735000}.toast b{display:block}.toast span{color:rgba(255,255,255,.74);font-size:10px}
+.more-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.more-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;text-align:left}.more-card .emoji{font-size:25px}.more-card b{display:block;margin-top:9px}.more-card span{font-size:11px;color:var(--muted);display:block;margin-top:5px;line-height:1.4}
+.parser-result{background:var(--soft);border-radius:17px;padding:13px;margin-top:12px}.parser-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.parser-cell{background:#fff;border-radius:12px;padding:10px}.parser-cell span{font-size:9px;color:var(--muted);display:block}.parser-cell b{font-size:12px;display:block;margin-top:3px;word-break:break-word}
+.loading-cover{position:fixed;inset:0;z-index:300;background:rgba(248,250,248,.82);backdrop-filter:blur(4px);display:none;place-items:center}.loading-cover.show{display:grid}.spinner{width:45px;height:45px;border:4px solid #dbe6df;border-top-color:var(--brand);border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.offline-banner{background:#fff4d4;color:#6f4a00;text-align:center;padding:7px 12px;font-size:10px;font-weight:800;display:none}.offline-banner.show{display:block}
+@media(max-width:900px){.quick-grid{grid-template-columns:repeat(3,1fr)}.kpi-grid{grid-template-columns:repeat(3,1fr)}.two-col{grid-template-columns:1fr}.order-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:620px){.main{padding:12px 11px 105px}.topbar-inner{padding:8px 11px}.logo-copy strong{font-size:13px}.status-pill{display:none}.hero{padding:18px;border-radius:22px}.hero-row{display:block}.hero-side{text-align:left;margin:14px 0 0}.quick-grid{gap:7px}.quick{min-height:69px;padding:9px 4px}.quick b{font-size:10px}.kpi-grid{grid-template-columns:repeat(2,1fr);gap:8px}.kpi{padding:13px;min-height:104px}.kpi .value{font-size:19px}.order-grid{grid-template-columns:1fr}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}.sale-item{grid-template-columns:1fr 70px}.sale-item .price-field{grid-column:1}.sale-item .remove-item{grid-column:2;grid-row:2}.more-grid{grid-template-columns:repeat(2,1fr)}.modal{padding-left:14px;padding-right:14px}.hero h1{font-size:25px}}
+</style>
+</head>
+<body>
+<div id="offlineBanner" class="offline-banner">Mode hors ligne : vos opérations seront envoyées dès le retour d’Internet.</div>
+
+<section id="authScreen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-brand">
+      <div class="logo-mark">SB</div>
+      <h1>SAMA BUSINESS IA</h1>
+      <p>Votre ancien SAMA Cahier devient votre assistant complet : ventes, stock, dépenses, bénéfice réel, WhatsApp et livraison.</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-auth-tab="login">Se connecter</button>
+      <button class="auth-tab" data-auth-tab="register">Créer un accès</button>
+    </div>
+    <div class="auth-type">
+      <button class="type-btn active" data-auth-type="phone">📱 Téléphone</button>
+      <button class="type-btn" data-auth-type="email">✉️ E-mail</button>
+    </div>
+    <div class="form-grid">
+      <div class="field full register-only hidden">
+        <label>Nom du commerce</label>
+        <input id="businessNameInput" autocomplete="organization" placeholder="Ex. Boutique Awa">
+      </div>
+      <div class="field full">
+        <label id="identifierLabel">Numéro de téléphone</label>
+        <input id="identifierInput" inputmode="tel" autocomplete="username" placeholder="77 000 00 00">
+      </div>
+      <div class="field full">
+        <label>Code PIN (6 à 10 chiffres)</label>
+        <input id="pinInput" inputmode="numeric" autocomplete="current-password" maxlength="10" placeholder="••••••">
+      </div>
+    </div>
+    <button id="authSubmit" class="primary auth-submit">Ouvrir mon commerce</button>
+    <div id="authStatus" class="auth-status"></div>
+    <p class="hint" style="text-align:center;margin-top:13px">Les anciens utilisateurs gardent exactement leurs identifiants et leur historique.</p>
+  </div>
+</section>
+
+<div id="appShell" class="shell hidden">
+  <div id="topbar" class="topbar">
+    <div class="topbar-inner">
+      <div class="logo">
+        <div class="logo-mark">SB</div>
+        <div class="logo-copy"><strong>SAMA BUSINESS IA</strong><span id="merchantName">Mon commerce</span></div>
+      </div>
+      <div class="top-actions">
+        <div class="status-pill"><i id="networkDot" class="dot"></i><span id="networkText">Synchronisé</span></div>
+        <button class="icon-btn" id="languageBtn" aria-label="Langue">FR</button>
+        <button class="icon-btn" id="refreshBtn" aria-label="Actualiser">↻</button>
+      </div>
+    </div>
+  </div>
+
+  <main class="main">
+    <section id="view-home" class="view active">
+      <div class="hero">
+        <div class="hero-row">
+          <div>
+            <span class="hero-badge">Votre activité aujourd’hui</span>
+            <h1 id="greeting">Bonjour 👋</h1>
+            <p id="heroMessage">Enregistrez chaque mouvement. SAMA calcule ce que votre commerce gagne vraiment.</p>
+          </div>
+          <div class="hero-side"><small>Bénéfice réel</small><strong id="heroProfit">0 F</strong></div>
+        </div>
+        <div class="quick-grid">
+          <button class="quick" data-open="saleModal"><span class="emoji">🧾</span><b>Nouvelle vente</b></button>
+          <button class="quick" data-open="expenseModal"><span class="emoji">💸</span><b>Dépense</b></button>
+          <button class="quick" data-open="productModal"><span class="emoji">📦</span><b>Produit</b></button>
+          <button class="quick" data-open="stockModal"><span class="emoji">🔄</span><b>Stock</b></button>
+          <button class="quick" data-open="whatsappModal"><span class="emoji">💬</span><b>WhatsApp</b></button>
+          <button class="quick" data-open="withdrawModal"><span class="emoji">👤</span><b>Retrait patron</b></button>
+        </div>
+      </div>
+
+      <div class="section-title"><div><h2>Les chiffres à comprendre</h2><p>Pas de jargon : seulement ce qui entre, sort et reste.</p></div></div>
+      <div class="kpi-grid">
+        <div class="kpi"><div class="label">Ventes du jour</div><div id="kpiSales" class="value">0 F</div><div id="kpiSalesCount" class="sub">0 vente</div></div>
+        <div class="kpi"><div class="label">Argent encaissé</div><div id="kpiCollected" class="value">0 F</div><div class="sub">Cash + Wave + Orange Money</div></div>
+        <div class="kpi"><div class="label">Coût marchandises</div><div id="kpiCogs" class="value">0 F</div><div class="sub">Ce que les produits vendus vous ont coûté</div></div>
+        <div class="kpi"><div class="label">Dépenses du commerce</div><div id="kpiExpenses" class="value">0 F</div><div class="sub">Transport, emballage, loyer…</div></div>
+        <div class="kpi profit"><div class="label">Bénéfice réel</div><div id="kpiProfit" class="value">0 F</div><div class="sub">Ventes − coûts − dépenses</div></div>
+        <div class="kpi withdraw"><div class="label">Retirable sans danger</div><div id="kpiWithdrawable" class="value">0 F</div><div class="sub">Après protection du commerce</div></div>
+      </div>
+
+      <div class="section-title"><div><h2>Ce qui demande votre attention</h2><p>SAMA surveille les oublis avant qu’ils coûtent cher.</p></div></div>
+      <div class="two-col">
+        <div class="card"><div id="alertsList" class="alert-list"></div></div>
+        <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><b>Derniers mouvements</b><button class="link-btn" data-nav="sales">Tout voir</button></div><div id="activityList" class="activity-list"></div></div>
+      </div>
+    </section>
+
+    <section id="view-sales" class="view">
+      <div class="section-title"><div><h2>Ventes et argent à récupérer</h2><p>Historique complet de SAMA Cahier conservé.</p></div><button class="primary" data-open="saleModal">+ Vente</button></div>
+      <div class="toolbar"><div class="search"><input id="salesSearch" placeholder="Client, produit, téléphone…"></div><select id="salesFilter" class="secondary"><option value="all">Toutes</option><option value="debt">Avec reste à payer</option><option value="paid">Payées</option></select></div>
+      <div id="salesList" class="list"></div>
+    </section>
+
+    <section id="view-stock" class="view">
+      <div class="section-title"><div><h2>Stock et prix rentable</h2><p>Voyez immédiatement ce qui manque et ce qui rapporte.</p></div><button class="primary" data-open="productModal">+ Produit</button></div>
+      <div class="toolbar"><div class="search"><input id="productsSearch" placeholder="Rechercher un produit…"></div><button class="secondary" data-open="stockModal">Mouvement de stock</button></div>
+      <div id="productsList" class="list"></div>
+    </section>
+
+    <section id="view-orders" class="view">
+      <div class="section-title"><div><h2>Commandes WhatsApp</h2><p>Collez un message : SAMA prépare la fiche et demande seulement ce qui manque.</p></div><button class="primary" data-open="whatsappModal">+ Importer</button></div>
+      <div class="toolbar"><div class="search"><input id="ordersSearch" placeholder="Commande, client, quartier…"></div><select id="ordersFilter" class="secondary"><option value="active">En cours</option><option value="all">Toutes</option><option value="needs_info">Informations manquantes</option><option value="delivered">Livrées</option></select></div>
+      <div id="ordersList" class="order-grid"></div>
+    </section>
+
+    <section id="view-more" class="view">
+      <div class="section-title"><div><h2>Outils du commerce</h2><p>Tout l’écosystème, dans une seule application.</p></div></div>
+      <div class="more-grid">
+        <button class="more-card" data-open="expenseModal"><span class="emoji">💸</span><b>Dépenses</b><span>Séparez les dépenses du commerce et celles de la maison.</span></button>
+        <button class="more-card" data-open="withdrawModal"><span class="emoji">👤</span><b>Argent du patron</b><span>Retirez sans vider la caisse du commerce.</span></button>
+        <button class="more-card" data-nav="deliveries"><span class="emoji">🛵</span><b>Livraisons</b><span>Suivi, encaissement et preuve de remise.</span></button>
+        <button class="more-card" id="exportBtn"><span class="emoji">📊</span><b>Exporter</b><span>Téléchargez vos ventes, dépenses et bénéfices en CSV.</span></button>
+        <button class="more-card" id="legacyBtn"><span class="emoji">🕘</span><b>Ancienne interface</b><span>Accès de secours à SAMA Cahier 8.x.</span></button>
+        <button class="more-card" id="logoutBtn"><span class="emoji">🔒</span><b>Se déconnecter</b><span>Fermer cet accès sur ce téléphone.</span></button>
+      </div>
+      <div class="section-title"><div><h2>Livraisons récentes</h2></div></div>
+      <div id="deliveriesList" class="list"></div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav" aria-label="Navigation">
+    <button class="nav-btn active" data-nav="home"><span class="ico">🏠</span><span>Accueil</span></button>
+    <button class="nav-btn" data-nav="sales"><span class="ico">🧾</span><span>Ventes</span></button>
+    <button class="nav-btn" data-nav="stock"><span class="ico">📦</span><span>Stock</span></button>
+    <button class="nav-btn" data-nav="orders"><span class="ico">💬</span><span>Commandes</span></button>
+    <button class="nav-btn" data-nav="more"><span class="ico">☰</span><span>Plus</span></button>
+  </nav>
+</div>
+
+<div id="modalRoot">
+  <div class="modal-backdrop" id="saleModal"><div class="modal">
+    <div class="modal-head"><div><h2>Nouvelle vente</h2><div class="hint">Le stock et le bénéfice seront mis à jour ensemble.</div></div><button class="close" data-close>✕</button></div>
+    <div class="form-grid">
+      <div class="field"><label>Client</label><input id="saleCustomer" placeholder="Nom du client"></div>
+      <div class="field"><label>Téléphone</label><input id="salePhone" inputmode="tel" placeholder="77 000 00 00"></div>
+      <div class="field full"><label>Articles</label><div id="saleItems"></div><button id="addSaleItem" class="secondary" type="button">+ Ajouter un article</button></div>
+      <div class="field"><label>Montant déjà payé</label><input id="salePaid" inputmode="decimal" value="0"></div>
+      <div class="field"><label>Moyen de paiement</label><select id="saleMethod"><option value="cash">Espèces</option><option value="wave">Wave</option><option value="orange_money">Orange Money</option><option value="bank">Virement</option><option value="credit">Crédit client</option></select></div>
+      <div class="field"><label>Coût de livraison supporté</label><input id="saleDeliveryCost" inputmode="decimal" value="0"></div>
+      <div class="field"><label>Date</label><input id="saleDate" type="datetime-local"></div>
+      <div class="field full"><label>Note</label><div class="field-wrap"><textarea id="saleNote" placeholder="Ex. Maillot blanc taille L"></textarea><button class="mic" data-mic="saleNote" type="button">🎙️</button></div></div>
+    </div>
+    <div class="total-box"><span>Total vente</span><b id="saleTotal">0 F</b></div>
+    <div class="form-actions"><button class="secondary" data-close>Annuler</button><button id="saveSaleBtn" class="primary">Enregistrer la vente</button></div>
+  </div></div>
+
+  <div class="modal-backdrop" id="expenseModal"><div class="modal">
+    <div class="modal-head"><div><h2>Ajouter une dépense</h2><div class="hint">Dites clairement si elle appartient au commerce ou à la maison.</div></div><button class="close" data-close>✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Quelle dépense ?</label><div class="field-wrap"><input id="expenseLabel" placeholder="Transport, emballage, loyer…"><button class="mic" data-mic="expenseLabel" type="button">🎙️</button></div></div>
+      <div class="field"><label>Montant</label><input id="expenseAmount" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>Catégorie</label><select id="expenseCategory"><option value="transport">Transport</option><option value="livraison">Livraison</option><option value="emballage">Emballage</option><option value="loyer">Loyer</option><option value="electricite">Électricité</option><option value="communication">Téléphone / Internet</option><option value="salaire">Salaire / Main-d’œuvre</option><option value="marketing">Publicité</option><option value="autre">Autre</option></select></div>
+      <div class="field"><label>Cela concerne</label><select id="expenseScope"><option value="business">Le commerce</option><option value="personal">La maison / personnel</option></select></div>
+      <div class="field"><label>Paiement</label><select id="expenseMethod"><option value="cash">Espèces</option><option value="wave">Wave</option><option value="orange_money">Orange Money</option><option value="bank">Virement</option></select></div>
+      <div class="field full"><label>Note</label><textarea id="expenseNotes" placeholder="Détails facultatifs"></textarea></div>
+    </div>
+    <div class="form-actions"><button class="secondary" data-close>Annuler</button><button id="saveExpenseBtn" class="primary">Enregistrer</button></div>
+  </div></div>
+
+  <div class="modal-backdrop" id="productModal"><div class="modal">
+    <div class="modal-head"><div><h2 id="productModalTitle">Ajouter un produit</h2><div class="hint">Le prix minimum rentable dépend du coût réel.</div></div><button class="close" data-close>✕</button></div>
+    <input id="productId" type="hidden">
+    <div class="form-grid">
+      <div class="field full"><label>Nom du produit</label><div class="field-wrap"><input id="productName" placeholder="Ex. Maillot Sénégal"><button class="mic" data-mic="productName" type="button">🎙️</button></div></div>
+      <div class="field"><label>Code / Référence</label><input id="productSku" placeholder="MS-001"></div>
+      <div class="field"><label>Catégorie</label><input id="productCategory" placeholder="Maillot, alimentation…"></div>
+      <div class="field"><label>Prix de vente</label><input id="productSalePrice" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>Coût d’achat réel</label><input id="productCost" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>Stock actuel</label><input id="productStock" inputmode="decimal" value="0"></div>
+      <div class="field"><label>Alerte à partir de</label><input id="productThreshold" inputmode="decimal" value="3"></div>
+      <div class="field"><label>Unité</label><select id="productUnit"><option>pièce</option><option>paquet</option><option>carton</option><option>kg</option><option>litre</option><option>mètre</option><option>service</option></select></div>
+      <div class="field"><label>Gestion du stock</label><select id="productTrack"><option value="true">Oui</option><option value="false">Non, c’est un service</option></select></div>
+    </div>
+    <div class="total-box"><span>Marge unitaire estimée</span><b id="productMargin">0 F</b></div>
+    <div class="form-actions"><button class="secondary" data-close>Annuler</button><button id="saveProductBtn" class="primary">Enregistrer le produit</button></div>
+  </div></div>
+
+  <div class="modal-backdrop" id="stockModal"><div class="modal">
+    <div class="modal-head"><div><h2>Mouvement de stock</h2><div class="hint">Achat, perte, casse, retour ou correction.</div></div><button class="close" data-close>✕</button></div>
+    <div class="form-grid">
+      <div class="field full"><label>Produit</label><select id="stockProduct"></select></div>
+      <div class="field"><label>Type</label><select id="stockType"><option value="purchase">Nouvel achat</option><option value="return_in">Retour reçu</option><option value="loss">Perte</option><option value="damage">Casse / Produit abîmé</option><option value="return_out">Retour fournisseur</option><option value="adjustment">Correction manuelle</option></select></div>
+      <div class="field"><label>Quantité</label><input id="stockQuantity" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>Coût par unité</label><input id="stockUnitCost" inputmode="decimal" placeholder="0"></div>
+      <div class="field full"><label>Note</label><div class="field-wrap"><textarea id="stockNotes" placeholder="Pourquoi le stock change ?"></textarea><button class="mic" data-mic="stockNotes" type="button">🎙️</button></div></div>
+    </div>
+    <div class="form-actions"><button class="secondary" data-close>Annuler</button><button id="saveStockBtn" class="primary">Mettre à jour</button></div>
+  </div></div>
+
+  <div class="modal-backdrop" id="withdrawModal"><div class="modal">
+    <div class="modal-head"><div><h2>Argent du patron</h2><div class="hint">SAMA sépare votre argent personnel de celui du commerce.</div></div><button class="close" data-close>✕</button></div>
+    <div class="form-grid">
+      <div class="field"><label>Opération</label><select id="withdrawType"><option value="owner_withdrawal">Je retire de l’argent</option><option value="owner_deposit">J’ajoute de l’argent au commerce</option></select></div>
+      <div class="field"><label>Montant</label><input id="withdrawAmount" inputmode="decimal" placeholder="0"></div>
+      <div class="field"><label>Moyen</label><select id="withdrawMethod"><option value="cash">Espèces</option><option value="wave">Wave</option><option value="orange_money">Orange Money</option><option value="bank">Banque</option></select></div>
+      <div class="field"><label>Pourquoi ?</label><input id="withdrawReason" placeholder="Ex. Dépenses familiales"></div>
+    </div>
+    <div class="total-box"><span>Montant conseillé maximum aujourd’hui</span><b id="withdrawAdvice">0 F</b></div>
+    <div class="form-actions"><button class="secondary" data-close>Annuler</button><button id="saveWithdrawBtn" class="primary">Confirmer</button></div>
+  </div></div>
+
+  <div class="modal-backdrop" id="whatsappModal"><div class="modal">
+    <div class="modal-head"><div><h2>Transformer un message WhatsApp</h2><div class="hint">Texte ou dictée vocale. SAMA extrait automatiquement l’essentiel.</div></div><button class="close" data-close>✕</button></div>
+    <div class="field full"><label>Message reçu</label><div class="field-wrap"><textarea id="whatsappText" style="min-height:140px" placeholder="Ex. Je veux deux maillots blancs, un L et un XL, à livrer demain aux Parcelles. Je paie par Wave. Mon numéro est 77…"></textarea><button class="mic" data-mic="whatsappText" type="button">🎙️</button></div></div>
+    <div class="form-actions" style="justify-content:flex-start"><button id="parseWhatsappBtn" class="secondary">✨ Analyser</button><button id="pasteWhatsappBtn" class="secondary">📋 Coller</button></div>
+    <div id="parserResult" class="parser-result hidden">
+      <div id="parserGrid" class="parser-grid"></div>
+      <div id="parserMissing" class="hint" style="margin-top:10px"></div>
+    </div>
+    <div id="orderEditFields" class="form-grid hidden" style="margin-top:14px">
+      <div class="field"><label>Client</label><input id="orderCustomer"></div>
+      <div class="field"><label>Téléphone</label><input id="orderPhone" inputmode="tel"></div>
+      <div class="field full"><label>Produit / demande</label><input id="orderProduct"></div>
+      <div class="field"><label>Quantité</label><input id="orderQuantity" inputmode="decimal" value="1"></div>
+      <div class="field"><label>Prix unitaire</label><input id="orderPrice" inputmode="decimal" value="0"></div>
+      <div class="field"><label>Taille / variante</label><input id="orderVariant"></div>
+      <div class="field"><label>Couleur</label><input id="orderColor"></div>
+      <div class="field"><label>Quartier / zone</label><input id="orderArea"></div>
+      <div class="field full"><label>Adresse / repère</label><input id="orderAddress"></div>
+      <div class="field"><label>Paiement</label><select id="orderMethod"><option value="cash">Espèces</option><option value="wave">Wave</option><option value="orange_money">Orange Money</option><option value="bank">Virement</option></select></div>
+      <div class="field"><label>Frais de livraison facturés</label><input id="orderDeliveryFee" inputmode="decimal" value="0"></div>
+    </div>
+    <div class="form-actions"><button class="secondary" data-close>Annuler</button><button id="saveOrderBtn" class="primary hidden">Créer la commande</button></div>
+  </div></div>
+
+  <div class="modal-backdrop" id="orderModal"><div class="modal">
+    <div class="modal-head"><div><h2 id="orderDetailTitle">Commande</h2><div id="orderDetailSubtitle" class="hint"></div></div><button class="close" data-close>✕</button></div>
+    <div id="orderDetailBody"></div>
+    <div class="form-actions"><button id="orderCreateSaleBtn" class="secondary">Transformer en vente</button><button id="orderCreateDeliveryBtn" class="primary">Créer la livraison</button></div>
+  </div></div>
+</div>
+
+<div id="toastWrap" class="toast-wrap"></div>
+<div id="loadingCover" class="loading-cover"><div class="spinner"></div></div>
+
+<script>
+const APP_VERSION='9.0.0';
+const API_URL='https://xmdpmtvieqgoorbxytey.supabase.co/functions/v1/sama-business-api';
+const PUBLIC_KEY='sb_publishable_NVbWUoS1b6BgfWaRSJlRVw_iU7fuqwO';
+const SESSION_KEY='sama-session-v3';
+const PROFILE_KEY='sama-profile-v3';
+const LANGUAGE_KEY='sama-language-v1';
+const CACHE_PREFIX='sama-business-cache-v1-';
+const QUEUE_PREFIX='sama-business-queue-v1-';
+const LEGACY_DB_PREFIX='sama-cahier-db-v8';
+const $=id=>document.getElementById(id);
+const state={token:'',account:null,merchant:null,access:null,data:null,language:'fr',authTab:'login',authType:'phone',currentView:'home',queue:[],busy:false,parsed:null,selectedOrder:null,listening:null};
+const money=new Intl.NumberFormat('fr-FR',{maximumFractionDigits:0});
+const fmt=n=>`${money.format(Number(n||0))} F`;
+const num=v=>{const n=Number(String(v??'').replace(/\s/g,'').replace(',','.'));return Number.isFinite(n)?n:0};
+const uuid=()=>crypto.randomUUID?crypto.randomUUID():`${Date.now()}-${Math.random()}`;
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+const todayLocal=()=>new Date().toISOString().slice(0,16);
+const cacheKey=()=>CACHE_PREFIX+(state.account?.id||'guest');
+const queueKey=()=>QUEUE_PREFIX+(state.account?.id||'guest');
+function t(fr,wo){return state.language==='wo'?wo:fr}
+function setBusy(on){state.busy=on;$('loadingCover').classList.toggle('show',on)}
+function toast(title,message='',kind=''){const el=document.createElement('div');el.className=`toast ${kind}`;el.innerHTML=`<div>${kind==='error'?'⚠️':kind==='warn'?'🔔':'✓'}</div><div><b>${esc(title)}</b>${message?`<span>${esc(message)}</span>`:''}</div>`;$('toastWrap').append(el);setTimeout(()=>el.remove(),4200)}
+function normalizePhone(value=''){let p=String(value).replace(/\D/g,'');if(p.startsWith('00'))p=p.slice(2);if(p.length===9&&p.startsWith('7'))p='221'+p;return p}
+function saveSession(){if(state.token)localStorage.setItem(SESSION_KEY,state.token);else localStorage.removeItem(SESSION_KEY);if(state.account||state.merchant)localStorage.setItem(PROFILE_KEY,JSON.stringify({account:state.account,merchant:state.merchant,access:state.access}));else localStorage.removeItem(PROFILE_KEY);localStorage.setItem(LANGUAGE_KEY,state.language)}
+function loadSession(){state.token=localStorage.getItem(SESSION_KEY)||'';state.language=(localStorage.getItem(LANGUAGE_KEY)||'fr').startsWith('wo')?'wo':'fr';try{const p=JSON.parse(localStorage.getItem(PROFILE_KEY)||'null');state.account=p?.account||null;state.merchant=p?.merchant||null;state.access=p?.access||p?.account?.access||null}catch{}try{state.queue=JSON.parse(localStorage.getItem(queueKey())||'[]')}catch{state.queue=[]}}
+async function api(action,payload={},needsSession=true,queueable=false){
+  const headers={'content-type':'application/json',apikey:PUBLIC_KEY,'x-client-info':`sama-business-ia/${APP_VERSION}`};
+  if(needsSession&&state.token)headers['x-sama-session']=state.token;
+  try{
+    const res=await fetch(API_URL,{method:'POST',headers,body:JSON.stringify({action,...payload})});
+    let data={};try{data=await res.json()}catch{}
+    if(res.status===401&&needsSession){clearSession();showAuth();throw new Error('Votre session a expiré. Reconnectez-vous.')}
+    if(!res.ok||data.ok===false)throw new Error(data.error||'Opération impossible.');
+    return data
+  }catch(error){
+    if(queueable&&(!navigator.onLine||/fetch|connexion|network/i.test(String(error.message)))){
+      const item={id:uuid(),action,payload,createdAt:new Date().toISOString(),attempts:0};state.queue.push(item);localStorage.setItem(queueKey(),JSON.stringify(state.queue));updateNetwork();toast('Opération gardée hors ligne','Elle sera envoyée automatiquement.','warn');return {ok:true,queued:true}
+    }
+    throw error
+  }
+}
+function clearSession(){state.token='';state.account=null;state.merchant=null;state.access=null;state.data=null;state.queue=[];localStorage.removeItem(SESSION_KEY);localStorage.removeItem(PROFILE_KEY)}
+function showAuth(){$('authScreen').classList.remove('hidden');$('appShell').classList.add('hidden')}
+function showApp(){$('authScreen').classList.add('hidden');$('appShell').classList.remove('hidden');$('merchantName').textContent=state.merchant?.name||'Mon commerce';$('languageBtn').textContent=state.language==='wo'?'WO':'FR';renderAll()}
+function setAuthTab(tab){state.authTab=tab;document.querySelectorAll('[data-auth-tab]').forEach(b=>b.classList.toggle('active',b.dataset.authTab===tab));document.querySelectorAll('.register-only').forEach(el=>el.classList.toggle('hidden',tab!=='register'));$('authSubmit').textContent=tab==='register'?'Créer mon commerce':'Ouvrir mon commerce';$('authStatus').textContent=''}
+function setAuthType(type){state.authType=type;document.querySelectorAll('[data-auth-type]').forEach(b=>b.classList.toggle('active',b.dataset.authType===type));$('identifierLabel').textContent=type==='phone'?'Numéro de téléphone':'Adresse e-mail';$('identifierInput').placeholder=type==='phone'?'77 000 00 00':'nom@email.com';$('identifierInput').inputMode=type==='phone'?'tel':'email'}
+async function authSubmit(){
+  const identifier=$('identifierInput').value.trim(),pin=$('pinInput').value.trim(),businessName=$('businessNameInput').value.trim();
+  if(!identifier)return setAuthStatus('Indiquez votre téléphone ou votre e-mail.',true);
+  if(!/^\d{6,10}$/.test(pin))return setAuthStatus('Le PIN doit contenir 6 à 10 chiffres.',true);
+  if(state.authTab==='register'&&!businessName)return setAuthStatus('Indiquez le nom du commerce.',true);
+  setBusy(true);setAuthStatus(state.authTab==='register'?'Création de votre espace…':'Ouverture de votre commerce…');
+  try{
+    const data=await api(state.authTab,{identifierType:state.authType,identifier,pin,businessName},false);
+    state.token=data.token;state.account=data.account;state.merchant=data.merchant;state.access=data.access||data.account?.access;saveSession();
+    await migrateLegacyOffline();await refreshData(false);showApp();toast(state.authTab==='register'?'Commerce créé':'Bienvenue',state.merchant?.name||'SAMA BUSINESS IA')
+  }catch(e){setAuthStatus(e.message,true)}finally{setBusy(false)}
+}
+function setAuthStatus(msg='',error=false){$('authStatus').textContent=msg;$('authStatus').classList.toggle('error',error)}
+async function migrateLegacyOffline(){
+  if(!state.account?.id||!('indexedDB'in window)||!navigator.onLine)return;
+  const name=`${LEGACY_DB_PREFIX}-${state.account.id}`;
+  try{
+    const db=await new Promise((resolve,reject)=>{const r=indexedDB.open(name,2);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('sales'))d.createObjectStore('sales',{keyPath:'client_ref'});if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta',{keyPath:'key'})}});
+    const read=(store,key=null)=>new Promise((resolve,reject)=>{const tx=db.transaction(store,'readonly'),req=key===null?tx.objectStore(store).getAll():tx.objectStore(store).get(key);req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)});
+    const sales=await read('sales');const pending=(Array.isArray(sales)?sales:[]).filter(s=>s.cloud_synced!==true||s.sync_status==='pending');
+    for(let i=0;i<pending.length;i+=100){await api('sync_sales',{sales:pending.slice(i,i+100).map(({cloud_synced,sync_status,...s})=>s)})}
+    const meta=await read('meta','pending_ops');const ops=Array.isArray(meta?.value)?meta.value:[];if(ops.length)await api('sync_operations',{operations:ops});
+    db.close()
+  }catch(e){console.warn('legacy migration',e)}
+}
+async function refreshData(feedback=true){
+  if(!state.token)return;
+  try{
+    const data=await api('business_bootstrap');state.data=data;state.account=data.account;state.merchant=data.merchant;state.access=data.access;localStorage.setItem(cacheKey(),JSON.stringify({at:Date.now(),data}));saveSession();renderAll();if(feedback)toast('Données actualisées')
+  }catch(e){
+    try{const cached=JSON.parse(localStorage.getItem(cacheKey())||'null');if(cached?.data){state.data=cached.data;renderAll();toast('Mode hors ligne','Dernières données enregistrées affichées.','warn')}else throw e}catch{toast('Impossible de charger',e.message,'error')}
+  }
+}
+async function flushQueue(){
+  if(!navigator.onLine||!state.token||!state.queue.length)return;
+  const remaining=[];
+  for(const item of state.queue){try{await api(item.action,item.payload,true,false)}catch(e){remaining.push({...item,attempts:(item.attempts||0)+1,lastError:e.message})}}
+  state.queue=remaining;localStorage.setItem(queueKey(),JSON.stringify(remaining));updateNetwork();if(!remaining.length)await refreshData(false)
+}
+function updateNetwork(){
+  const online=navigator.onLine;$('offlineBanner').classList.toggle('show',!online);$('networkDot')?.classList.toggle('off',!online);if($('networkText'))$('networkText').textContent=!online?'Hors ligne':state.queue.length?`${state.queue.length} à envoyer`:'Synchronisé'
+}
+function nav(view){state.currentView=view;document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id===`view-${view}`));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.nav===view));window.scrollTo({top:0,behavior:'smooth'})}
+function openModal(id){const el=$(id);if(!el)return;el.classList.add('open');document.body.style.overflow='hidden';if(id==='saleModal')prepareSaleModal();if(id==='productModal'&&!$('productId').value)resetProductModal();if(id==='stockModal')populateProductSelects();if(id==='withdrawModal')$('withdrawAdvice').textContent=fmt(state.data?.summary?.withdrawable_amount)}
+function closeModal(el){(typeof el==='string'?$(el):el.closest('.modal-backdrop'))?.classList.remove('open');document.body.style.overflow=''}
+function summary(){return state.data?.summary||{}}
+function renderAll(){if(!state.data)return;renderHome();renderSales();renderProducts();renderOrders();renderDeliveries();populateProductSelects();updateNetwork()}
+function renderHome(){
+  const s=summary();$('greeting').textContent=`${greet()}, ${state.merchant?.name||'commerçant'} 👋`;$('heroProfit').textContent=fmt(s.real_profit);$('kpiSales').textContent=fmt(s.sales_total);$('kpiSalesCount').textContent=`${Number(s.sales_count||0)} vente${Number(s.sales_count||0)>1?'s':''}`;$('kpiCollected').textContent=fmt(s.collected_total);$('kpiCogs').textContent=fmt(s.cogs_total);$('kpiExpenses').textContent=fmt(s.business_expenses);$('kpiProfit').textContent=fmt(s.real_profit);$('kpiWithdrawable').textContent=fmt(s.withdrawable_amount);
+  const alerts=[];const low=state.data.alerts?.lowStock||[],missing=state.data.alerts?.missingCosts||[],unpaid=state.data.alerts?.unpaidOrders||[];
+  if(low.length)alerts.push({type:'danger',icon:'📦',title:`${low.length} produit${low.length>1?'s':''} en stock faible`,text:low.slice(0,3).map(p=>p.name).join(', ')});
+  if(missing.length)alerts.push({type:'warn',icon:'🧮',title:`Coût d’achat absent sur ${missing.length} vente${missing.length>1?'s':''}`,text:'Ajoutez les coûts des produits pour fiabiliser le bénéfice.'});
+  if(unpaid.length)alerts.push({type:'warn',icon:'💰',title:`${unpaid.length} commande${unpaid.length>1?'s':''} non totalement payée${unpaid.length>1?'s':''}`,text:'Relancez les clients avant la livraison.'});
+  if(Number(s.outstanding_total)>0)alerts.push({type:'warn',icon:'📲',title:`${fmt(s.outstanding_total)} à récupérer`,text:'C’est de l’argent vendu mais pas encore encaissé.'});
+  if(!alerts.length)alerts.push({type:'',icon:'✅',title:'Tout est sous contrôle',text:'Continuez à enregistrer chaque vente et dépense.'});
+  $('alertsList').innerHTML=alerts.map(a=>`<div class="alert ${a.type}"><div class="alert-icon">${a.icon}</div><div class="alert-copy"><b>${esc(a.title)}</b><span>${esc(a.text)}</span></div></div>`).join('');
+  const sales=(state.data.sales||[]).slice(0,4),expenses=(state.data.expenses||[]).slice(0,3);const activity=[...sales.map(x=>({date:x.happened_at,title:x.description,value:x.total_amount,type:'Vente'})),...expenses.map(x=>({date:x.happened_at,title:x.label,value:-Number(x.amount),type:'Dépense'}))].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  $('activityList').innerHTML=activity.length?activity.map(a=>`<div class="row-card"><div class="row-main"><div class="row-title">${esc(a.title)}</div><div class="row-meta"><span>${a.type}</span><span>${formatDate(a.date)}</span></div></div><div class="row-value"><strong style="color:${a.value<0?'var(--danger)':'var(--success)'}">${a.value<0?'-':''}${fmt(Math.abs(a.value))}</strong></div></div>`).join(''):`<div class="empty"><div class="big">🧾</div>Aucun mouvement aujourd’hui.</div>`
+}
+function greet(){const h=new Date().getHours();return h<12?'Bonjour':h<18?'Bon après-midi':'Bonsoir'}
+function formatDate(v){try{return new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}).format(new Date(v))}catch{return ''}}
+function renderSales(){
+  const q=($('salesSearch')?.value||'').toLowerCase(),filter=$('salesFilter')?.value||'all';let rows=state.data.sales||[];
+  rows=rows.filter(s=>{const text=`${s.description} ${s.customer_name_snapshot||''} ${s.customer_phone_snapshot||''}`.toLowerCase();const debt=Number(s.remaining_amount)>0;return text.includes(q)&&(filter==='all'||(filter==='debt'&&debt)||(filter==='paid'&&!debt))});
+  $('salesList').innerHTML=rows.length?rows.map(s=>`<div class="row-card"><div class="row-main"><div class="row-title">${esc(s.description||'Vente')}</div><div class="row-meta"><span>${esc(s.customer_name_snapshot||'Client')}</span><span>${formatDate(s.happened_at)}</span><span class="badge ${Number(s.remaining_amount)>0?'warn':'ok'}">${Number(s.remaining_amount)>0?`Reste ${fmt(s.remaining_amount)}`:'Payée'}</span></div></div><div class="row-value"><strong>${fmt(s.total_amount)}</strong><span>Bénéfice ${Number(s.cost_amount)>0?fmt(s.profit_amount):'à préciser'}</span></div></div>`).join(''):`<div class="empty"><div class="big">🔎</div>Aucune vente trouvée.</div>`
+}
+function renderProducts(){
+  const q=($('productsSearch')?.value||'').toLowerCase();const rows=(state.data.products||[]).filter(p=>`${p.name} ${p.sku||''} ${p.category||''}`.toLowerCase().includes(q));
+  $('productsList').innerHTML=rows.length?rows.map(p=>{const low=p.track_stock&&Number(p.stock_quantity)<=Number(p.low_stock_threshold),margin=Number(p.sale_price)-Number(p.purchase_cost),rate=Number(p.sale_price)>0?Math.round(margin/Number(p.sale_price)*100):0;return `<div class="row-card" data-product-edit="${p.id}"><div class="row-main"><div class="row-title">${esc(p.name)}</div><div class="row-meta"><span>${esc(p.category||'Sans catégorie')}</span><span>Coût ${fmt(p.purchase_cost)}</span><span>Marge ${fmt(margin)} (${rate}%)</span>${low?'<span class="badge bad">Stock faible</span>':''}</div></div><div class="row-value"><strong>${fmt(p.sale_price)}</strong><span class="stock-number ${low?'stock-low':''}">${p.track_stock?`${Number(p.stock_quantity)} ${esc(p.unit)}`:'Service'}</span></div></div>`}).join(''):`<div class="empty"><div class="big">📦</div>Ajoutez votre premier produit pour calculer votre marge réelle.</div>`
+}
+function statusLabel(s){return ({draft:'Brouillon',needs_info:'À compléter',confirmed:'Confirmée',preparing:'Préparation',ready:'Prête',out_for_delivery:'En livraison',delivered:'Livrée',cancelled:'Annulée',failed:'Échec'})[s]||s}
+function renderOrders(){
+  const q=($('ordersSearch')?.value||'').toLowerCase(),filter=$('ordersFilter')?.value||'active';let rows=state.data.orders||[];
+  rows=rows.filter(o=>{const text=`${o.order_number} ${o.customer_name||''} ${o.customer_phone||''} ${o.delivery_area||''}`.toLowerCase();const match=filter==='all'||(filter==='active'&& !['delivered','cancelled','failed'].includes(o.status))||o.status===filter;return text.includes(q)&&match});
+  $('ordersList').innerHTML=rows.length?rows.map(o=>`<article class="order-card"><div class="top"><div><h3>${esc(o.order_number)}</h3><p>${esc(o.customer_name||'Client non précisé')} · ${esc(o.delivery_area||'Adresse à confirmer')}</p></div><span class="badge ${o.status==='needs_info'?'warn':o.status==='delivered'?'ok':''}">${esc(statusLabel(o.status))}</span></div><div class="amount">${fmt(o.total_amount)}</div><p>${(o.sama_order_items||[]).map(i=>`${Number(i.quantity)}× ${i.product_name}`).join(', ')||esc(o.raw_message||'Commande')}</p><div class="actions"><button class="mini-btn fill" data-order-open="${o.id}">Ouvrir</button>${o.customer_phone?`<a class="mini-btn" href="https://wa.me/${normalizePhone(o.customer_phone)}?text=${encodeURIComponent(`Bonjour ${o.customer_name||''}, concernant votre commande ${o.order_number}…`)}" target="_blank">WhatsApp</a>`:''}</div></article>`).join(''):`<div class="empty" style="grid-column:1/-1"><div class="big">💬</div>Aucune commande dans cette catégorie.</div>`
+}
+function renderDeliveries(){
+  const rows=state.data.deliveries||[];$('deliveriesList').innerHTML=rows.length?rows.slice(0,15).map(d=>`<div class="row-card"><div class="row-main"><div class="row-title">${esc(d.delivery_number)} · ${esc(d.recipient_name)}</div><div class="row-meta"><span>${esc(d.delivery_area||d.delivery_address)}</span><span class="badge ${d.status==='delivered'?'ok':d.status==='failed'?'bad':'warn'}">${esc(d.status)}</span></div></div><div class="row-value"><strong>${fmt(d.amount_to_collect)}</strong><span>à encaisser</span></div></div>`).join(''):`<div class="empty"><div class="big">🛵</div>Aucune livraison créée.</div>`
+}
+function prepareSaleModal(){if(!$('saleDate').value)$('saleDate').value=todayLocal();if(!$('saleItems').children.length)addSaleItem();populateProductSelects();updateSaleTotal()}
+function addSaleItem(pref={}){
+  const wrap=document.createElement('div');wrap.className='sale-item';wrap.innerHTML=`<div class="field"><label>Article</label><select class="sale-product"><option value="">Article libre</option>${productOptions()}</select><input class="sale-custom hidden" placeholder="Nom de l’article"></div><div class="field"><label>Qté</label><input class="sale-qty" inputmode="decimal" value="${pref.quantity||1}"></div><div class="field price-field"><label>Prix unitaire</label><input class="sale-price" inputmode="decimal" value="${pref.unitPrice||0}"></div><button type="button" class="remove-item">✕</button>`;$('saleItems').append(wrap);
+  const sel=wrap.querySelector('.sale-product'),custom=wrap.querySelector('.sale-custom'),price=wrap.querySelector('.sale-price');if(pref.productId)sel.value=pref.productId;
+  sel.addEventListener('change',()=>{const p=(state.data.products||[]).find(x=>x.id===sel.value);custom.classList.toggle('hidden',!!sel.value);if(p)price.value=Number(p.sale_price);updateSaleTotal()});wrap.querySelectorAll('input').forEach(i=>i.addEventListener('input',updateSaleTotal));wrap.querySelector('.remove-item').onclick=()=>{wrap.remove();if(!$('saleItems').children.length)addSaleItem();updateSaleTotal()};if(!pref.productId)custom.classList.remove('hidden');updateSaleTotal()
+}
+function productOptions(){return (state.data?.products||[]).map(p=>`<option value="${p.id}">${esc(p.name)} · ${fmt(p.sale_price)} · stock ${Number(p.stock_quantity)}</option>`).join('')}
+function populateProductSelects(){$('stockProduct').innerHTML=`<option value="">Choisir un produit</option>${productOptions()}`}
+function updateSaleTotal(){let total=0;document.querySelectorAll('.sale-item').forEach(r=>total+=num(r.querySelector('.sale-qty').value)*num(r.querySelector('.sale-price').value));$('saleTotal').textContent=fmt(total)}
+function saleItemsPayload(){return [...document.querySelectorAll('.sale-item')].map(r=>{const id=r.querySelector('.sale-product').value,p=(state.data.products||[]).find(x=>x.id===id);return {productId:id||null,productName:p?.name||r.querySelector('.sale-custom').value.trim()||'Article',variant:'',quantity:num(r.querySelector('.sale-qty').value)||1,unitPrice:num(r.querySelector('.sale-price').value),unitCost:Number(p?.purchase_cost||0)}})}
+async function saveSale(){
+  const items=saleItemsPayload();if(items.some(i=>i.unitPrice<0||!i.productName))return toast('Vente incomplète','Vérifiez les articles.','error');
+  setBusy(true);try{const data=await api('create_business_sale',{clientRef:uuid(),customerName:$('saleCustomer').value,customerPhone:$('salePhone').value,description:$('saleNote').value||items.map(i=>i.productName).join(', '),items,paidAmount:num($('salePaid').value),paymentMethod:$('saleMethod').value,deliveryCost:num($('saleDeliveryCost').value),happenedAt:$('saleDate').value?new Date($('saleDate').value).toISOString():new Date().toISOString(),source:'manual'},true,true);closeModal('saleModal');resetSaleModal();if(!data.queued)await refreshData(false);toast('Vente enregistrée','Stock et bénéfice mis à jour.')}catch(e){toast('Vente non enregistrée',e.message,'error')}finally{setBusy(false)}
+}
+function resetSaleModal(){$('saleCustomer').value='';$('salePhone').value='';$('salePaid').value='0';$('saleDeliveryCost').value='0';$('saleNote').value='';$('saleItems').innerHTML='';addSaleItem()}
+async function saveExpense(){setBusy(true);try{const data=await api('record_expense',{clientRef:uuid(),label:$('expenseLabel').value,amount:num($('expenseAmount').value),category:$('expenseCategory').value,scope:$('expenseScope').value,paymentMethod:$('expenseMethod').value,notes:$('expenseNotes').value,happenedAt:new Date().toISOString()},true,true);closeModal('expenseModal');['expenseLabel','expenseAmount','expenseNotes'].forEach(id=>$(id).value='');if(!data.queued)await refreshData(false);toast('Dépense enregistrée')}catch(e){toast('Dépense non enregistrée',e.message,'error')}finally{setBusy(false)}}
+function resetProductModal(){['productId','productName','productSku','productCategory','productSalePrice','productCost'].forEach(id=>$(id).value='');$('productStock').value='0';$('productThreshold').value='3';$('productTrack').value='true';$('productModalTitle').textContent='Ajouter un produit';updateProductMargin()}
+function editProduct(id){const p=(state.data.products||[]).find(x=>x.id===id);if(!p)return;$('productId').value=p.id;$('productName').value=p.name;$('productSku').value=p.sku||'';$('productCategory').value=p.category||'';$('productSalePrice').value=Number(p.sale_price);$('productCost').value=Number(p.purchase_cost);$('productStock').value=Number(p.stock_quantity);$('productThreshold').value=Number(p.low_stock_threshold);$('productUnit').value=p.unit;$('productTrack').value=String(p.track_stock);$('productModalTitle').textContent='Modifier le produit';updateProductMargin();openModal('productModal')}
+function updateProductMargin(){$('productMargin').textContent=fmt(num($('productSalePrice').value)-num($('productCost').value))}
+async function saveProduct(){setBusy(true);try{await api('save_product',{id:$('productId').value||null,clientRef:uuid(),name:$('productName').value,sku:$('productSku').value,category:$('productCategory').value,salePrice:num($('productSalePrice').value),purchaseCost:num($('productCost').value),stockQuantity:num($('productStock').value),lowStockThreshold:num($('productThreshold').value),unit:$('productUnit').value,trackStock:$('productTrack').value==='true'},true,true);closeModal('productModal');resetProductModal();await refreshData(false);toast('Produit enregistré')}catch(e){toast('Produit non enregistré',e.message,'error')}finally{setBusy(false)}}
+async function saveStock(){setBusy(true);try{await api('stock_movement',{clientRef:uuid(),productId:$('stockProduct').value,movementType:$('stockType').value,quantityDelta:num($('stockQuantity').value),unitCost:num($('stockUnitCost').value),notes:$('stockNotes').value,happenedAt:new Date().toISOString()},true,true);closeModal('stockModal');$('stockQuantity').value='';$('stockNotes').value='';await refreshData(false);toast('Stock mis à jour')}catch(e){toast('Stock non modifié',e.message,'error')}finally{setBusy(false)}}
+async function saveWithdraw(){const amount=num($('withdrawAmount').value),advice=Number(summary().withdrawable_amount||0);if($('withdrawType').value==='owner_withdrawal'&&amount>advice&&!confirm(`Ce retrait dépasse le montant conseillé de ${fmt(advice)}. Continuer ?`))return;setBusy(true);try{await api('record_cash_movement',{clientRef:uuid(),movementType:$('withdrawType').value,amount,paymentMethod:$('withdrawMethod').value,reason:$('withdrawReason').value,happenedAt:new Date().toISOString()},true,true);closeModal('withdrawModal');$('withdrawAmount').value='';$('withdrawReason').value='';await refreshData(false);toast('Mouvement enregistré')}catch(e){toast('Mouvement non enregistré',e.message,'error')}finally{setBusy(false)}}
+async function parseWhatsapp(){const text=$('whatsappText').value.trim();if(!text)return toast('Collez ou dictez le message','Le message est vide.','warn');setBusy(true);try{const d=await api('parse_whatsapp_order',{text});state.parsed=d.parsed;showParsed(d.parsed)}catch(e){toast('Analyse impossible',e.message,'error')}finally{setBusy(false)}}
+function showParsed(p){$('parserResult').classList.remove('hidden');$('orderEditFields').classList.remove('hidden');$('saveOrderBtn').classList.remove('hidden');$('parserGrid').innerHTML=[['Client',p.customer_name||'À préciser'],['Téléphone',p.customer_phone||'À préciser'],['Produit',p.product_text||'À préciser'],['Quantité',p.quantity||1],['Taille',p.sizes?.join(', ')||'—'],['Couleur',p.colors?.join(', ')||'—'],['Zone',p.delivery_area||'À préciser'],['Paiement',p.payment_method||'À préciser']].map(([a,b])=>`<div class="parser-cell"><span>${a}</span><b>${esc(b)}</b></div>`).join('');$('parserMissing').textContent=p.missing_fields?.length?`SAMA demandera seulement : ${p.missing_fields.join(', ')}.`:'Toutes les informations essentielles ont été détectées.';$('orderCustomer').value=p.customer_name||'';$('orderPhone').value=p.customer_phone||'';$('orderProduct').value=p.product_text||'';$('orderQuantity').value=p.quantity||1;$('orderPrice').value=p.detected_amount||0;$('orderVariant').value=p.sizes?.join(', ')||'';$('orderColor').value=p.colors?.join(', ')||'';$('orderArea').value=p.delivery_area||'';$('orderAddress').value=p.delivery_address||'';$('orderMethod').value=p.payment_method||'cash'}
+async function saveOrder(){const missing=[];if(!$('orderProduct').value.trim())missing.push('produit');if(!$('orderPhone').value.trim())missing.push('téléphone');if(!$('orderAddress').value.trim())missing.push('adresse');const variant=[$('orderVariant').value,$('orderColor').value].filter(Boolean).join(' · ');setBusy(true);try{await api('save_order',{clientRef:uuid(),source:'whatsapp',status:missing.length?'needs_info':'confirmed',customerName:$('orderCustomer').value,customerPhone:$('orderPhone').value,deliveryAddress:$('orderAddress').value,deliveryArea:$('orderArea').value,paymentMethod:$('orderMethod').value,deliveryFee:num($('orderDeliveryFee').value),rawMessage:$('whatsappText').value,missingFields:missing,items:[{productName:$('orderProduct').value,variant,quantity:num($('orderQuantity').value)||1,unitPrice:num($('orderPrice').value),unitCost:0}],replaceItems:true},true,true);closeModal('whatsappModal');resetWhatsapp();await refreshData(false);toast('Commande créée',missing.length?'Informations manquantes signalées.':'Prête à être confirmée.')}catch(e){toast('Commande non créée',e.message,'error')}finally{setBusy(false)}}
+function resetWhatsapp(){state.parsed=null;['whatsappText','orderCustomer','orderPhone','orderProduct','orderVariant','orderColor','orderArea','orderAddress'].forEach(id=>$(id).value='');$('orderQuantity').value='1';$('orderPrice').value='0';$('orderDeliveryFee').value='0';$('parserResult').classList.add('hidden');$('orderEditFields').classList.add('hidden');$('saveOrderBtn').classList.add('hidden')}
+function openOrder(id){const o=(state.data.orders||[]).find(x=>x.id===id);if(!o)return;state.selectedOrder=o;$('orderDetailTitle').textContent=o.order_number;$('orderDetailSubtitle').textContent=`${statusLabel(o.status)} · ${o.customer_name||'Client à préciser'}`;$('orderDetailBody').innerHTML=`<div class="parser-grid"><div class="parser-cell"><span>Téléphone</span><b>${esc(o.customer_phone||'—')}</b></div><div class="parser-cell"><span>Adresse</span><b>${esc(o.delivery_address||'—')}</b></div><div class="parser-cell"><span>Total</span><b>${fmt(o.total_amount)}</b></div><div class="parser-cell"><span>Payé</span><b>${fmt(o.paid_amount)}</b></div></div><div class="card" style="margin-top:12px">${(o.sama_order_items||[]).map(i=>`<div class="row-card"><div class="row-main"><div class="row-title">${esc(i.product_name)}</div><div class="row-meta">${esc(i.variant||'')}</div></div><div class="row-value"><strong>${Number(i.quantity)} × ${fmt(i.unit_price)}</strong></div></div>`).join('')||`<div class="hint">${esc(o.raw_message||'Aucun article')}</div>`}</div>`;$('orderCreateSaleBtn').disabled=!!o.sale_id;$('orderCreateDeliveryBtn').disabled=!!o.delivery_id;openModal('orderModal')}
+async function orderToSale(){const o=state.selectedOrder;if(!o)return;const items=(o.sama_order_items||[]).map(i=>({productId:i.product_id,productName:i.product_name,variant:i.variant,quantity:Number(i.quantity),unitPrice:Number(i.unit_price),unitCost:Number(i.unit_cost)}));setBusy(true);try{await api('create_business_sale',{clientRef:uuid(),customerName:o.customer_name,customerPhone:o.customer_phone,description:`Commande ${o.order_number}`,items,paidAmount:Number(o.paid_amount),paymentMethod:o.payment_method,deliveryCost:Number(o.delivery_cost),source:'whatsapp',orderId:o.id});closeModal('orderModal');await refreshData(false);toast('Commande transformée en vente')}catch(e){toast('Transformation impossible',e.message,'error')}finally{setBusy(false)}}
+async function orderToDelivery(){const o=state.selectedOrder;if(!o)return;setBusy(true);try{await api('create_delivery',{orderId:o.id,recipientName:o.customer_name,recipientPhone:o.customer_phone,deliveryAddress:o.delivery_address,deliveryArea:o.delivery_area,landmark:o.landmark,amountToCollect:Math.max(Number(o.total_amount)-Number(o.paid_amount),0),deliveryFee:Number(o.delivery_fee),paymentExpected:o.payment_method,packageDescription:`Commande ${o.order_number}`});closeModal('orderModal');await refreshData(false);toast('Livraison créée','Elle apparaît maintenant dans SAMA Livraison.')}catch(e){toast('Livraison impossible',e.message,'error')}finally{setBusy(false)}}
+function exportCsv(){const rows=[['Type','Date','Libellé','Client','Montant','Payé','Reste','Coût','Bénéfice'],...(state.data.sales||[]).map(s=>['Vente',s.happened_at,s.description,s.customer_name_snapshot||'',s.total_amount,s.paid_amount,s.remaining_amount,s.cost_amount,s.profit_amount]),...(state.data.expenses||[]).map(e=>['Dépense',e.happened_at,e.label,'',-Number(e.amount),'','','',''])];const csv=rows.map(r=>r.map(v=>`"${String(v??'').replace(/"/g,'""')}"`).join(';')).join('\n');const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`sama-business-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(a.href)}
+function startVoice(targetId,btn){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return toast('Dictée non disponible','Utilisez le clavier vocal de votre téléphone.','warn');if(state.listening){state.listening.stop();state.listening=null;return}const rec=new SR();rec.lang=state.language==='wo'?'wo-SN':'fr-SN';rec.interimResults=true;rec.continuous=false;const target=$(targetId),before=target.value;rec.onstart=()=>{state.listening=rec;btn.classList.add('listening')};rec.onresult=e=>{let text='';for(let i=e.resultIndex;i<e.results.length;i++)text+=e.results[i][0].transcript;target.value=(before?before+' ':'')+text;target.dispatchEvent(new Event('input'))};rec.onerror=()=>toast('Micro interrompu','Parlez plus près du téléphone ou utilisez le clavier vocal.','warn');rec.onend=()=>{state.listening=null;btn.classList.remove('listening')};rec.start()}
+async function logout(){try{await api('logout')}catch{}clearSession();showAuth();toast('Session fermée')}
+function wire(){
+  document.querySelectorAll('[data-auth-tab]').forEach(b=>b.onclick=()=>setAuthTab(b.dataset.authTab));document.querySelectorAll('[data-auth-type]').forEach(b=>b.onclick=()=>setAuthType(b.dataset.authType));$('authSubmit').onclick=authSubmit;
+  document.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>nav(b.dataset.nav));document.querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openModal(b.dataset.open));document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>closeModal(b));document.querySelectorAll('.modal-backdrop').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)closeModal(m)}));
+  $('refreshBtn').onclick=()=>refreshData();$('languageBtn').onclick=()=>{state.language=state.language==='fr'?'wo':'fr';saveSession();$('languageBtn').textContent=state.language==='wo'?'WO':'FR';toast('Langue modifiée',state.language==='wo'?'Wolof activé':'Français activé')};
+  $('addSaleItem').onclick=()=>addSaleItem();$('saveSaleBtn').onclick=saveSale;$('saveExpenseBtn').onclick=saveExpense;$('saveProductBtn').onclick=saveProduct;$('saveStockBtn').onclick=saveStock;$('saveWithdrawBtn').onclick=saveWithdraw;$('parseWhatsappBtn').onclick=parseWhatsapp;$('pasteWhatsappBtn').onclick=async()=>{try{$('whatsappText').value=await navigator.clipboard.readText()}catch{toast('Collage bloqué','Maintenez le doigt dans la zone puis choisissez Coller.','warn')}};$('saveOrderBtn').onclick=saveOrder;$('orderCreateSaleBtn').onclick=orderToSale;$('orderCreateDeliveryBtn').onclick=orderToDelivery;
+  $('salesSearch').oninput=renderSales;$('salesFilter').onchange=renderSales;$('productsSearch').oninput=renderProducts;$('ordersSearch').oninput=renderOrders;$('ordersFilter').onchange=renderOrders;
+  $('productSalePrice').oninput=updateProductMargin;$('productCost').oninput=updateProductMargin;$('exportBtn').onclick=exportCsv;$('legacyBtn').onclick=()=>location.href='?mode=legacy';$('logoutBtn').onclick=logout;
+  document.addEventListener('click',e=>{const p=e.target.closest('[data-product-edit]');if(p)editProduct(p.dataset.productEdit);const o=e.target.closest('[data-order-open]');if(o)openOrder(o.dataset.orderOpen);const mic=e.target.closest('[data-mic]');if(mic)startVoice(mic.dataset.mic,mic)});
+  window.addEventListener('online',()=>{updateNetwork();flushQueue()});window.addEventListener('offline',updateNetwork)
+}
+async function init(){
+  wire();loadSession();updateNetwork();$('saleDate').value=todayLocal();setAuthTab('login');setAuthType('phone');
+  if(state.token&&state.account?.id){showApp();try{await migrateLegacyOffline();await refreshData(false);await flushQueue()}catch(e){console.warn(e)}}else showAuth();
+  if('serviceWorker'in navigator&&location.protocol==='https:'){navigator.serviceWorker.register(`?mode=sw&v=${APP_VERSION}`,{scope:'./'}).catch(()=>{})}
+}
+init();
+</script>
+</body>
+</html>
