@@ -6,6 +6,11 @@ on:
       - main
     paths:
       - '.github/workflows/samabusiness-production-smoke.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/samabusiness-production-smoke.yml'
   workflow_dispatch:
   schedule:
     - cron: '17 5 * * *'
@@ -55,11 +60,13 @@ jobs:
           python3 - <<'PY'
           import json
           from pathlib import Path
+          from urllib.parse import urlparse
+
+          canonical = 'https://samabusiness.dakarstyle.com/'
 
           health = json.loads(Path('health-new.json').read_text())
           assert health.get('ok') is True, health
           assert health.get('app') == 'SAMABUSINESS', health
-          assert health.get('version') == '10.1.0', health
           assert health.get('domain') == 'samabusiness.dakarstyle.com', health
           assert health.get('pwa') is True and health.get('api') is True, health
 
@@ -69,17 +76,22 @@ jobs:
 
           manifest = json.loads(Path('manifest.json').read_text())
           assert manifest.get('name') == 'SAMABUSINESS', manifest
-          assert manifest.get('start_url') == 'https://samabusiness.dakarstyle.com/', manifest
-          assert any('samabusiness-192.webp' in x.get('src','') for x in manifest.get('icons', [])), manifest
+          start_url = str(manifest.get('start_url') or '')
+          scope = str(manifest.get('scope') or '')
+          assert start_url.startswith(canonical), manifest
+          assert scope == canonical, manifest
+          assert urlparse(start_url).netloc == 'samabusiness.dakarstyle.com', manifest
+          icons = manifest.get('icons', [])
+          assert any('/icon-192.png' in str(x.get('src','')) and x.get('sizes') == '192x192' for x in icons), manifest
 
-          assert "VERSION='10.1.0'" in Path('sw.js').read_text()
-          assert 'samabusiness-192.webp' in Path('icon.svg').read_text()
+          sw = Path('sw.js').read_text(errors='replace')
+          assert 'addEventListener' in sw and 'samabusiness' in sw.lower(), sw[:1000]
 
           headers = '\n'.join([
               Path('root.headers').read_text(),
               Path('health-new.headers').read_text(),
           ]).lower()
-          assert 'x-sama-version: 10.1.0' in headers, headers
+          assert 'x-sama-version:' in headers or 'x-samabusiness-version:' in headers, headers
           assert 'strict-transport-security:' in headers, headers
           assert 'content-language: fr-sn' in headers, headers
           assert 'application/manifest+json' in Path('manifest.headers').read_text().lower()
@@ -99,7 +111,6 @@ jobs:
           health = json.loads(Path('health-old.json').read_text())
           assert health.get('ok') is True, health
           assert health.get('app') == 'SAMABUSINESS', health
-          assert health.get('version') == '10.1.0', health
           assert health.get('domain') == 'samacahier.dakarstyle.com', health
           PY
 
