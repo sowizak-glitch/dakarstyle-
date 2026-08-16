@@ -1,0 +1,5 @@
+{
+  "_comment": "ISO 4217 minor-unit exponents. Default is 2 when a currency is absent here (covers the vast majority of ISO 4217). Only exceptions are listed, per ISO 4217 table 3 (zero-decimal and three-decimal currencies).",
+  "0": ["XOF", "XAF", "BIF", "CLP", "DJF", "GNF", "ISK", "JPY", "KMF", "KRW", "PYG", "RWF", "UGX", "VND", "VUV", "XAG", "XAU", "XPF"],
+  "3": ["BHD", "IQD", "JOD", "KWD", "LYD", "OMR", "TND"]
+}

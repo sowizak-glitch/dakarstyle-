@@ -1,0 +1,55 @@
+{
+  "_comment": "Configurable address schemas. A Country Pack references one of these by key instead of the engine hard-coding 'Région > Ville > Quartier' worldwide.",
+  "west-africa": {
+    "fields": [
+      { "key": "region", "labelKey": "address.region", "required": false },
+      { "key": "locality", "labelKey": "address.city", "required": true },
+      { "key": "district", "labelKey": "address.district", "required": false },
+      { "key": "addressLine1", "labelKey": "address.line1", "required": false },
+      { "key": "landmark", "labelKey": "address.landmark", "required": false }
+    ]
+  },
+  "central-africa": {
+    "fields": [
+      { "key": "region", "labelKey": "address.region", "required": false },
+      { "key": "locality", "labelKey": "address.city", "required": true },
+      { "key": "district", "labelKey": "address.district", "required": false },
+      { "key": "addressLine1", "labelKey": "address.line1", "required": false }
+    ]
+  },
+  "generic": {
+    "fields": [
+      { "key": "addressLine1", "labelKey": "address.line1", "required": true },
+      { "key": "addressLine2", "labelKey": "address.line2", "required": false },
+      { "key": "locality", "labelKey": "address.city", "required": true },
+      { "key": "administrativeArea", "labelKey": "address.state", "required": false },
+      { "key": "postalCode", "labelKey": "address.postalCode", "required": false }
+    ]
+  },
+  "us": {
+    "fields": [
+      { "key": "addressLine1", "labelKey": "address.line1", "required": true },
+      { "key": "addressLine2", "labelKey": "address.line2", "required": false },
+      { "key": "locality", "labelKey": "address.city", "required": true },
+      { "key": "administrativeArea", "labelKey": "address.stateAbbrev", "required": true },
+      { "key": "postalCode", "labelKey": "address.zip", "required": true }
+    ]
+  },
+  "in": {
+    "fields": [
+      { "key": "addressLine1", "labelKey": "address.line1", "required": true },
+      { "key": "addressLine2", "labelKey": "address.line2", "required": false },
+      { "key": "locality", "labelKey": "address.city", "required": true },
+      { "key": "administrativeArea", "labelKey": "address.state", "required": true },
+      { "key": "postalCode", "labelKey": "address.pin", "required": true }
+    ]
+  },
+  "jp": {
+    "fields": [
+      { "key": "postalCode", "labelKey": "address.postalCode", "required": true },
+      { "key": "administrativeArea", "labelKey": "address.prefecture", "required": true },
+      { "key": "locality", "labelKey": "address.city", "required": true },
+      { "key": "addressLine1", "labelKey": "address.line1", "required": true }
+    ]
+  }
+}
