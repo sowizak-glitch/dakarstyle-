@@ -6,6 +6,7 @@ const ROUTES = new Set([
   'rerank',
   'safety',
   'ocr',
+  'vision/extract',
   'knowledge/upsert',
   'knowledge/search',
   'knowledge/answer',
@@ -75,14 +76,14 @@ async function proxy(request, env, route) {
     return json({ ok: false, error: 'sowhat_ai_gateway_token_not_configured' }, 503, cors(request));
   }
 
-  const maxBytes = route === 'ocr'
+  const maxBytes = route === 'ocr' || route === 'vision/extract'
     ? 8 * 1024 * 1024
     : route === 'knowledge/upsert'
       ? 512 * 1024
       : 256 * 1024;
   if (bodyTooLarge(request, maxBytes)) return json({ ok: false, error: 'payload_too_large' }, 413, cors(request));
 
-  const isLong = route.startsWith('video/') || route.startsWith('knowledge/') || route === 'ocr';
+  const isLong = route.startsWith('video/') || route.startsWith('knowledge/') || route.startsWith('vision/') || route === 'ocr';
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort('timeout'), isLong ? 150000 : 95000);
   try {
