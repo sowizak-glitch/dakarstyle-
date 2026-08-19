@@ -10,6 +10,7 @@ const ROUTES = new Set([
   'knowledge/upsert',
   'knowledge/search',
   'knowledge/answer',
+  'cuopt/solve',
   'video/director',
   'video/clean-plan',
   'video/clean',
@@ -83,7 +84,7 @@ async function proxy(request, env, route) {
       : 256 * 1024;
   if (bodyTooLarge(request, maxBytes)) return json({ ok: false, error: 'payload_too_large' }, 413, cors(request));
 
-  const isLong = route.startsWith('video/') || route.startsWith('knowledge/') || route.startsWith('vision/') || route === 'ocr';
+  const isLong = route.startsWith('video/') || route.startsWith('knowledge/') || route.startsWith('vision/') || route.startsWith('cuopt/') || route === 'ocr';
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort('timeout'), isLong ? 150000 : 95000);
   try {
