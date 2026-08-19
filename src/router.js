@@ -3,6 +3,7 @@ import senecompare from './senecompare-v541.js';
 import samabusinessSites from './samabusiness-site-proxy-v131.js';
 import samabusinessMedia from './samabusiness-media-review-v133.js';
 import samabusinessOwner from './samabusiness-owner-command-v14.js';
+import nvidiaAi from './nvidia-ai-proxy-v1.js';
 import { handleSocialIntelligenceV3, runInstagramSync } from './social-intelligence-v3.js';
 
 const SENECOMPARE_HOSTS = new Set([
@@ -31,6 +32,11 @@ function isSocialIntelligenceRoute(url) {
   return url.pathname === '/social-intelligence'
     || url.pathname.startsWith('/social-intelligence/')
     || url.pathname.startsWith('/api/social-intelligence/');
+}
+
+function isNvidiaAiRoute(url) {
+  return url.pathname === '/api/sowhat-ai/status'
+    || url.pathname.startsWith('/api/sowhat-ai/');
 }
 
 function hasSha256Binding(value) {
@@ -88,6 +94,9 @@ function isCustomStorefront(url) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (CORE_HOSTS.has(url.hostname) && isNvidiaAiRoute(url)) {
+      return nvidiaAi.fetch(request, env, ctx);
+    }
     if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceRoute(url)) {
       if (!socialIntelligenceSecurityReady(url, env)) return socialIntelligenceNotConfigured(url);
       return handleSocialIntelligenceV3(request, env, ctx);
