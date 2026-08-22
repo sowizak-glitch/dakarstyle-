@@ -1,0 +1,73 @@
+name: SAMABUSINESS Source Verify
+
+on:
+  push:
+    branches:
+      - refactor/samabusiness-source-pipeline-20260809
+    paths:
+      - 'sama-business/app-v9-*.b64'
+      - 'sama-business/tools/**'
+      - 'sama-business/.gitignore'
+      - 'sama-business/README.md'
+      - '.github/workflows/samabusiness-source-verify.yml'
+  pull_request:
+    paths:
+      - 'sama-business/app-v9-*.b64'
+      - 'sama-business/tools/**'
+      - 'sama-business/src/**'
+      - 'sama-business/README.md'
+      - '.github/workflows/samabusiness-source-verify.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: samabusiness-source-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-and-materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Extract verified readable source
+        run: node sama-business/tools/extract-source.mjs
+
+      - name: Verify source integrity
+        run: node sama-business/tools/verify-source.mjs
+
+      - name: Build preview-only artifact
+        run: node sama-business/tools/build-source.mjs
+
+      - name: Commit readable source on refactor branch
+        if: github.event_name == 'push'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add sama-business/src/legacy-v9.html sama-business/src/legacy-v9.meta.json
+          if git diff --cached --quiet; then
+            echo 'Readable source already current.'
+          else
+            git commit -m 'chore(samabusiness): materialize verified readable source [skip ci]'
+            git push origin HEAD:${GITHUB_REF_NAME}
+          fi
+
+      - name: Upload preview artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: samabusiness-preview-artifact
+          path: sama-business/dist/
+          if-no-files-found: error
+          retention-days: 7
