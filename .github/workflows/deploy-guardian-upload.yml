@@ -1,0 +1,88 @@
+name: Deploy Guardian Visual Upload Worker
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/index.js"
+      - "src/worker-entry.js"
+      - "src/legacy-index.js"
+      - "wrangler.visual-upload.jsonc"
+      - "test-guardian-upload.mjs"
+      - ".github/workflows/deploy-guardian-upload.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dakarstyle-guardian-visual-upload-production
+  cancel-in-progress: false
+
+jobs:
+  validate-deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout audited source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Validate fail-closed contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check src/index.js
+          node --check src/worker-entry.js
+          node --check src/legacy-index.js
+          node test-guardian-upload.mjs
+          grep -q "upload-secured" src/legacy-index.js
+          grep -q "guardian_evidence_invalid" src/legacy-index.js
+          grep -q "guardian_hash_mismatch" src/legacy-index.js
+
+      - name: Build pinned Cloudflare bundle
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          npx --yes wrangler@4.114.0 deploy --dry-run \
+            --outdir /tmp/guardian-visual-upload \
+            --config wrangler.visual-upload.jsonc
+          test "$(find /tmp/guardian-visual-upload -type f | wc -l)" -gt 0
+
+      - name: Deploy production Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          npx --yes wrangler@4.114.0 deploy \
+            --config wrangler.visual-upload.jsonc
+
+      - name: Verify live authentication boundary
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          endpoints=(
+            "https://dakarstyle-visual-upload.idrissaminata.workers.dev/visuals/api/upload-secured"
+            "https://dakarstyle.com/visuals/api/upload-secured"
+          )
+          for endpoint in "${endpoints[@]}"; do
+            ready=false
+            for attempt in $(seq 1 24); do
+              options_code="$(curl -sS -o /tmp/options-body -w '%{http_code}' -X OPTIONS "$endpoint" || true)"
+              post_code="$(curl -sS -o /tmp/post-body -w '%{http_code}' -X POST "$endpoint" || true)"
+              echo "attempt=$attempt endpoint=$endpoint options=$options_code post=$post_code"
+              if [ "$options_code" = "204" ] && [ "$post_code" = "401" ] \
+                && jq -e '.ok == false and .error == "unauthorized"' /tmp/post-body >/dev/null 2>&1; then
+                ready=true
+                break
+              fi
+              sleep 5
+            done
+            test "$ready" = true
+          done
+          echo "GUARDIAN_VISUAL_UPLOAD_BOUNDARY=PASS"
