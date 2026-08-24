@@ -1,0 +1,50 @@
+name: Guardian Upload Security Gate
+
+on:
+  pull_request:
+    paths:
+      - "src/legacy-index.js"
+      - "wrangler.visual-upload.jsonc"
+      - "test-guardian-upload.mjs"
+      - ".github/workflows/guardian-upload-security.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/legacy-index.js"
+      - "wrangler.visual-upload.jsonc"
+      - "test-guardian-upload.mjs"
+      - ".github/workflows/guardian-upload-security.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Validate fail-closed upload contract
+        run: |
+          set -Eeuo pipefail
+          node --check src/legacy-index.js
+          node test-guardian-upload.mjs
+          grep -q "upload-secured" src/legacy-index.js
+          grep -q "guardian_hash_mismatch" src/legacy-index.js
+          grep -q "crypto.subtle.timingSafeEqual" src/legacy-index.js
+          if grep -q "SOWHAT_UPLOAD_KEY_SHA256" src/legacy-index.js; then
+            echo "Static upload key digest is forbidden." >&2
+            exit 1
+          fi
+
+      - name: Cloudflare bundle dry-run
+        run: |
+          set -Eeuo pipefail
+          npx --yes wrangler@4.114.0 deploy --dry-run \
+            --outdir /tmp/guardian-upload-worker \
+            --config wrangler.visual-upload.jsonc
+          test "$(find /tmp/guardian-upload-worker -type f | wc -l)" -gt 0

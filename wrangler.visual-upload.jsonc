@@ -2,13 +2,20 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dakarstyle-visual-upload",
   "main": "src/index.js",
-  "compatibility_date": "2026-05-21",
-  "observability": { "enabled": true },
+  "compatibility_date": "2026-08-24",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": true,
+      "head_sampling_rate": 1
+    }
+  },
   "r2_buckets": [
     {
       "binding": "VISUALS_BUCKET",
       "bucket_name": "dakarstyle-visuals"
     }
-  ],
-  "compatibility_flags": ["nodejs_compat"]
+  ]
 }
