@@ -4,6 +4,7 @@ import samabusinessSites from './samabusiness-site-proxy-v131.js';
 import samabusinessMedia from './samabusiness-media-review-v133.js';
 import samabusinessOwner from './samabusiness-owner-command-v14.js';
 import { handleSocialIntelligenceV3, runInstagramSync } from './social-intelligence-v3.js';
+import { handleGuardianPassport } from './guardian-passport.js';
 
 const SENECOMPARE_HOSTS = new Set([
   'senecompare.dakarstyle.com',
@@ -31,6 +32,11 @@ function isSocialIntelligenceRoute(url) {
   return url.pathname === '/social-intelligence'
     || url.pathname.startsWith('/social-intelligence/')
     || url.pathname.startsWith('/api/social-intelligence/');
+}
+
+function isGuardianPassportRoute(url) {
+  return SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname)
+    && (url.pathname === '/visuals' || url.pathname === '/visuals/' || url.pathname.startsWith('/visuals/SWA-GDN-'));
 }
 
 function hasSha256Binding(value) {
@@ -88,6 +94,9 @@ function isCustomStorefront(url) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+    if (isGuardianPassportRoute(url)) {
+      return handleGuardianPassport(request, env);
+    }
     if (SOCIAL_INTELLIGENCE_HOSTS.has(url.hostname) && isSocialIntelligenceRoute(url)) {
       if (!socialIntelligenceSecurityReady(url, env)) return socialIntelligenceNotConfigured(url);
       return handleSocialIntelligenceV3(request, env, ctx);
