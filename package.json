@@ -5,10 +5,11 @@
   "description": "Worker Cloudflare DakarStyle : SOWHAT Control, SeneCompare, Sama Business et storefronts.",
   "comment": "Aucune dependance runtime ni de developpement n'est installee dans ce depot : la racine du depot est aussi la racine des assets publics du Worker (assets.directory = '.'), et un node_modules local serait servi publiquement. Wrangler est invoque via npx dans la CI.",
   "scripts": {
-    "check": "node --check src/router.js && node --check src/social-intelligence-v1.js && node --check src/social-intelligence-v3.js && node --check src/social-intelligence-ui-v4.js && node --check src/social-intelligence-memory-v4.js && node --check src/instagram-client-v5.js && node --check src/instagram-sync-v5.js && node --check src/sowhat-score-v5.js && node --check src/content-memory-v5.js && node --check src/coach-v5.js",
+    "check": "node --check src/router.js && node --check src/guardian-passport.js && node --check src/social-intelligence-v1.js && node --check src/social-intelligence-v3.js && node --check src/social-intelligence-ui-v4.js && node --check src/social-intelligence-memory-v4.js && node --check src/instagram-client-v5.js && node --check src/instagram-sync-v5.js && node --check src/sowhat-score-v5.js && node --check src/content-memory-v5.js && node --check src/coach-v5.js",
     "test:contract": "node tests/social-intelligence-contract.mjs",
     "test:behaviour": "node tests/social-intelligence-behaviour.mjs",
-    "test": "npm run check && npm run test:contract && npm run test:behaviour && npm run test:meta && npm run test:sync && npm run test:score && npm run test:memory && npm run test:coach && npm run test:global-core",
+    "test:guardian-passport": "node tests/guardian-passport.mjs",
+    "test": "npm run check && npm run test:contract && npm run test:behaviour && npm run test:guardian-passport && npm run test:meta && npm run test:sync && npm run test:score && npm run test:memory && npm run test:coach && npm run test:global-core",
     "build:dry-run": "npx --yes wrangler@4 deploy --dry-run --outdir .wrangler-dry-out",
     "test:meta": "node tests/instagram-client-v5.mjs",
     "test:sync": "node tests/instagram-sync-v5.mjs",
