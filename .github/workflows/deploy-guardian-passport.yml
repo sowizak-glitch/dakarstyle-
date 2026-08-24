@@ -1,0 +1,74 @@
+name: Deploy Guardian Visual Passport
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/router.js"
+      - "src/guardian-passport.js"
+      - "wrangler.jsonc"
+      - "tests/guardian-passport.mjs"
+      - ".github/workflows/deploy-guardian-passport.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dakarstyle-guardian-passport-production
+  cancel-in-progress: false
+
+jobs:
+  validate-deploy-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout audited source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+
+      - name: Validate Guardian passport contract
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          node --check src/router.js
+          node --check src/guardian-passport.js
+          node tests/guardian-passport.mjs
+          grep -F "handleGuardianPassport" src/router.js >/dev/null
+          grep -F "SOWHAT Guardian — Visual Passport" src/guardian-passport.js >/dev/null
+          grep -F "GUARDIAN_VERIFIED" src/guardian-passport.js >/dev/null
+
+      - name: Cloudflare dry run
+        run: npx --yes wrangler@4.114.0 deploy --dry-run --outdir /tmp/dakarstyle-guardian-passport
+
+      - name: Deploy DakarStyle production Worker
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          test -n "${CLOUDFLARE_API_TOKEN:-}"
+          test -n "${CLOUDFLARE_ACCOUNT_ID:-}"
+          npx --yes wrangler@4.114.0 deploy
+
+      - name: Verify live Guardian Visual Passport
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          ok=false
+          for attempt in $(seq 1 24); do
+            nonce="${GITHUB_SHA}-${attempt}-$(date +%s)"
+            body="$(curl -fsS --max-time 25 -H 'Cache-Control: no-cache' "https://dakarstyle.com/visuals/?deploy=${nonce}" || true)"
+            if [[ "$body" == *"AI IMAGE GUARDIAN"* ]] \
+              && [[ "$body" == *"Visual Passport"* ]] \
+              && [[ "$body" == *"DWT-DCT"* ]] \
+              && [[ "$body" == *"SOWHAT AFRICA"* ]]; then
+              echo "Guardian Visual Passport live on attempt $attempt"
+              ok=true
+              break
+            fi
+            sleep 5
+          done
+          test "$ok" = true
